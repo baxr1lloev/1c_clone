@@ -1,0 +1,767 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: SaaS ERP\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-01-30 01:40+0000\n"
+"PO-Revision-Date: 2026-01-30 01:45+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: uz\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "SaaS ERP"
+msgstr "SaaS ERP"
+
+msgid "Dashboard"
+msgstr "Bosh sahifa"
+
+msgid "DIRECTORIES"
+msgstr "MA'LUMOTNOMALAR"
+
+msgid "Counterparties"
+msgstr "Kontragentlar"
+
+msgid "Contracts"
+msgstr "Shartnomalar"
+
+msgid "Warehouses"
+msgstr "Omborlar"
+
+msgid "Items"
+msgstr "Nomenklatura"
+
+msgid "Exchange Rates"
+msgstr "Valyuta kurslari"
+
+msgid "DOCUMENTS"
+msgstr "HUJJATLAR"
+
+msgid "Sales Orders"
+msgstr "Mijoz buyurtmalari"
+
+msgid "Sales Invoices"
+msgstr "Sotuvlar"
+
+msgid "Purchases"
+msgstr "Xaridlar"
+
+msgid "Transfers"
+msgstr "Ko'chirishlar"
+
+msgid "Payments"
+msgstr "To'lovlar"
+
+msgid "Inventory Counts"
+msgstr "Inventarizatsiya"
+
+msgid "ACCOUNTING"
+msgstr "BUXGALTERIYA"
+
+msgid "Chart of Accounts"
+msgstr "Hisoblar rejasi"
+
+msgid "Journal Entries"
+msgstr "O'tkazmalar"
+
+msgid "Period Closing"
+msgstr "Davrni yopish"
+
+msgid "Accounting Policy"
+msgstr "Hisob siyosati"
+
+msgid "Financial Reports"
+msgstr "Moliyaviy hisobotlar"
+
+msgid "TAXES"
+msgstr "SOLIQLAR"
+
+msgid "Tax Reports"
+msgstr "Soliq hisobotlari"
+
+msgid "+ New Tax Report"
+msgstr "+ Yangi hisobot"
+
+msgid "CASH FLOW"
+msgstr "PUL OQIMI"
+
+msgid "💰 Cash Flow Statement"
+msgstr "💰 Pul oqimi to'g'risida hisobot"
+
+msgid "💵 Cash Position"
+msgstr "💵 Pul qoldiqlari"
+
+msgid "📥 Receivables"
+msgstr "📥 Debitorlik qarzlari"
+
+msgid "📤 Payables"
+msgstr "📤 Kreditorlik qarzlari"
+
+msgid "FINANCIAL REPORTS"
+msgstr "MOLIYAVIY HISOBOTLAR"
+
+msgid "📊 Balance Sheet"
+msgstr "📊 Balans"
+
+msgid "📈 P&L Statement"
+msgstr "📈 Foyda va zararlar"
+
+msgid "PERIOD MANAGEMENT"
+msgstr "DAVRNI BOSHQARISH"
+
+msgid "📅 Periods"
+msgstr "📅 Davrlar"
+
+msgid "REPORTS"
+msgstr "HISOBOTLAR"
+
+msgid "Operational Reports"
+msgstr "Operativ hisobotlar"
+
+msgid "ADMIN"
+msgstr "ADMINISTRATOR"
+
+msgid "👥 Users"
+msgstr "👥 Foydalanuvchilar"
+
+msgid "SUBSCRIPTION"
+msgstr "OBUNA"
+
+msgid "My Plan"
+msgstr "Mening tarifim"
+
+msgid "Invoices"
+msgstr "Hisob-fakturalar"
+
+msgid "Team Access"
+msgstr "Jamoa"
+
+msgid "Notifications"
+msgstr "Bildirishnomalar"
+
+msgid "Logout"
+msgstr "Chiqish"
+
+# Common Terms
+msgid "Generate"
+msgstr "Shakllantirish"
+msgid "Results:"
+msgstr "Natijalar:"
+msgid "Item"
+msgstr "Tovar"
+msgid "Warehouse"
+msgstr "Ombor"
+msgid "Quantity"
+msgstr "Miqdor"
+msgid "Data rendering logic not implemented in view."
+msgstr "Ma'lumotlarni ko'rsatish mantiqi hali amalga oshirilmagan."
+msgid "No data found for selected criteria."
+msgstr "Tanlangan mezonlar bo'yicha ma'lumot topilmadi."
+
+# Forms
+msgid "From Date"
+msgstr "Boshlanish sanasi"
+msgid "To Date"
+msgstr "Tugash sanasi"
+msgid "Show items with zero stock"
+msgstr "Nol qoldiqli tovarlarni ko'rsatish"
+msgid "Show fully consumed batches"
+msgstr "Sarflangan partiyalarni ko'rsatish"
+msgid "Show only low stock items (available < 10)"
+msgstr "Faqat kam qolgan tovarlarni ko'rsatish (< 10)"
+msgid "Show only items with reservations"
+msgstr "Faqat rezerv qilinganlarni ko'rsatish"
+msgid "As of Date"
+msgstr "Qaysi sanaga"
+msgid "Valuation Method Override"
+msgstr "Baholash usuli (o'zgartirish)"
+msgid "Use Accounting Policy"
+msgstr "Hisob siyosatidan foydalanish"
+msgid "FIFO"
+msgstr "FIFO"
+msgid "Weighted Average"
+msgstr "O'rtacha tortilgan"
+msgid "LIFO"
+msgstr "LIFO"
+msgid "Movement Type"
+msgstr "Harakat turi"
+msgid "All Types"
+msgstr "Barcha turlar"
+msgid "Incoming"
+msgstr "Kirim"
+msgid "Outgoing"
+msgstr "Chiqim"
+msgid "Show reversal movements (storno)"
+msgstr "Stornolarni ko'rsatish"
+msgid "Counterparty"
+msgstr "Kontragent"
+msgid "Counterparty Type"
+msgstr "Kontragent turi"
+msgid "Customers Only"
+msgstr "Faqat mijozlar"
+msgid "Suppliers Only"
+msgstr "Faqat yetkazib beruvchilar"
+msgid "Show counterparties with zero balance"
+msgstr "Nol balansli kontragentlarni ko'rsatish"
+msgid "All Warehouses"
+msgstr "Barcha omborlar"
+msgid "All Items"
+msgstr "Barcha tovarlar"
+msgid "All Counterparties"
+msgstr "Barcha kontragentlar"
+
+# Reports Headers
+msgid "Stock Report"
+msgstr "Qoldiqlar hisoboti"
+msgid "Batch Turnover Report"
+msgstr "Partiya aylanmasi hisoboti"
+msgid "Stock Availability Report"
+msgstr "Tovar mavjudligi hisoboti"
+msgid "Inventory Valuation Report"
+msgstr "Ombor qiymati hisoboti"
+msgid "Stock Movement Report"
+msgstr "Tovar harakati hisoboti"
+msgid "Settlements Report"
+msgstr "O'zaro hisob-kitoblar"
+
+# Columns
+msgid "Batch"
+msgstr "Partiya"
+msgid "Opening Qty"
+msgstr "Bosh. qoldiq"
+msgid "In"
+msgstr "Kirim"
+msgid "Out"
+msgstr "Chiqim"
+msgid "Closing Qty"
+msgstr "Yakuniy qoldiq"
+msgid "On Hand"
+msgstr "Mavjud"
+msgid "Reserved"
+msgstr "Rezervda"
+msgid "Available"
+msgstr "Yaroqli"
+msgid "Qty"
+msgstr "Miqdor"
+msgid "Unit Cost"
+msgstr "Tannarx"
+msgid "Total Value"
+msgstr "Qiymat"
+msgid "Date"
+msgstr "Sana"
+msgid "Document"
+msgstr "Hujjat"
+msgid "Contract"
+msgstr "Shartnoma"
+msgid "Receivable"
+msgstr "Debitor qarzdorlik"
+msgid "Payable"
+msgstr "Kreditor qarzdorlik"
+msgid "Balance (Net)"
+msgstr "Saldo"
+# Template Strings - Sales/Purchases
+msgid "Sales Documents"
+msgstr "Sotuv hujjatlari"
+
+msgid "+ New Sale"
+msgstr "+ Yangi sotuv"
+
+msgid "Purchase Documents"
+msgstr "Xarid hujjatlari"
+
+msgid "+ New Purchase"
+msgstr "+ Yangi xarid"
+
+msgid "Number"
+msgstr "Raqam"
+
+msgid "Customer"
+msgstr "Mijoz"
+
+msgid "Supplier"
+msgstr "Yetkazib beruvchi"
+
+msgid "Amount"
+msgstr "Summa"
+
+msgid "Status"
+msgstr "Holat"
+
+msgid "Actions"
+msgstr "Amallar"
+
+msgid "Posted"
+msgstr "Проведён"
+
+msgid "Draft"
+msgstr "Qoralama"
+
+msgid "View"
+msgstr "Ko'rish"
+
+msgid "No sales documents found."
+msgstr "Sotuv hujjatlari topilmadi."
+
+msgid "No purchase documents found."
+msgstr "Xarid hujjatlari topilmadi."
+
+# Directories Templates
+msgid "+ Add New"
+msgstr "+ Yangi qo'shish"
+
+msgid "Name"
+msgstr "Nomi"
+
+msgid "INN"
+msgstr "STIR"
+
+msgid "Type"
+msgstr "Turi"
+
+msgid "Phone"
+msgstr "Telefon"
+
+msgid "Action"
+msgstr "Amal"
+
+msgid "Edit"
+msgstr "Tahrirlash"
+
+msgid "No items found."
+msgstr "Tovarlar topilmadi."
+
+msgid "No counterparties found."
+msgstr "Kontragentlar topilmadi."
+
+msgid "SKU"
+msgstr "Artikul"
+
+msgid "Unit"
+msgstr "O'lchov birligi"
+
+msgid "Purchase Price"
+msgstr "Harid narxi"
+
+msgid "Selling Price"
+msgstr "Sotuv narxi"
+
+msgid "Address"
+msgstr "Manzil"
+
+msgid "Active"
+msgstr "Faol"
+
+msgid "Inactive"
+msgstr "Nofaol"
+
+msgid "No warehouses found."
+msgstr "Omborlar topilmadi."
+
+msgid "Currency"
+msgstr "Valyuta"
+
+msgid "No contracts found."
+msgstr "Shartnomalar topilmadi."
+
+# Admin Fieldsets
+msgid "Basic Information"
+msgstr "Asosiy ma'lumotlar"
+
+msgid "Correction"
+msgstr "Tuzatish"
+
+msgid "New Document (if replacement)"
+msgstr "Yangi hujjat (almashtirish bo'lsa)"
+
+msgid "Metadata"
+msgstr "Metama'lumotlar"
+
+msgid "Period"
+msgstr "Davr"
+
+msgid "Closing"
+msgstr "Yopish"
+
+msgid "Results"
+msgstr "Natijalar"
+
+msgid "Amounts"
+msgstr "Summalar"
+
+msgid "E-Soliq"
+msgstr "E-Soliq"
+
+msgid "Relationships"
+msgstr "Bog'lanishlar"
+
+msgid "VAT Calculation"
+msgstr "QQS hisoblash"
+
+msgid "Submission"
+msgstr "Topshirish"
+
+msgid "Sources"
+msgstr "Manbalar"
+
+msgid "Logistics"
+msgstr "Logistika"
+
+msgid "Dates"
+msgstr "Sanalar"
+
+# Dashboard Metrics
+msgid "Cash & Bank"
+msgstr "Kassa va Bank"
+
+msgid "Receivables"
+msgstr "Debitorlar"
+
+msgid "Customers owe us"
+msgstr "Mijozlar qarz"
+
+msgid "Payables"
+msgstr "Kreditorlar"
+
+msgid "We owe suppliers"
+msgstr "Yetkazuvchilarga qarz"
+
+msgid "Sales Today"
+msgstr "Bugungi sotuvlar"
+
+msgid "Sales MTD"
+msgstr "Oy davomida sotuvlar"
+
+msgid "Month-to-Date"
+msgstr "Oy boshidan buyon"
+
+msgid "Profit MTD"
+msgstr "Oy davomida foyda"
+
+msgid "Revenue - Expenses"
+msgstr "Daromad - Xarajatlar"
+
+# Period Status
+msgid "Current Period"
+msgstr "Joriy davr"
+
+msgid "CLOSED"
+msgstr "YOPIQ"
+
+msgid "OPEN"
+msgstr "OCHIQ"
+
+msgid "No active period found"
+msgstr "Faol davr topilmadi"
+
+#: templates/dashboard.html
+msgid "Closed on %(closed_at)s"
+msgstr "%(closed_at)s da yopilgan"
+
+# Tax Reports
+msgid "Tax Reports Status"
+msgstr "Soliq hisobotlari holati"
+
+msgid "View All Reports"
+msgstr "Barcha hisobotlarni ko'rish"
+
+msgid "No tax reports yet"
+msgstr "Hali soliq hisobotlari yo'q"
+
+# Recent Activity  
+msgid "Recent Activity"
+msgstr "So'nggi faoliyat"
+
+msgid "Recent Sales"
+msgstr "So'nggi sotuvlar"
+
+msgid "No recent sales"
+msgstr "So'nggi sotuvlar yo'q"
+
+msgid "Recent Purchases"
+msgstr "So'nggi xaridlar"
+
+msgid "No recent purchases"
+msgstr "So'nggi xaridlar yo'q"
+
+# User Management
+msgid "User Management"
+msgstr "Foydalanuvchilarni boshqarish"
+
+msgid "+ Invite User"
+msgstr "+ Foydalanuvchi taklif qilish"
+
+msgid "Email"
+msgstr "Elektron pochta"
+
+msgid "Role"
+msgstr "Rol"
+
+msgid "No role"
+msgstr "Rol yo'q"
+
+msgid "No users found"
+msgstr "Foydalanuvchilar topilmadi"
+
+msgid "Change Role"
+msgstr "Rolni o'zgartirish"
+
+msgid "Activate"
+msgstr "Faollashtirish"
+
+# Accounting Periods
+msgid "Accounting Periods"
+msgstr "Hisob davrlari"
+
+msgid "Closed"
+msgstr "Yopilgan"
+
+msgid "Open"
+msgstr "Ochiq"
+
+msgid "Closed By"
+msgstr "Kim yopgan"
+
+msgid "Closed At"
+msgstr "Qachon yopilgan"
+
+msgid "Close period"
+msgstr "Davrni yopish"
+
+msgid "This will:"
+msgstr "Bu:"
+
+msgid "Lock all documents in this period"
+msgstr "Ushbu davrdagi barcha hujjatlarni bloklaydi"
+
+msgid "Prevent posting/unposting"
+msgstr "Provodkani taqiqlaydi"
+
+msgid "Calculate final balances"
+msgstr "Yakuniy qoldiqlarni hisoblaydi"
+
+msgid "Continue?"
+msgstr "Davom etasizmi?"
+
+msgid "Close"
+msgstr "Yopish"
+
+msgid "Reopen period"
+msgstr "Davrni qayta ochish"
+
+msgid "This will allow modifications again."
+msgstr "Bu qayta o'zgartirishga ruxsat beradi."
+
+msgid "Reopen"
+msgstr "Qayta ochish"
+
+msgid "No actions available"
+msgstr "Amallar yo'q"
+
+msgid "No periods found. Periods are created automatically when documents are posted."
+msgstr "Davrlar topilmadi. Davrlar hujjatlar o'tkazilganda avtomatik yaratiladi."
+
+msgid "About Periods:"
+msgstr "Davrlar haqida:"
+
+msgid "Periods are automatically created from posted documents"
+msgstr "Davrlar o'tkazilgan hujjatlardan avtomatik yaratiladi"
+
+msgid "Closed periods prevent any document posting/unposting"
+msgstr "Yopilgan davrlarda hujjatlar o'tkazib bo'lmaydi"
+
+msgid "Only users with proper permissions can close/reopen periods"
+msgstr "Faqat ruxsatli foydalanuvchilar davrlarni yopish/ochish mumkin"
+
+msgid "Period closing is logged in the audit trail"
+msgstr "Davr yopilishi audit jurnalida qayd etiladi"
+
+# Chart of Accounts
+msgid "+ New Account"
+msgstr "+ Yangi hisob"
+
+msgid "Code"
+msgstr "Kod"
+
+msgid "Parent"
+msgstr "Ota hisob"
+
+msgid "No accounts found."
+msgstr "Hisoblar topilmadi."
+
+# Sales Detail
+msgid "Post this document?"
+msgstr "Provodka qilasizmi?"
+
+msgid "Post"
+msgstr "O'tkazish"
+
+msgid "Unpost this document?"
+msgstr "Provodkani bekor qilasizmi?"
+
+msgid "Unpost"
+msgstr "Bekor qilish"
+
+msgid "Back"
+msgstr "Ortga"
+
+msgid "Price (Base)"
+msgstr "Narx (bazada)"
+
+msgid "Amount (Base)"
+msgstr "Summa (bazada)"
+
+msgid "Delete this line?"
+msgstr "Qatorni o'chirasizmi?"
+
+msgid "No lines yet."
+msgstr "Qatorlar yo'q."
+
+msgid "Total:"
+msgstr "Jami:"
+
+msgid "Total Base:"
+msgstr "Jami (bazada):"
+
+msgid "Add Line"
+msgstr "Qator qo'shish"
+
+msgid "Add"
+msgstr "Qo'shish"
+
+# Billing
+msgid "My Invoices"
+msgstr "Mening hisob-fakturalarim"
+
+msgid "Invoice #"
+msgstr "Hisob-faktura "
+
+msgid "Due Date"
+msgstr "To'lash sanasi"
+
+msgid "Paid"
+msgstr "To'langan"
+
+msgid "Unpaid"
+msgstr "To'lanmagan"
+
+msgid "Pay this invoice?"
+msgstr "Hisob-fakturani to'lasizmi?"
+
+msgid "Pay Now"
+msgstr "Hozir to'lash"
+
+msgid "No invoices found."
+msgstr "Hisob-fakturalar topilmadi."
+
+# Purchase Detail  
+msgid "Post (Receive Goods)"
+msgstr "O'tkazish (Tovarlarni qabul qilish)"
+
+msgid "Edit Header"
+msgstr "Sarlavhani tahrirlash"
+
+msgid "POSTED"
+msgstr "O'TKAZILGAN"
+
+# Cash Position
+msgid "Cash Position"
+msgstr "Kassa holati"
+
+msgid "As of:"
+msgstr "Qaysi sanaga:"
+
+msgid "Update"
+msgstr "Yangilash"
+
+msgid "Cash & Bank Balances"
+msgstr "Kassa va Bank qoldiqlari"
+
+msgid "No cash or bank accounts with balance"
+msgstr "Qoldiqdagi kassa yoki bank hisobi yo'q"
+
+msgid "Total Cash Available"
+msgstr "Jami mavjud pul"
+
+# Subscription
+msgid "My Subscription"
+msgstr "Mening obuna"
+
+msgid "Current Plan:"
+msgstr "Joriy tarif:"
+
+msgid "Renews:"
+msgstr "Yangilanadi:"
+
+msgid "Storage Used:"
+msgstr "Xotira ishlatilgan:"
+
+msgid "Upgrade Plan"
+msgstr "Tarifni oshirish"
+
+msgid "Download"
+msgstr "Yuklash"
+# Добавляем переводы для dashboard в УЗБЕКСКИЙ файл
+
+# Metric labels
+msgid "Cash & Bank"
+msgstr "Kassa va bank"
+
+msgid "Customers owe us"
+msgstr "Bizga qarzdorlar"
+
+msgid "We owe suppliers"
+msgstr "Biz qarzdormiz"
+
+msgid "Sales Today"
+msgstr "Bugungi sotuv"
+
+msgid "Sales MTD"
+msgstr "Oylik sotuv"
+
+msgid "Month-to-Date"
+msgstr "Oy boshidan"
+
+msgid "Profit MTD"
+msgstr "Oylik foyda"
+
+msgid "Revenue - Expenses"
+msgstr "Daromad minus xarajat"
+
+# Period section
+msgid "Current Period"
+msgstr "Joriy davr"
+
+msgid "CLOSED"
+msgstr "YOPIQ"
+
+msgid "OPEN"
+msgstr "OCHIQ"
+
+msgid "No active period found"
+msgstr "Faol davr topilmadi"
+
+# Tax reports
+msgid "Tax Reports Status"
+msgstr "Soliq hisobotlari holati"
+
+msgid "View All Reports"
+msgstr "Barcha hisobotlar"
+
+msgid "No tax reports yet"
+msgstr "Hali soliq hisobotlari yo'q"
+
+# Recent activity
+msgid "Recent Activity"
+msgstr "So'nggi faoliyat"
+
+msgid "Recent Purchases"
+msgstr "So'nggi xaridlar"
+
+msgid "No recent sales"
+msgstr "So'nggi sotuvlar yo'q"
+
+msgid "No recent purchases"
+msgstr "So'nggi xaridlar yo'q"
+

@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="form-container">
+    <h1>{{ title }}</h1>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="{{ form.email.id_for_label }}">{% trans "Email:" %}</label>
+            {{ form.email }}
+            {% if form.email.errors %}
+                <div class="error">{{ form.email.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.first_name.id_for_label }}">{% trans "First Name:" %}</label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}
+                <div class="error">{{ form.first_name.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.last_name.id_for_label }}">{% trans "Last Name:" %}</label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}
+                <div class="error">{{ form.last_name.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.role.id_for_label }}">{% trans "Role:" %}</label>
+            {{ form.role }}
+            {% if form.role.errors %}
+                <div class="error">{{ form.role.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.password.id_for_label }}">{% trans "Temporary Password:" %}</label>
+            {{ form.password }}
+            <small class="form-text">{% trans "User will receive password reset link via email" %}</small>
+            {% if form.password.errors %}
+                <div class="error">{{ form.password.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Invite User" %}</button>
+            <a href="{% url 'accounts:user_list' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.form-container {
+    max-width: 600px;
+    margin: 2rem auto;
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-input, .form-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.form-text {
+    display: block;
+    margin-top: 0.25rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.error {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+</style>
+{% endblock %}

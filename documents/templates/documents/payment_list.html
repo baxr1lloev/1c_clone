@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Payment Documents" %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>{% trans "Payments" %}</h2>
+        <a href="{% url 'documents:payment_add' %}" class="btn btn-primary">{% trans "+ New Payment" %}</a>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>{% trans "Number" %}</th>
+                <th>{% trans "Date" %}</th>
+                <th>{% trans "Type" %}</th>
+                <th>{% trans "Counterparty" %}</th>
+                <th>{% trans "Contract" %}</th>
+                <th>{% trans "Amount" %}</th>
+                <th>{% trans "Status" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc in documents %}
+            <tr>
+                <td>{{ doc.number }}</td>
+                <td>{{ doc.date|date:"Y-m-d H:i" }}</td>
+                <td>
+                    {% if doc.payment_type == 'INCOMING' %}
+                    <span class="text-success">{% trans "Incoming" %}</span>
+                    {% else %}
+                    <span class="text-danger">{% trans "Outgoing" %}</span>
+                    {% endif %}
+                </td>
+                <td>{{ doc.counterparty }}</td>
+                <td>{{ doc.contract }}</td>
+                <td>{{ doc.amount }} {{ doc.currency }}</td>
+                <td>
+                    <span class="badge badge-success">{% trans "Posted" %}</span>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="text-align: center; color: #6b7280;">{% trans "No payment documents found." %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+.badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+.badge-success { background: #d1fae5; color: #065f46; }
+.text-success { color: #059669; font-weight: 500; }
+.text-danger { color: #dc2626; font-weight: 500; }
+</style>
+{% endblock %}

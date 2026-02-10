@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>📥 {% trans "Receivables Aging" %}</h1>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <span style="font-weight: 500;">{% trans "Total:" %} {{ receivables.total_receivables|floatformat:2 }}</span>
+            <form method="get">
+                <label>{% trans "As of:" %} </label>
+                <input type="date" name="as_of_date" value="{{ as_of_date|date:'Y-m-d' }}" class="form-input">
+                <button type="submit" class="btn btn-primary">{% trans "Update" %}</button>
+            </form>
+        </div>
+    </div>
+
+    <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 1.5rem;">
+        <h3 style="margin-bottom: 1rem;">{% trans "Summary by Age" %}</h3>
+        <div style="display: flex; gap: 1rem;">
+            <div style="flex: 1; padding: 1rem; background: #f0fdf4; border-radius: 4px; text-align: center;">
+                <div style="font-size: 0.875rem; color: #6b7280;">{% trans "Current" %}</div>
+                <div style="font-size: 1.2rem; font-weight: 600; color: #10b981;">{{ receivables.totals.current|floatformat:2 }}</div>
+            </div>
+            <div style="flex: 1; padding: 1rem; background: #fef3c7; border-radius: 4px; text-align: center;">
+                <div style="font-size: 0.875rem; color: #6b7280;">{% trans "1-30 days" %}</div>
+                <div style="font-size: 1.2rem; font-weight: 600; color: #f59e0b;">{{ receivables.totals.days_1_30|floatformat:2 }}</div>
+            </div>
+            <div style="flex: 1; padding: 1rem; background: #fed7aa; border-radius: 4px; text-align: center;">
+                <div style="font-size: 0.875rem; color: #6b7280;">{% trans "31-60 days" %}</div>
+                <div style="font-size: 1.2rem; font-weight: 600; color: #ea580c;">{{ receivables.totals.days_31_60|floatformat:2 }}</div>
+            </div>
+            <div style="flex: 1; padding: 1rem; background: #fecaca; border-radius: 4px; text-align: center;">
+                <div style="font-size: 0.875rem; color: #6b7280;">{% trans "61-90 days" %}</div>
+                <div style="font-size: 1.2rem; font-weight: 600; color: #dc2626;">{{ receivables.totals.days_61_90|floatformat:2 }}</div>
+            </div>
+            <div style="flex: 1; padding: 1rem; background: #fee2e2; border-radius: 4px; text-align: center;">
+                <div style="font-size: 0.875rem; color: #6b7280;">{% trans "90+ days" %}</div>
+                <div style="font-size: 1.2rem; font-weight: 600; color: #991b1b;">{{ receivables.totals.days_90_plus|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="margin-bottom: 1rem;">{% trans "Details" %}</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>{% trans "Customer" %}</th>
+                    <th>{% trans "Amount" %}</th>
+                    <th>{% trans "Age" %}</th>
+                    <th>{% trans "Bucket" %}</th>
+                    <th>{% trans "Oldest Invoice" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in receivables.items %}
+                    <tr>
+                        <td><strong>{{ item.counterparty.name }}</strong></td>
+                        <td>{{ item.amount|floatformat:2 }} {{ item.currency.code }}</td>
+                        <td>{% blocktrans with days=item.days_old %}{{ days }} days{% endblocktrans %}</td>
+                        <td>
+                            <span style="padding: 4px 12px; border-radius: 4px; font-size: 0.875rem;
+                                {% if item.bucket == 'current' %}background: #d1fae5; color: #065f46;
+                                {% elif item.bucket == 'days_1_30' %}background: #fef3c7; color: #92400e;
+                                {% elif item.bucket == 'days_31_60' %}background: #fed7aa; color: #9a3412;
+                                {% elif item.bucket == 'days_61_90' %}background: #fecaca; color: #991b1b;
+                                {% else %}background: #fee2e2; color: #7f1d1d; font-weight: 600;{% endif %}">
+                                {{ item.bucket_label }}
+                            </span>
+                        </td>
+                        <td>{{ item.oldest_date|date:"Y-m-d"|default:"-" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #6b7280;">{% trans "No receivables" %}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.form-input {
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    margin: 0 0.5rem;
+}
+</style>
+{% endblock %}

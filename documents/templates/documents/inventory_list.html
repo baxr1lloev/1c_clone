@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Inventory Counts" %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>{% trans "Inventory Counts" %}</h2>
+        <a href="{% url 'documents:inventory_add' %}" class="btn btn-primary">{% trans "+ New Count" %}</a>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>{% trans "Number" %}</th>
+                <th>{% trans "Date" %}</th>
+                <th>{% trans "Warehouse" %}</th>
+                <th>{% trans "Responsible" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "Actions" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for doc in documents %}
+            <tr>
+                <td><a href="{% url 'documents:inventory_detail' doc.pk %}">{{ doc.number }}</a></td>
+                <td>{{ doc.date|date:"Y-m-d H:i" }}</td>
+                <td>{{ doc.warehouse }}</td>
+                <td>{{ doc.responsible }}</td>
+                <td>
+                    {% if doc.is_posted %}
+                    <span class="badge badge-success">{% trans "Posted" %}</span>
+                    {% else %}
+                    <span class="badge badge-warning">{% trans "Draft" %}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'documents:inventory_detail' doc.pk %}">{% trans "View" %}</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align: center; color: #6b7280;">{% trans "No inventory documents found." %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+.badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+</style>
+{% endblock %}

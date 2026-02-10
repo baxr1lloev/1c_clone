@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Operational Reports" %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>{% trans "Operational Reports" %}</h2>
+    <div class="report-grid">
+        <a href="{% url 'registers:report_stock' %}" class="report-card">
+            <h3>{% trans "Stock Balance" %}</h3>
+            <p>{% trans "Current stock levels by warehouse." %}</p>
+        </a>
+        <a href="{% url 'registers:report_batches' %}" class="report-card">
+            <h3>{% trans "Batch Turnover" %}</h3>
+            <p>{% trans "Batch-level movement and aging." %}</p>
+        </a>
+        <a href="{% url 'registers:report_availability' %}" class="report-card">
+            <h3>{% trans "Stock Availability" %}</h3>
+            <p>{% trans "Available stock (Physical - Reserved)." %}</p>
+        </a>
+        <a href="{% url 'registers:report_valuation' %}" class="report-card">
+            <h3>{% trans "Inventory Valuation" %}</h3>
+            <p>{% trans "Total inventory value (Cost)." %}</p>
+        </a>
+        <a href="{% url 'registers:report_movements' %}" class="report-card">
+            <h3>{% trans "Stock Movements" %}</h3>
+            <p>{% trans "Detailed analysis of all movements." %}</p>
+        </a>
+        <a href="{% url 'registers:report_settlements' %}" class="report-card">
+            <h3>{% trans "Settlements" %}</h3>
+            <p>{% trans "Debts and receivables with counterparties." %}</p>
+        </a>
+    </div>
+</div>
+
+<style>
+.report-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem; }
+.report-card { 
+    display: block; 
+    padding: 1.5rem; 
+    border: 1px solid #e5e7eb; 
+    border-radius: 0.5rem; 
+    text-decoration: none; 
+    color: inherit;
+    transition: background-color 0.2s;
+}
+.report-card:hover { background-color: #f9fafb; }
+.report-card h3 { margin-top: 0; color: #4f46e5; }
+.report-card p { color: #6b7280; margin-bottom: 0; }
+</style>
+{% endblock %}

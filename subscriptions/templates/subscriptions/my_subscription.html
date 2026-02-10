@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "My Subscription" %}{% endblock %}
+
+{% block content %}
+<h1>{% trans "My Subscription" %}</h1>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between;">
+        <div>
+            <h2>{% trans "Current Plan:" %} <span style="color: #4f46e5;">{{ subscription.plan.name|default:"Free Trial" }}</span></h2>
+            <p><strong>{% trans "Status:" %}</strong> 
+                {% if subscription.is_active %}
+                <span class="badge badge-success">{% trans "Active" %}</span>
+                {% else %}
+                <span class="badge badge-danger">{% trans "Inactive" %}</span>
+                {% endif %}
+            </p>
+            <p><strong>{% trans "Renews:" %}</strong> {{ subscription.end_date }}</p>
+        </div>
+        <div>
+            <div style="text-align: right;">
+                <p>{% trans "Storage Used:" %} <strong>45%</strong></p>
+                <div style="background: #e5e7eb; width: 200px; height: 10px; border-radius: 5px;">
+                    <div style="background: #4f46e5; width: 45%; height: 100%; border-radius: 5px;"></div>
+                </div>
+            </div>
+            <div style="margin-top: 1rem;">
+                <a href="#" class="btn btn-primary">{% trans "Upgrade Plan" %}</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<h2>{% trans "Invoices" %}</h2>
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>{% trans "Invoice #" %}</th>
+                <th>{% trans "Date" %}</th>
+                <th>{% trans "Amount" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "Action" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inv in invoices %}
+            <tr>
+                <td>{{ inv.number }}</td>
+                <td>{{ inv.date_issued }}</td>
+                <td>{{ inv.amount }}</td>
+                <td>
+                    {% if inv.status == 'paid' %}
+                    <span class="badge badge-success">{% trans "Paid" %}</span>
+                    {% else %}
+                    <span class="badge badge-warning">{% trans "Unpaid" %}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="#" class="text-indigo">{% trans "Download" %}</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center;">{% trans "No invoices found." %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+.badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-danger { background: #fee2e2; color: #991b1b; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.btn-primary { background: #4f46e5; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; text-decoration: none; }
+.text-indigo { color: #4f46e5; text-decoration: none; }
+</style>
+{% endblock %}

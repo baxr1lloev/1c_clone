@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "My Invoices" %}{% endblock %}
+
+{% block content %}
+<h1>{% trans "My Invoices" %}</h1>
+
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>{% trans "Invoice #" %}</th>
+                <th>{% trans "Date" %}</th>
+                <th>{% trans "Amount" %}</th>
+                <th>{% trans "Due Date" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "Action" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for inv in invoices %}
+            <tr>
+                <td>{{ inv.number }}</td>
+                <td>{{ inv.date_issued }}</td>
+                <td>{{ inv.amount }}</td>
+                <td>{{ inv.due_date }}</td>
+                <td>
+                    {% if inv.status == 'paid' %}
+                    <span class="badge badge-success">{% trans "Paid" %}</span>
+                    {% else %}
+                    <span class="badge badge-warning">{% trans "Unpaid" %}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if inv.status != 'paid' %}
+                    <form action="{% url 'billing:pay_invoice' inv.pk %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary" onclick="return confirm('{% trans "Pay this invoice?" %}')">{% trans "Pay Now" %}</button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted">{% trans "Paid" %}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align: center;">{% trans "No invoices found." %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+.badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.btn-primary { background: #4f46e5; color: white; padding: 0.25rem 0.5rem; border-radius: 0.375rem; border: none; cursor: pointer; }
+.text-muted { color: #9ca3af; }
+</style>
+{% endblock %}

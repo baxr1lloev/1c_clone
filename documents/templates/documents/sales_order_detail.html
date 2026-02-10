@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% blocktrans with number=doc.number %}Sales Order #{{ number }}{% endblocktrans %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+            <h2>{% blocktrans with number=doc.number %}Sales Order #{{ number }}{% endblocktrans %}</h2>
+            <p class="text-sm text-gray-500">
+                {% trans "Date" %}: {{ doc.date|date:"Y-m-d H:i" }} | 
+                {% trans "Customer" %}: <strong>{{ doc.counterparty }}</strong> | 
+                {% trans "Warehouse" %}: <strong>{{ doc.warehouse }}</strong>
+            </p>
+        </div>
+        <div>
+            {% if not doc.is_posted %}
+            <form action="{% url 'documents:sales_order_post' doc.pk %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">{% trans "Post & Reserve" %}</button>
+            </form>
+            {% else %}
+            <span class="badge badge-info" style="margin-right: 10px;">{% trans "RESERVED" %}</span>
+            <form action="{% url 'documents:sales_order_unpost' doc.pk %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning" onclick="return confirm('{% trans "Release all reservations?" %}');">{% trans "Unpost (Release)" %}</button>
+            </form>
+            {% endif %}
+            <a href="{% url 'documents:sales_order_list' %}" class="btn btn-secondary">{% trans "Back" %}</a>
+        </div>
+    </div>
+
+    <!--Lines Table -->
+    <table class="table">
+        <thead>
+            <tr>
+                <th>{% trans "Item" %}</th>
+                <th>{% trans "Quantity" %}</th>
+                <th>{% trans "Price" %}</th>
+                <th>{% trans "Amount" %}</th>
+                {% if not doc.is_posted %}
+                <th style="width: 50px;"></th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in doc.lines.all %}
+            <tr>
+                <td>{% if line.item %}{{ line.item.name }}{% else %}<span class="text-danger">{% trans "Item Missing" %}</span>{% endif %}
+                    <br><small class="text-muted">{% trans "Shipped" %}: {{ line.quantity_shipped|floatformat:"-3" }}</small>
+                </td>
+                <td>{{ line.quantity|floatformat:"-3" }}</td>
+                <td>{{ line.price|floatformat:2 }}</td>
+                <td>{{ line.amount|floatformat:2 }}</td>
+                {% if not doc.is_posted %}
+                <td>
+                    <form action="{% url 'documents:sales_order_line_delete' line.pk %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="text-danger" style="background:none; border:none; cursor:pointer;" onclick="return confirm('{% trans "Remove line?" %}');">&times;</button>
+                    </form>
+                </td>
+                {% endif %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{% if not doc.is_posted %}5{% else %}4{% endif %}" class="text-center text-muted">{% trans "No lines yet." %}</td>
+            </tr>
+            {% endfor %}
+            <tr style="font-weight: bold; background-color: #f9fafb;">
+                <td colspan="3" style="text-align: right;">{% trans "Total:" %}</td>
+                <td colspan="{% if not doc.is_posted %}2{% else %}1{% endif %}">{{ doc.total_amount }} {{ doc.currency }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Add Line Form -->
+    {% if not doc.is_posted %}
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+        <h3>{% trans "Add Item to Order" %}</h3>
+        <form method="post" id="addLineForm">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="form-group" style="flex: 2;">
+                    {{ line_form.item.label_tag }}
+                    {{ line_form.item }}
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    {{ line_form.quantity.label_tag }}
+                    {{ line_form.quantity }}
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    {{ line_form.price.label_tag }}
+                    {{ line_form.price }}
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    {{ line_form.available_qty.label_tag }}
+                    {{ line_form.available_qty }}
+                </div>
+                <div class="form-group" style="flex: 0 0 auto; align-self: flex-end;">
+                    <button type="submit" class="btn btn-primary">{% trans "Add" %}</button>
+                </div>
+            </div>
+            {% if line_form.errors %}
+            <div class="text-danger">
+                {{ line_form.errors }}
+            </div>
+            {% endif %}
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    const WAREHOUSE_ID = "{{ doc.warehouse.id }}";
+    
+    function updateAvailableQty(selectElement) {
+        const itemId = selectElement.value;
+        const availableInput = document.getElementById('{{ line_form.available_qty.id_for_label }}');
+        
+        if (!itemId) {
+            availableInput.value = '';
+            return;
+        }
+
+        fetch(`{% url 'documents:api_availability' %}?warehouse=${WAREHOUSE_ID}&item=${itemId}`)
+            .then(response => response.json())
+            .then(data => {
+                availableInput.value = data.available;
+            })
+            .catch(error => console.error('Error:', error));
+    }
+</script>
+
+<style>
+.form-row { display: flex; gap: 1rem; align-items: flex-start; }
+.form-group { margin-bottom: 0.5rem; }
+.btn-warning { background-color: #d97706; color: white; border: none; }
+.badge-info { background: #dbeafe; color: #1e40af; padding: 0.25rem 0.5rem; border-radius: 9999px; }
+</style>
+{% endblock %}

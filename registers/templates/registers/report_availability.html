@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Stock Availability Report" %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>{% trans "Stock Availability Report" %}</h2>
+    
+    <form method="post" class="filter-form">
+        {% csrf_token %}
+        <div class="filter-grid">
+            {% for field in form %}
+            <div class="filter-field">
+                <label>{{ field.label }}</label>
+                {{ field }}
+            </div>
+            {% endfor %}
+            <div class="filter-actions">
+                <button type="submit" class="btn btn-primary">{% trans "Generate" %}</button>
+            </div>
+        </div>
+    </form>
+    
+    {% if report_data is not None %}
+    <div class="report-content" style="margin-top: 2rem;">
+        {% if report_data %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>{% trans "Item" %}</th>
+                        <th>{% trans "Warehouse" %}</th>
+                        <th>{% trans "On Hand" %}</th>
+                        <th>{% trans "Reserved" %}</th>
+                        <th>{% trans "Available" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="5">{% trans "Data rendering logic not implemented in view." %}</td></tr>
+                </tbody>
+            </table>
+        {% else %}
+            <p class="text-gray-500">{% trans "No data found for selected criteria." %}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.filter-form { background: #f9fafb; padding: 1rem; border-radius: 0.5rem; }
+.filter-grid { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
+.filter-field label { display: block; font-size: 0.875rem; color: #374151; margin-bottom: 0.25rem; }
+.table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.table th, .table td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+</style>
+{% endblock %}

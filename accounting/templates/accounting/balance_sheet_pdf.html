@@ -1,0 +1,70 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{% blocktrans with date=as_of_date|date:"Y-m-d" %}Balance Sheet - {{ date }}{% endblocktrans %}</title>
+</head>
+<body>
+    <h1>{% trans "Balance Sheet" %}</h1>
+    <p>{% blocktrans with date=as_of_date|date:"Y-m-d" %}As of: {{ date }}{% endblocktrans %}</p>
+    
+    <h2>{% trans "ASSETS" %}</h2>
+    <table>
+        <tr>
+            <th>{% trans "Account" %}</th>
+            <th class="text-right">{% trans "Balance" %}</th>
+        </tr>
+        {% for account, balance in assets.items %}
+        <tr>
+            <td>{{ account.code }} {{ account.name }}</td>
+            <td class="text-right">{{ balance|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+            <td>{% trans "Total Assets" %}</td>
+            <td class="text-right">{{ total_assets|floatformat:2 }}</td>
+        </tr>
+    </table>
+    
+    <h2>{% trans "LIABILITIES" %}</h2>
+    <table>
+        <tr>
+            <th>{% trans "Account" %}</th>
+            <th class="text-right">{% trans "Balance" %}</th>
+        </tr>
+        {% for account, balance in liabilities.items %}
+        <tr>
+            <td>{{ account.code }} {{ account.name }}</td>
+            <td class="text-right">{{ balance|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+            <td>{% trans "Total Liabilities" %}</td>
+            <td class="text-right">{{ total_liabilities|floatformat:2 }}</td>
+        </tr>
+    </table>
+    
+    <h2>{% trans "EQUITY" %}</h2>
+    <table>
+        <tr>
+            <th>{% trans "Account" %}</th>
+            <th class="text-right">{% trans "Balance" %}</th>
+        </tr>
+        {% for account, balance in equity.items %}
+        <tr>
+            <td>{{ account.code }} {{ account.name }}</td>
+            <td class="text-right">{{ balance|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+            <td>{% trans "Total Equity" %}</td>
+            <td class="text-right">{{ total_equity|floatformat:2 }}</td>
+        </tr>
+    </table>
+    
+    <div style="margin-top: 20px; padding: 10px; background: #f3f4f6;">
+        <strong>{% trans "Total Liabilities + Equity:" %}</strong> {{ total_liabilities|add:total_equity|floatformat:2 }}
+    </div>
+</body>
+</html>

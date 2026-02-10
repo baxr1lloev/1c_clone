@@ -1,0 +1,435 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Dashboard" %}{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h1 style="margin-bottom: 2rem;">📊 {% trans "Dashboard" %}</h1>
+    
+    <!-- Metrics Grid -->
+    <div class="metrics-grid">
+        <!-- Cash/Bank -->
+        <div class="metric-card">
+            <div class="metric-icon">💰</div>
+            <div class="metric-label">{% trans "Cash & Bank" %}</div>
+            <div class="metric-value">{{ cash_balance|floatformat:2 }}</div>
+        </div>
+        
+        <!-- Receivables -->
+        <div class="metric-card {% if receivables > 0 %}metric-warning{% endif %}">
+            <div class="metric-icon">📥</div>
+            <div class="metric-label">{% trans "Receivables" %}</div>
+            <div class="metric-value">{{ receivables|floatformat:2 }}</div>
+            <div class="metric-hint">{% trans "Customers owe us" %}</div>
+        </div>
+        
+        <!-- Payables -->
+        <div class="metric-card {% if payables > 0 %}metric-danger{% endif %}">
+            <div class="metric-icon">📤</div>
+            <div class="metric-label">{% trans "Payables" %}</div>
+            <div class="metric-value">{{ payables|floatformat:2 }}</div>
+            <div class="metric-hint">{% trans "We owe suppliers" %}</div>
+        </div>
+        
+        <!-- Sales Today -->
+        <div class="metric-card">
+            <div class="metric-icon">📈</div>
+            <div class="metric-label">{% trans "Sales Today" %}</div>
+            <div class="metric-value">{{ sales_today|floatformat:2 }}</div>
+        </div>
+        
+        <!-- Sales MTD -->
+        <div class="metric-card">
+            <div class="metric-icon">📊</div>
+            <div class="metric-label">{% trans "Sales MTD" %}</div>
+            <div class="metric-value">{{ sales_mtd|floatformat:2 }}</div>
+            <div class="metric-hint">{% trans "Month-to-Date" %}</div>
+        </div>
+        
+        <!-- Profit MTD -->
+        <div class="metric-card {% if profit_mtd < 0 %}metric-danger{% elif profit_mtd > 0 %}metric-success{% endif %}">
+            <div class="metric-icon">💹</div>
+            <div class="metric-label">{% trans "Profit MTD" %}</div>
+            <div class="metric-value">{{ profit_mtd|floatformat:2 }}</div>
+            <div class="metric-hint">{% trans "Revenue - Expenses" %}</div>
+        </div>
+    </div>
+    
+    <!-- Period Status & Tax Reports -->
+    <div class="two-column-section">
+        <!-- Period Status -->
+        <div class="section-card">
+            <h2>📅 {% trans "Current Period" %}</h2>
+            {% if current_period %}
+                <div class="period-status-box {% if current_period.is_closed %}status-closed{% else %}status-open{% endif %}">
+                    <div class="period-name">
+                        {{ current_period.period_start|date:"M Y" }}
+                    </div>
+                    <div class="period-status">
+                        {% if current_period.is_closed %}
+                            🔒 {% trans "CLOSED" %}
+                        {% else %}
+                            ✅ {% trans "OPEN" %}
+                        {% endif %}
+                    </div>
+                    {% if current_period.is_closed %}
+                        <div class="period-details">
+                            {% blocktrans with closed_at=current_period.closed_at|date:"Y-m-d H:i" %}Closed on {{ closed_at }}{% endblocktrans %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <p class="text-muted">{% trans "No active period found" %}</p>
+            {% endif %}
+        </div>
+        
+        <!-- Tax Reports Status -->
+        <div class="section-card">
+            <h2>📋 {% trans "Tax Reports Status" %}</h2>
+            {% if tax_reports_summary %}
+                <div class="tax-status-grid">
+                    {% for item in tax_reports_summary %}
+                        <div class="tax-status-item status-{{ item.status }}">
+                            <div class="tax-status-label">{{ item.status|title }}</div>
+                            <div class="tax-status-count">{{ item.count }}</div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <a href="{% url 'taxes:report_list' %}" class="btn btn-secondary" style="margin-top: 1rem;">
+                    {% trans "View All Reports" %}
+                </a>
+            {% else %}
+                <p class="text-muted">{% trans "No tax reports yet" %}</p>
+                <a href="{% url 'taxes:report_wizard' %}" class="btn btn-primary">
+                    {% trans "+ New Tax Report" %}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="section-card">
+        <h2>⚡ {% trans "Recent Activity" %}</h2>
+        
+        <div class="two-column-section">
+            <!-- Recent Sales -->
+            <div>
+                <h3>{% trans "Recent Sales" %}</h3>
+                {% if recent_sales %}
+                    <table class="activity-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Number" %}</th>
+                                <th>{% trans "Date" %}</th>
+                                <th>{% trans "Customer" %}</th>
+                                <th>{% trans "Amount" %}</th>
+                                <th>{% trans "Status" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in recent_sales %}
+                            <tr>
+                                <td><a href="{% url 'documents:sales_detail' sale.pk %}">{{ sale.number }}</a></td>
+                                <td>{{ sale.date|date:"Y-m-d" }}</td>
+                                <td>{{ sale.counterparty.name }}</td>
+                                <td>{{ sale.total_amount_base|floatformat:2 }}</td>
+                                <td>
+                                    <span class="status-badge status-{{ sale.status }}">
+                                        {{ sale.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">{% trans "No recent sales" %}</p>
+                {% endif %}
+            </div>
+            
+            <!-- Recent Purchases -->
+            <div>
+                <h3>{% trans "Recent Purchases" %}</h3>
+                {% if recent_purchases %}
+                    <table class="activity-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans "Number" %}</th>
+                                <th>{% trans "Date" %}</th>
+                                <th>{% trans "Supplier" %}</th>
+                                <th>{% trans "Amount" %}</th>
+                                <th>{% trans "Status" %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for purchase in recent_purchases %}
+                            <tr>
+                                <td><a href="{% url 'documents:purchase_detail' purchase.pk %}">{{ purchase.number }}</a></td>
+                                <td>{{ purchase.date|date:"Y-m-d" }}</td>
+                                <td>{{ purchase.counterparty.name }}</td>
+                                <td>{{ purchase.total_amount_base|floatformat:2 }}</td>
+                                <td>
+                                    <span class="status-badge status-{{ purchase.status }}">
+                                        {{ purchase.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="text-muted">{% trans "No recent purchases" %}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.dashboard {
+    padding: 1rem;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.metric-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.metric-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #111827;
+}
+
+.metric-hint {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 0.25rem;
+}
+
+.metric-card.metric-warning .metric-value {
+    color: #f59e0b;
+}
+
+.metric-card.metric-danger .metric-value {
+    color: #ef4444;
+}
+
+.metric-card.metric-success .metric-value {
+    color: #10b981;
+}
+
+.two-column-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.section-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.section-card h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: #111827;
+}
+
+.section-card h3 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    color: #374151;
+}
+
+.period-status-box {
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.period-status-box.status-open {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border: 2px solid #10b981;
+}
+
+.period-status-box.status-closed {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    border: 2px solid #ef4444;
+}
+
+.period-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.period-status {
+    font-size: 1.125rem;
+    font-weight: bold;
+}
+
+.period-details {
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+    opacity: 0.8;
+}
+
+.tax-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 1rem;
+}
+
+.tax-status-item {
+    padding: 1rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.tax-status-item.status-draft {
+    background: #e0e7ff;
+    border: 2px solid #818cf8;
+}
+
+.tax-status-item.status-submitted {
+    background: #d1fae5;
+    border: 2px solid #10b981;
+}
+
+.tax-status-item.status-superseded {
+    background: #f3f4f6;
+    border: 2px solid #9ca3af;
+}
+
+.tax-status-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.tax-status-count {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.activity-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.activity-table th {
+    background: #f3f4f6;
+    padding: 0.5rem;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+}
+
+.activity-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.activity-table tr:hover {
+    background: #f9fafb;
+}
+
+.activity-table a {
+    color: #2563eb;
+    text-decoration: none;
+}
+
+.activity-table a:hover {
+    text-decoration: underline;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.status-draft {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.status-badge.status-posted {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-badge.status-submitted {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.text-muted {
+    color: #6b7280;
+    font-style: italic;
+}
+
+.btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #2563eb;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.btn-secondary {
+    background: #6b7280;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #4b5563;
+}
+</style>
+{% endblock %}

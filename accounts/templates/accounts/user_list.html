@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load permission_tags %}
+
+{% block content %}
+<div class="page-header">
+    <h1>👥 {% trans "User Management" %}</h1>
+    <a href="{% url 'accounts:user_invite' %}" class="btn btn-primary">{% trans "+ Invite User" %}</a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>{% trans "Email" %}</th>
+                <th>{% trans "Name" %}</th>
+                <th>{% trans "Role" %}</th>
+                <th>{% trans "Status" %}</th>
+                <th>{% trans "Actions" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.email }}</td>
+                <td>{{ user.get_full_name|default:"-" }}</td>
+                <td>
+                    {% if user.role %}
+                        <span class="badge badge-{{ user.role.code|lower }}">
+                            {{ user.role.name }}
+                        </span>
+                    {% else %}
+                        <span class="text-muted">{% trans "No role" %}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if user.is_active %}
+                        <span class="badge badge-success">✅ {% trans "Active" %}</span>
+                    {% else %}
+                        <span class="badge badge-secondary">❌ {% trans "Inactive" %}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <a href="{% url 'accounts:user_role_update' user.pk %}" class="btn btn-sm btn-secondary">
+                        {% trans "Change Role" %}
+                    </a>
+                    {% if user.is_active %}
+                        <form method="post" action="{% url 'accounts:user_deactivate' user.pk %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-warning"
+                                    onclick="return confirm('{% trans "Deactivate" %} {{ user.email }}?')">
+                                {% trans "Deactivate" %}
+                            </button>
+                        </form>
+                    {% else %}
+                        <form method="post" action="{% url 'accounts:user_activate' user.pk %}" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-success">
+                                {% trans "Activate" %}
+                            </button>
+                        </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center text-muted">{% trans "No users found" %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.table-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.badge {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.badge-success {
+    background: #10b981;
+    color: white;
+}
+
+.badge-secondary {
+    background: #6b7280;
+    color: white;
+}
+
+.badge-owner {
+    background: #8b5cf6;
+    color: white;
+}
+
+.badge-accountant {
+    background: #3b82f6;
+    color: white;
+}
+
+.badge-manager {
+    background: #f59e0b;
+    color: white;
+}
+
+.badge-warehouse {
+    background: #10b981;
+    color: white;
+}
+
+.badge-viewer {
+    background: #6b7280;
+    color: white;
+}
+
+.btn-sm {
+    padding: 4px 12px;
+    font-size: 0.875rem;
+    margin-right: 4px;
+}
+</style>
+{% endblock %}

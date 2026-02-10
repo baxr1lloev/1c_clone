@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Tax Report #{{ report.id }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+        <div>
+            <h2>{{ report.tax_form.name }}</h2>
+            <p class="text-muted">
+                Period: <strong>{{ report.period_start|date:"Y-m-d" }}</strong> to <strong>{{ report.period_end|date:"Y-m-d" }}</strong>
+                <br>
+                Status: 
+                {% if report.status == 'DRAFT' %}
+                <span class="badge badge-warning">Draft</span>
+                {% else %}
+                <span class="badge badge-success">Submitted</span>
+                {% endif %}
+            </p>
+        </div>
+        
+        <div style="display: flex; gap: 0.5rem;">
+            {% if report.status == 'DRAFT' %}
+            <form action="{% url 'taxes:report_submit' report.pk %}" method="post" onsubmit="return confirm('Are you sure? Once submitted, the report cannot be edited.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">Submit Final</button>
+            </form>
+            {% endif %}
+            <a href="{% url 'taxes:report_list' %}" class="btn btn-secondary">Back to List</a>
+        </div>
+    </div>
+
+    <!-- Report Lines -->
+    <table class="table">
+        <thead>
+            <tr>
+                <th style="width: 50px;">Code</th>
+                <th>Description</th>
+                <th style="width: 150px; text-align: right;">Value</th>
+                <th style="width: 100px;">Type</th>
+                <th style="width: 100px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in lines %}
+            <tr>
+                <td><strong>{{ line.field.code }}</strong></td>
+                <td>{{ line.field.description }}</td>
+                <td style="text-align: right; font-family: monospace; font-size: 1.1em;">
+                    {{ line.value }}
+                </td>
+                <td>
+                    {% if line.is_manual_override %}
+                    <span class="badge badge-manual">Manual</span>
+                    {% elif line.field.is_calculated %}
+                    <span class="badge badge-calc">Calc</span>
+                    {% else %}
+                    <span class="badge badge-data">Data</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if report.status == 'DRAFT' %}
+                        <!-- Simple Update Form Modal or Inline -->
+                        {% if not line.field.is_calculated %}
+                        <button onclick="editLine('{{ line.pk }}', '{{ line.value }}')" class="btn-xs">Edit</button>
+                        {% endif %}
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Edit Modal (Simplified as prompt for now) -->
+<script>
+function editLine(pk, currentValue) {
+    const newValue = prompt("Enter new value:", currentValue);
+    if (newValue !== null && newValue !== currentValue) {
+        // Create hidden form to submit
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/taxes/reports/line/${pk}/update/`;
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = '{{ csrf_token }}';
+        form.appendChild(csrfInput);
+        
+        const valInput = document.createElement('input');
+        valInput.type = 'hidden';
+        valInput.name = 'value'; // Assuming form expects 'value'
+        valInput.value = newValue;
+        form.appendChild(valInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+
+<style>
+.badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-manual { background: #fff1f2; color: #be123c; } /* Red for manual override */
+.badge-calc { background: #eff6ff; color: #1e40af; }
+.badge-data { background: #f3f4f6; color: #374151; }
+.btn-success { background: #059669; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; border:none; cursor: pointer; }
+.btn-secondary { background: white; color: #374151; padding: 0.5rem 1rem; border-radius: 0.375rem; border: 1px solid #d1d5db; text-decoration: none; }
+.btn-xs { padding: 2px 8px; font-size: 0.8rem; cursor: pointer; }
+</style>
+{% endblock %}

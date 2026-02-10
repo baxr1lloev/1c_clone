@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>📊 {% trans "Balance Sheet" %}</h1>
+        <div style="display: flex; gap: 0.5rem;">
+            <form method="get">
+                <label>{% trans "As of:" %} </label>
+                <input type="date" name="as_of_date" value="{{ as_of_date|date:'Y-m-d' }}" style="padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <button type="submit" class="btn btn-primary">{% trans "Update" %}</button>
+            </form>
+            <a href="{% url 'accounting:balance_sheet_pdf' %}?as_of_date={{ as_of_date|date:'Y-m-d' }}" class="btn btn-secondary">📄 {% trans "PDF" %}</a>
+            <a href="{% url 'accounting:balance_sheet_excel' %}?as_of_date={{ as_of_date|date:'Y-m-d' }}" class="btn btn-secondary" style="background: #10b981; color: white;">📊 {% trans "Excel" %}</a>
+        </div>
+    </div>
+
+    <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <table class="financial-report" style="width: 100%;">
+            <tr style="background: #f9fafb; font-weight: 600;">
+                <td colspan="2" style="padding: 1rem; border-bottom: 2px solid #e5e7eb;"><h2 style="margin: 0;">{% trans "ASSETS" %}</h2></td>
+            </tr>
+            {% for account, balance in assets.items %}
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 0.75rem 1rem; padding-left: 2rem;">
+                    <a href="{% url 'accounting:account_ledger' account.id %}" style="color: #3b82f6; text-decoration: none;">
+                        {{ account.code }} {{ account.name }}
+                    </a>
+                </td>
+                <td style="padding: 0.75rem 1rem; text-align: right; font-family: monospace;">{{ balance|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            <tr style="background: #f3f4f6; font-weight: 600;">
+                <td style="padding: 1rem; padding-left: 2rem;">{% trans "Total Assets" %}</td>
+                <td style="padding: 1rem; text-align: right; font-family: monospace; font-size: 1.1rem;">{{ total_assets|floatformat:2 }}</td>
+            </tr>
+            
+            <tr style="background: #f9fafb; font-weight: 600;">
+                <td colspan="2" style="padding: 1rem; border-top: 2px solid #e5e7eb; border-bottom: 2px solid #e5e7eb;"><h2 style="margin: 0;">{% trans "LIABILITIES" %}</h2></td>
+            </tr>
+            {% for account, balance in liabilities.items %}
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 0.75rem 1rem; padding-left: 2rem;">
+                    <a href="{% url 'accounting:account_ledger' account.id %}" style="color: #3b82f6; text-decoration: none;">
+                        {{ account.code }} {{ account.name }}
+                    </a>
+                </td>
+                <td style="padding: 0.75rem 1rem; text-align: right; font-family: monospace;">{{ balance|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            <tr style="background: #f3f4f6; font-weight: 600;">
+                <td style="padding: 1rem; padding-left: 2rem;">{% trans "Total Liabilities" %}</td>
+                <td style="padding: 1rem; text-align: right; font-family: monospace; font-size: 1.1rem;">{{ total_liabilities|floatformat:2 }}</td>
+            </tr>
+            
+            <tr style="background: #f9fafb; font-weight: 600;">
+                <td colspan="2" style="padding: 1rem; border-top: 2px solid #e5e7eb; border-bottom: 2px solid #e5e7eb;"><h2 style="margin: 0;">{% trans "EQUITY" %}</h2></td>
+            </tr>
+            {% for account, balance in equity.items %}
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 0.75rem 1rem; padding-left: 2rem;">
+                    <a href="{% url 'accounting:account_ledger' account.id %}" style="color: #3b82f6; text-decoration: none;">
+                        {{ account.code }} {{ account.name }}
+                    </a>
+                </td>
+                <td style="padding: 0.75rem 1rem; text-align: right; font-family: monospace;">{{ balance|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            <tr style="background: #f3f4f6; font-weight: 600;">
+                <td style="padding: 1rem; padding-left: 2rem;">{% trans "Total Equity" %}</td>
+                <td style="padding: 1rem; text-align: right; font-family: monospace; font-size: 1.1rem;">{{ total_equity|floatformat:2 }}</td>
+            </tr>
+            
+            <tr style="background: #dbeafe; font-weight: 700; border-top: 3px solid #3b82f6;">
+                <td style="padding: 1rem;">{% trans "TOTAL LIABILITIES + EQUITY" %}</td>
+                <td style="padding: 1rem; text-align: right; font-family: monospace; font-size: 1.2rem;">{{ total_liabilities|add:total_equity|floatformat:2 }}</td>
+            </tr>
+        </table>
+        
+        {% if balanced %}
+            <div style="margin-top: 1rem; padding: 1rem; background: #d1fae5; border-left: 4px solid #10b981; color: #065f46;">
+                ✅ {% trans "Balance Sheet is balanced" %}
+            </div>
+        {% else %}
+            <div style="margin-top: 1rem; padding: 1rem; background: #fee2e2; border-left: 4px solid #ef4444; color: #991b1b;">
+                ⚠️ {% trans "Balance Sheet is NOT balanced!" %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

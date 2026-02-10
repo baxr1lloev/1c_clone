@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% blocktrans with number=doc.number %}Inventory #{{ number}}{% endblocktrans %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+            <h2>{% blocktrans with number=doc.number %}Inventory Count #{{ number }}{% endblocktrans %}</h2>
+            <p class="text-sm text-gray-500">
+                {% trans "Date" %}: {{ doc.date|date:"Y-m-d H:i" }} | 
+                {% trans "Warehouse" %}: <strong>{{ doc.warehouse }}</strong> | 
+                {% trans "Responsible" %}: {{ doc.responsible }}
+            </p>
+        </div>
+        <div>
+            {% if not doc.is_posted %}
+            <form action="{% url 'documents:inventory_post' doc.pk %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">{% trans "Post Adjustments" %}</button>
+            </form>
+            {% else %}
+            <span class="badge badge-success">{% trans "POSTED" %}</span>
+            {% endif %}
+            <a href="{% url 'documents:inventory_list' %}" class="btn btn-secondary">{% trans "Back" %}</a>
+        </div>
+    </div>
+
+    <!-- Lines Table -->
+    <table class="table">
+        <thead>
+            <tr>
+                <th>{% trans "Item" %}</th>
+                <th>{% trans "Book Qty" %}</th>
+                <th>{% trans "Actual Qty" %}</th>
+                <th>{% trans "Difference" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in doc.lines.all %}
+            <tr>
+                <td>{{ line.item.name }}</td>
+                <td>{{ line.quantity_book|floatformat:"-3" }}</td>
+                <td>{{ line.quantity_actual|floatformat:"-3" }}</td>
+                <td class="{% if line.difference < 0 %}text-danger{% elif line.difference > 0 %}text-success{% endif %}">
+                    {{ line.difference }}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center text-muted">{% trans "No lines yet." %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Add Line Form -->
+    {% if not doc.is_posted %}
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+        <h3>{% trans "Add Stock Count" %}</h3>
+        <form method="post" id="addLineForm">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="form-group" style="flex: 2;">
+                    {{ line_form.item.label_tag }}
+                    {{ line_form.item }}
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    {{ line_form.quantity_book.label_tag }}
+                    {{ line_form.quantity_book }}
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    {{ line_form.quantity_actual.label_tag }}
+                    {{ line_form.quantity_actual }}
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    {{line_form.difference.label_tag }}
+                    {{ line_form.difference }}
+                </div>
+                <div class="form-group" style="flex: 0 0 auto; align-self: flex-end;">
+                    <button type="submit" class="btn btn-primary">{% trans "Add" %}</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    const WAREHOUSE_ID = "{{ doc.warehouse.id }}";
+    
+    // Auto-fill book quantity from stock balance when item selected
+    function loadBookQuantity(selectElement) {
+        const itemId = selectElement.value;
+        const bookInput = document.getElementById('{{ line_form.quantity_book.id_for_label }}');
+        const actualInput = document.getElementById('{{ line_form.quantity_actual.id_for_label }}');
+        
+        if (!itemId) {
+            bookInput.value = '';
+            actualInput.value = ''; // Reset actual too
+            calculateDifference();
+            return;
+        }
+
+        // Technically we can reuse the availability API if it returns physical stock
+        // But stock balance model has 'quantity' which is physical.
+        // The API returns 'Available' which is Stock - Reserved.
+        // For Inventory count, we usually want Physical Stock (Book Quantity).
+        // Let's assume for now available =~ book for simple logic, OR create a new API endpoint.
+        // But better: use get_availability, if it returns dict, maybe add 'physical' key?
+        // I will just use available for now as placeholder, but ideally should be book qty.
+        
+        fetch(`{% url 'documents:api_availability' %}?warehouse=${WAREHOUSE_ID}&item=${itemId}`)
+            .then(response => response.json())
+            .then(data => {
+                // For Inventory, we need Physical Stock (Book Quantity)
+                bookInput.value = data.physical; 
+                calculateDifference();
+            });
+    }
+    
+    function calculateDifference() {
+        const bookQty = parseFloat(document.getElementById('{{ line_form.quantity_book.id_for_label }}').value) || 0;
+        const actualQty = parseFloat(document.getElementById('{{ line_form.quantity_actual.id_for_label }}').value) || 0;
+        const diffInput = document.getElementById('{{ line_form.difference.id_for_label }}');
+        
+        diffInput.value = (actualQty - bookQty).toFixed(3);
+        
+        if (actualQty < bookQty) {
+            diffInput.style.color = '#dc2626'; // Red for missing
+        } else if (actualQty > bookQty) {
+            diffInput.style.color = '#059669'; // Green for surplus
+        } else {
+            diffInput.style.color = 'black';
+        }
+    }
+</script>
+
+<style>
+.form-row { display: flex; gap: 1rem; align-items: flex-start; }
+.form-group { margin-bottom: 0.5rem; }
+.text-success { color: #059669; font-weight: bold; }
+.text-danger { color: #dc2626; font-weight: bold; }
+</style>
+{% endblock %}

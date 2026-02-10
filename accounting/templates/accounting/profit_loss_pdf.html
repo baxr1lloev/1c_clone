@@ -1,0 +1,53 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{% trans "Profit & Loss Statement" %}</title>
+</head>
+<body>
+    <h1>{% trans "Profit & Loss Statement" %}</h1>
+    <p>{% blocktrans with start=start_date|date:"Y-m-d" end=end_date|date:"Y-m-d" %}Period: {{ start }} to {{ end }}{% endblocktrans %}</p>
+    
+    <h2>{% trans "REVENUE" %}</h2>
+    <table>
+        <tr>
+            <th>{% trans "Account" %}</th>
+            <th class="text-right">{% trans "Amount" %}</th>
+        </tr>
+        {% for account, amount in revenue.items %}
+        <tr>
+            <td>{{ account.code }} {{ account.name }}</td>
+            <td class="text-right">{{ amount|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+            <td>{% trans "Total Revenue" %}</td>
+            <td class="text-right">{{ total_revenue|floatformat:2 }}</td>
+        </tr>
+    </table>
+    
+    <h2>{% trans "EXPENSES" %}</h2>
+    <table>
+        <tr>
+            <th>{% trans "Account" %}</th>
+            <th class="text-right">{% trans "Amount" %}</th>
+        </tr>
+        {% for account, amount in expenses.items %}
+        <tr>
+            <td>{{ account.code }} {{ account.name }}</td>
+            <td class="text-right">{{ amount|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        <tr class="total-row">
+            <td>{% trans "Total Expenses" %}</td>
+            <td class="text-right">{{ total_expenses|floatformat:2 }}</td>
+        </tr>
+    </table>
+    
+    <div style="margin-top: 20px; padding: 15px; background: {% if net_profit >= 0 %}#d1fae5{% else %}#fee2e2{% endif %};">
+        <strong style="font-size: 14pt;">{% if net_profit >= 0 %}{% trans "NET PROFIT:" %}{% else %}{% trans "NET LOSS:" %}{% endif %}</strong>
+        <strong style="font-size: 16pt;">{{ net_profit|floatformat:2 }}</strong>
+    </div>
+</body>
+</html>

@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block title %}Monthly Financial Report{% endblock %}
+
+{% block content %}
+<h1>Monthly Analysis</h1>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <!-- SALES CARD -->
+    <div class="card">
+        <h3>Sales (By Month)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Curr</th>
+                    <th>Total (Doc)</th>
+                    <th>Total (Base)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in sales_data %}
+                <tr>
+                    <td>{{ row.month|date:"F Y" }}</td>
+                    <td>{{ row.currency__code }}</td>
+                    <td>{{ row.total }}</td>
+                    <td>{{ row.total_base|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4">No confirmed sales.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PURCHASES CARD -->
+    <div class="card">
+        <h3>Purchases (By Month)</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th>Curr</th>
+                    <th>Total (Doc)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in purchases_data %}
+                <tr>
+                    <td>{{ row.month|date:"F Y" }}</td>
+                    <td>{{ row.currency__code }}</td>
+                    <td>{{ row.total }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3">No confirmed purchases.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

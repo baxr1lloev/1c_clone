@@ -1,0 +1,959 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: SaaS ERP\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-01-30 01:40+0000\n"
+"PO-Revision-Date: 2026-01-30 01:45+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || (n%100>=11 && n%100<=14)? 2 : 3);\n"
+
+msgid "SaaS ERP"
+msgstr "SaaS ERP"
+
+msgid "Dashboard"
+msgstr "Дашборд"
+
+msgid "DIRECTORIES"
+msgstr "СПРАВОЧНИКИ"
+
+msgid "Counterparties"
+msgstr "Контрагенты"
+
+msgid "Contracts"
+msgstr "Договоры"
+
+msgid "Warehouses"
+msgstr "Склады"
+
+msgid "Items"
+msgstr "Номенклатура"
+
+msgid "Exchange Rates"
+msgstr "Курсы валют"
+
+msgid "DOCUMENTS"
+msgstr "ДОКУМЕНТЫ"
+
+msgid "Sales Orders"
+msgstr "Заказы покупателей"
+
+msgid "Sales Invoices"
+msgstr "Реализации"
+
+msgid "Purchases"
+msgstr "Поступления"
+
+msgid "Transfers"
+msgstr "Перемещения"
+
+msgid "Payments"
+msgstr "Платежи"
+
+msgid "Inventory Counts"
+msgstr "Инвентаризация"
+
+msgid "ACCOUNTING"
+msgstr "БУХГАЛТЕРИЯ"
+
+msgid "Chart of Accounts"
+msgstr "План счетов"
+
+msgid "Journal Entries"
+msgstr "Проводки"
+
+msgid "Period Closing"
+msgstr "Закрытие месяца"
+
+msgid "Accounting Policy"
+msgstr "Учетная политика"
+
+msgid "Financial Reports"
+msgstr "Финансовые отчеты"
+
+msgid "TAXES"
+msgstr "НАЛОГИ"
+
+msgid "Tax Reports"
+msgstr "Налоговые отчеты"
+
+msgid "+ New Tax Report"
+msgstr "+ Новый отчет"
+
+msgid "CASH FLOW"
+msgstr "ДЕНЕЖНЫЙ ПОТОК"
+
+msgid "💰 Cash Flow Statement"
+msgstr "💰 Движение денежных средств"
+
+msgid "💵 Cash Position"
+msgstr "💵 Остатки денег"
+
+msgid "📥 Receivables"
+msgstr "📥 Дебиторская задолженность"
+
+msgid "📤 Payables"
+msgstr "📤 Кредиторская задолженность"
+
+msgid "FINANCIAL REPORTS"
+msgstr "ФИНАНСОВАЯ ОТЧЕТНОСТЬ"
+
+msgid "📊 Balance Sheet"
+msgstr "📊 Баланс"
+
+msgid "📈 P&L Statement"
+msgstr "📈 Прибыли и убытки"
+
+msgid "PERIOD MANAGEMENT"
+msgstr "УПРАВЛЕНИЕ ПЕРИОДАМИ"
+
+msgid "📅 Periods"
+msgstr "📅 Периоды"
+
+msgid "REPORTS"
+msgstr "ОТЧЕТЫ"
+
+msgid "Operational Reports"
+msgstr "Оперативные отчеты"
+
+msgid "ADMIN"
+msgstr "АДМИНИСТРИРОВАНИЕ"
+
+msgid "👥 Users"
+msgstr "👥 Пользователи"
+
+msgid "SUBSCRIPTION"
+msgstr "ПОДПИСКА"
+
+msgid "My Plan"
+msgstr "Мой тариф"
+
+msgid "Invoices"
+msgstr "Счета на оплату"
+
+msgid "Team Access"
+msgstr "Команда"
+
+msgid "Notifications"
+msgstr "Уведомления"
+
+msgid "Logout"
+msgstr "Выйти"
+
+# Common Terms
+msgid "Generate"
+msgstr "Сформировать"
+msgid "Results:"
+msgstr "Результаты:"
+msgid "Item"
+msgstr "Номенклатура"
+msgid "Warehouse"
+msgstr "Склад"
+msgid "Quantity"
+msgstr "Количество"
+msgid "Data rendering logic not implemented in view."
+msgstr "Отображение данных еще не реализовано."
+msgid "No data found for selected criteria."
+msgstr "Нет данных по выбранным критериям."
+
+# Forms
+msgid "From Date"
+msgstr "Дата с"
+msgid "To Date"
+msgstr "Дата по"
+msgid "Show items with zero stock"
+msgstr "Показать товары с нулевым остатком"
+msgid "Show fully consumed batches"
+msgstr "Показать закрытые партии"
+msgid "Show only low stock items (available < 10)"
+msgstr "Показать только товары с низким остатком (< 10)"
+msgid "Show only items with reservations"
+msgstr "Показать только зарезервированные товары"
+msgid "As of Date"
+msgstr "На дату"
+msgid "Valuation Method Override"
+msgstr "Метод оценки (переопределение)"
+msgid "Use Accounting Policy"
+msgstr "Использовать учетную политику"
+msgid "FIFO"
+msgstr "FIFO"
+msgid "Weighted Average"
+msgstr "Средневзвешенная"
+msgid "LIFO"
+msgstr "LIFO"
+msgid "Movement Type"
+msgstr "Тип движения"
+msgid "All Types"
+msgstr "Все типы"
+msgid "Incoming"
+msgstr "Приход"
+msgid "Outgoing"
+msgstr "Расход"
+msgid "Show reversal movements (storno)"
+msgstr "Показать сторно"
+msgid "Counterparty"
+msgstr "Контрагент"
+msgid "Counterparty Type"
+msgstr "Тип контрагента"
+msgid "Customers Only"
+msgstr "Только покупатели"
+msgid "Suppliers Only"
+msgstr "Только поставщики"
+msgid "Show counterparties with zero balance"
+msgstr "Показать контрагентов с нулевым сальдо"
+msgid "All Warehouses"
+msgstr "Все склады"
+msgid "All Items"
+msgstr "Вся номенклатура"
+msgid "All Counterparties"
+msgstr "Все контрагенты"
+
+# Reports Headers
+msgid "Stock Report"
+msgstr "Отчет по остаткам"
+msgid "Batch Turnover Report"
+msgstr "Ведомость по партиям"
+msgid "Stock Availability Report"
+msgstr "Доступность товаров"
+msgid "Inventory Valuation Report"
+msgstr "Стоимостная оценка склада"
+msgid "Stock Movement Report"
+msgstr "Движение товаров"
+msgid "Settlements Report"
+msgstr "Ведомость взаиморасчетов"
+
+# Columns
+msgid "Batch"
+msgstr "Партия"
+msgid "Opening Qty"
+msgstr "Нач. остаток"
+msgid "In"
+msgstr "Приход"
+msgid "Out"
+msgstr "Расход"
+msgid "Closing Qty"
+msgstr "Кон. остаток"
+msgid "On Hand"
+msgstr "В наличии"
+msgid "Reserved"
+msgstr "В резерве"
+msgid "Available"
+msgstr "Доступно"
+msgid "Qty"
+msgstr "Кол-во"
+msgid "Unit Cost"
+msgstr "Себестоимость"
+msgid "Total Value"
+msgstr "Стоимость"
+msgid "Date"
+msgstr "Дата"
+msgid "Document"
+msgstr "Документ"
+msgid "Contract"
+msgstr "Договор"
+msgid "Receivable"
+msgstr "Дебиторка"
+msgid "Payable"
+msgstr "Кредиторка"
+msgid "Balance (Net)"
+msgstr "Сальдо"
+# Добавляем все остальные русские переводы
+
+# Dashboard widgets
+msgid "Recent Sales"
+msgstr "Последние продажи"
+
+msgid "Number"
+msgstr "Номер"
+
+msgid "Customer"
+msgstr "Покупатель"
+
+msgid "Total"
+msgstr "Итого"
+
+msgid "Status"
+msgstr "Статус"
+
+msgid "No sales found."
+msgstr "Продажи не найдены."
+
+msgid "Draft"
+msgstr "Черновик"
+
+msgid "Posted"
+msgstr "Проведен"
+
+msgid "Cancelled"
+msgstr "Отменен"
+
+# Buttons and actions
+msgid "Edit"
+msgstr "Редактировать"
+
+msgid "Delete"
+msgstr "Удалить"
+
+msgid "Save"
+msgstr "Сохранить"
+
+msgid "Cancel"
+msgstr "Отменить"
+
+msgid "Add"
+msgstr "Добавить"
+
+msgid "Back"
+msgstr "Назад"
+
+msgid "Update"
+msgstr "Обновить"
+
+msgid "Submit"
+msgstr "Отправить"
+
+# Document operations
+msgid "+ New Order"
+msgstr "+ Новый заказ"
+
+msgid "+ New Sale"
+msgstr "+ Новая реализация"
+
+msgid "+ New Purchase"
+msgstr "+ Новое поступление"
+
+msgid "+ New Transfer"
+msgstr "+ Новое перемещение"
+
+msgid "+ New Payment"
+msgstr "+ Новый платеж"
+
+msgid "+ New Count"
+msgstr "+ Новая инвентаризация"
+
+msgid "Post Document"
+msgstr "Провести документ"
+
+msgid "DRAFT"
+msgstr "ЧЕРНОВИК"
+
+msgid "POSTED"
+msgstr "ПРОВЕДЕН"
+
+# Sales
+msgid "Supplier"
+msgstr "Поставщик"
+
+msgid "Amount"
+msgstr "Сумма"
+
+msgid "Currency"
+msgstr "Валюта"
+
+msgid "Price"
+msgstr "Цена"
+
+msgid "No lines yet."
+msgstr "Нет строк."
+
+msgid "Total:"
+msgstr "Итого:"
+
+msgid "Delete this line?"
+msgstr "Удалить эту строку?"
+
+msgid "Add Line"
+msgstr "Добавить строку"
+
+# Sales Order specific
+msgid "Post & Reserve"
+msgstr "Провести и зарезервировать"
+
+msgid "RESERVED"
+msgstr "ЗАРЕЗЕРВИРОВАНО"
+
+msgid "Release all reservations?"
+msgstr "Отменить все резервы?"
+
+msgid "Unpost (Release)"
+msgstr "Отменить проводку"
+
+msgid "Add Item to Order"
+msgstr "Добавить товар в заказ"
+
+# Purchase specific
+msgid "Post (Receive Goods)"
+msgstr "Провести (принять товар)"
+
+msgid "Edit Header"
+msgstr "Редактировать шапку"
+
+msgid "Price (Base)"
+msgstr "Цена (базовая)"
+
+msgid "Amount (Base)"
+msgstr "Сумма (базовая)"
+
+msgid "Total Base:"
+msgstr "Итого базовая:"
+
+# Inventory
+msgid "Responsible"
+msgstr "Ответственный"
+
+msgid "Post Adjustments"
+msgstr "Провести корректировки"
+
+msgid "Book Qty"
+msgstr "Учетное кол-во"
+
+msgid "Actual Qty"
+msgstr "Фактическое кол-во"
+
+msgid "Difference"
+msgstr "Разница"
+
+msgid "Add Stock Count"
+msgstr "Добавить позицию"
+
+# Transfer
+msgid "From"
+msgstr "Откуда"
+
+msgid "To"
+msgstr "Куда"
+
+msgid "Post Transfer"
+msgstr "Провести перемещение"
+
+msgid "Add Item to Transfer"
+msgstr "Добавить товар"
+
+# Payments
+msgid "Payment Documents"
+msgstr "Документы оплаты"
+
+msgid "+ New Payment"
+msgstr "+ Новый платеж"
+
+msgid "Type"
+msgstr "Тип"
+
+msgid "No payment documents found."
+msgstr "Платежи не найдены."
+
+# Directories
+msgid "Counterparty List"
+msgstr "Справочник контрагентов"
+
+msgid "+ New Counterparty"
+msgstr "+ Новый контрагент"
+
+msgid "Name"
+msgstr "Наименование"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Phone"
+msgstr "Телефон"
+
+msgid "TIN"
+msgstr "ИНН"
+
+msgid "No counterparties found."
+msgstr "Контрагенты не найдены."
+
+msgid "Warehouse List"
+msgstr "Справочник складов"
+
+msgid "+ New Warehouse"
+msgstr "+ Новый склад"
+
+msgid "Location"
+msgstr "Местонахождение"
+
+msgid "No warehouses found."
+msgstr "Склады не найдены."
+
+msgid "Item List"
+msgstr "Справочник номенклатуры"
+
+msgid "+ New Item"
+msgstr "+ Новая позиция"
+
+msgid "Code"
+msgstr "Код"
+
+msgid "Unit"
+msgstr "Ед. изм."
+
+msgid "No items found."
+msgstr "Номенклатура не найдена."
+
+msgid "Contract List"
+msgstr "Справочник договоров"
+
+msgid "+ New Contract"
+msgstr "+ Новый договор"
+
+msgid "Start Date"
+msgstr "Дата начала"
+
+msgid "End Date"
+msgstr "Дата окончания"
+
+msgid "No contracts found."
+msgstr "Договоры не найдены."
+
+msgid "+ Add Rate"
+msgstr "+ Новый курс"
+
+msgid "Rate"
+msgstr "Курс"
+
+msgid "No exchange rates found."
+msgstr "Курсы не найдены."
+
+msgid "Actions"
+msgstr "Действия"
+
+# Reports
+msgid "Stock Balance"
+msgstr "Остатки на складах"
+
+msgid "Current stock levels by warehouse."
+msgstr "Текущие остатки по складам."
+
+msgid "Batch Turnover"
+msgstr "Оборот по партиям"
+
+msgid "Stock Movements"
+msgstr "Движения товаров"
+
+msgid "Settlements"
+msgstr "Взаиморасчеты"
+
+msgid "Stock Availability"
+msgstr "Доступность товаров"
+
+msgid "Inventory Valuation"
+msgstr "Оценка запасов"
+
+msgid "Cash Flow"
+msgstr "Движение денег"
+
+msgid "Operating Activities"
+msgstr "Операционная деятельность"
+
+msgid "As of:"
+msgstr "На дату:"
+
+msgid "Cash & Bank Balances"
+msgstr "Остатки на счетах"
+
+msgid "No cash or bank accounts with balance"
+msgstr "Нет денежных счетов с остатком"
+
+msgid "Total Cash Available"
+msgstr "Всего денег"
+
+# Receivables/Payables
+msgid "Receivables Aging"
+msgstr "Анализ дебиторки"
+
+msgid "Payables Aging"
+msgstr "Анализ кредиторки"
+
+msgid "Total:"
+msgstr "Всего:"
+
+msgid "Summary by Age"
+msgstr "Сводка по срокам"
+
+msgid "Current"
+msgstr "Текущие"
+
+msgid "1-30 days"
+msgstr "1-30 дней"
+
+msgid "31-60 days"
+msgstr "31-60 дней"
+
+msgid "61-90 days"
+msgstr "61-90 дней"
+
+msgid "90+ days"
+msgstr "90+ дней"
+
+msgid "Details"
+msgstr "Детализация"
+
+msgid "Age"
+msgstr "Срок"
+
+msgid "Bucket"
+msgstr "Группа"
+
+msgid "Oldest Invoice"
+msgstr "Старейший счет"
+
+msgid "No receivables"
+msgstr "Нет дебиторки"
+
+msgid "No payables"
+msgstr "Нет кредиторки"
+
+# Financial Reports
+msgid "Profit & Loss Statement"
+msgstr "Отчет о прибылях и убытках"
+
+msgid "Balance Sheet"
+msgstr "Бухгалтерский баланс"
+
+msgid "PDF"
+msgstr "PDF"
+
+msgid "Excel"
+msgstr "Excel"
+
+msgid "REVENUE"
+msgstr "ДОХОДЫ"
+
+msgid "Total Revenue"
+msgstr "Итого доходы"
+
+msgid "EXPENSES"
+msgstr "РАСХОДЫ"
+
+msgid "Total Expenses"
+msgstr "Итого расходы"
+
+msgid "NET PROFIT"
+msgstr "ЧИСТАЯ ПРИБЫЛЬ"
+
+msgid "NET LOSS"
+msgstr "ЧИСТЫЙ УБЫТОК"
+
+msgid "ASSETS"
+msgstr "АКТИВЫ"
+
+msgid "Total Assets"
+msgstr "Итого активы"
+
+msgid "LIABILITIES"
+msgstr "ОБЯЗАТЕЛЬСТВА"
+
+msgid "Total Liabilities"
+msgstr "Итого обязательства"
+
+msgid "EQUITY"
+msgstr "КАПИТАЛ"
+
+msgid "Total Equity"
+msgstr "Итого капитал"
+
+msgid "TOTAL LIABILITIES + EQUITY"
+msgstr "ИТОГО ПАССИВОВ"
+
+msgid "Balance Sheet is balanced"
+msgstr "Баланс сошелся"
+
+msgid "Balance Sheet is NOT balanced!"
+msgstr "Баланс НЕ сошелся!"
+
+msgid "Account"
+msgstr "Счет"
+
+msgid "Balance"
+msgstr "Сальдо"
+
+# Journal Entries
+msgid "+ Manual Entry"
+msgstr "+ Ручная проводка"
+
+msgid "Debit"
+msgstr "Дебет"
+
+msgid "Credit"
+msgstr "Кредит"
+
+msgid "Description"
+msgstr "Описание"
+
+msgid "Doc"
+msgstr "Док"
+
+msgid "No entries found."
+msgstr "Проводки не найдены."
+
+# Account Ledger
+msgid "Account Ledger"
+msgstr "Карточка счета"
+
+msgid "Final Balance:"
+msgstr "Конечное сальдо:"
+
+msgid "Running Balance"
+msgstr "Текущее сальдо"
+
+msgid "No entries for this account"
+msgstr "Нет проводок по счету"
+
+msgid " Back to Chart of Accounts"
+msgstr " Назад к плану счетов"
+
+# Period management
+msgid "Manage accounting and operational periods visibility and restrictions."
+msgstr "Управление видимостью и ограничениями учетных периодов."
+
+msgid "Save Status"
+msgstr "Сохранить статус"
+
+msgid "Go to Reports"
+msgstr "Перейти к отчетам"
+
+msgid "Trial Balance"
+msgstr "Оборотно-сальдовая ведомость"
+
+msgid "Report generation logic not implemented yet. This is where the table would appear."
+msgstr "Логика формирования отчета еще не реализована."
+
+msgid "Profit & Loss"
+msgstr "Прибыли и убытки"
+
+# User management
+msgid "User Management"
+msgstr "Управление пользователями"
+
+msgid "+ Invite User"
+msgstr "+ Пригласить пользователя"
+
+msgid "Role"
+msgstr "Роль"
+
+msgid "Reset Password"
+msgstr "Сбросить пароль"
+
+msgid "Change Role"
+msgstr "Изменить роль"
+
+msgid "Permissions"
+msgstr "Права"
+
+msgid "Active"
+msgstr "Активен"
+
+msgid "Inactive"
+msgstr "Неактивен"
+
+msgid "Deactivate"
+msgstr "Деактивировать"
+
+msgid "No users found."
+msgstr "Пользователи не найдены."
+
+msgid "Team Management"
+msgstr "Управление командой"
+
+msgid "+ Add Employee"
+msgstr "+ Добавить сотрудника"
+
+msgid "No employees found."
+msgstr "Сотрудники не найдены."
+
+# User forms
+msgid "Change User Role"
+msgstr "Изменить роль пользователя"
+
+msgid "User:"
+msgstr "Пользователь:"
+
+msgid "Current Role:"
+msgstr "Текущая роль:"
+
+msgid "New Role:"
+msgstr "Новая роль:"
+
+msgid "None"
+msgstr "Нет"
+
+msgid "Email:"
+msgstr "Email:"
+
+msgid "First Name:"
+msgstr "Имя:"
+
+msgid "Last Name:"
+msgstr "Фамилия:"
+
+msgid "Role:"
+msgstr "Роль:"
+
+msgid "Temporary Password:"
+msgstr "Временный пароль:"
+
+msgid "User will receive password reset link via email"
+msgstr "Пользователь получит ссылку для сброса пароля"
+
+msgid "Invite User"
+msgstr "Пригласить пользователя"
+
+# Billing
+msgid "Billing Invoices"
+msgstr "Счета на оплату"
+
+msgid "Invoice"
+msgstr "Счет"
+
+msgid "Due Date"
+msgstr "Срок оплаты"
+
+msgid "Paid"
+msgstr "Оплачен"
+
+msgid "Unpaid"
+msgstr "Не оплачен"
+
+msgid "Overdue"
+msgstr "Просрочен"
+
+msgid "View"
+msgstr "Просмотр"
+
+msgid "No billing invoices found."
+msgstr "Счета не найдены."
+
+# Subscription
+msgid "My Subscription"
+msgstr "Моя подписка"
+
+msgid "Current Plan:"
+msgstr "Текущий тариф:"
+
+msgid "Renews:"
+msgstr "Продление:"
+
+msgid "Storage Used:"
+msgstr "Использовано:"
+
+msgid "Upgrade Plan"
+msgstr "Повысить тариф"
+
+msgid "Invoice #"
+msgstr "Счет "
+
+msgid "Download"
+msgstr "Скачать"
+
+msgid "No invoices found."
+msgstr "Счета не найдены."
+
+# Audit history
+msgid "History"
+msgstr "История"
+
+msgid "No history available"
+msgstr "История отсутствует"
+
+# Cash Flow Statement
+msgid "Cash Flow Statement"
+msgstr "Отчет о движении денежных средств"
+
+msgid "+ Cash Inflows"
+msgstr "+ Поступления"
+
+msgid "- Cash Outflows"
+msgstr "- Выбытия"
+
+msgid "No inflows in this period"
+msgstr "Нет поступлений за период"
+
+msgid "No outflows in this period"
+msgstr "Нет выбытий за период"
+
+msgid "Total Inflows"
+msgstr "Всего поступлений"
+
+msgid "Total Outflows"
+msgstr "Всего выбытий"
+
+msgid "Net Change"
+msgstr "Чистое изменение"
+
+msgid "NET LOSS:"
+msgstr "ЧИСТЫЙ УБЫТОК:"
+
+msgid "Total Liabilities + Equity:"
+msgstr "Итого пассивов:"
+
+msgid "Action"
+msgstr "Действие"
+
+# Добавляем переводы для dashboard в РУССКИЙ файл
+
+# Metric labels
+msgid "Cash & Bank"
+msgstr "Касса и банк"
+
+msgid "Customers owe us"
+msgstr "Нам должны покупатели"
+
+msgid "We owe suppliers"
+msgstr "Мы должны поставщикам"
+
+msgid "Sales Today"
+msgstr "Продажи сегодня"
+
+msgid "Sales MTD"
+msgstr "Продажи за месяц"
+
+msgid "Month-to-Date"
+msgstr "С начала месяца"
+
+msgid "Profit MTD"
+msgstr "Прибыль за месяц"
+
+msgid "Revenue - Expenses"
+msgstr "Доходы минус расходы"
+
+# Period section
+msgid "Current Period"
+msgstr "Текущий период"
+
+msgid "CLOSED"
+msgstr "ЗАКРЫТ"
+
+msgid "OPEN"
+msgstr "ОТКРЫТ"
+
+msgid "No active period found"
+msgstr "Активный период не найден"
+
+# Tax reports
+msgid "Tax Reports Status"
+msgstr "Статус налоговых отчетов"
+
+msgid "View All Reports"
+msgstr "Все отчеты"
+
+msgid "No tax reports yet"
+msgstr "Налоговых отчетов пока нет"
+
+# Recent activity
+msgid "Recent Activity"
+msgstr "Последняя активность"
+
+msgid "Recent Purchases"
+msgstr "Последние поступления"
+
+msgid "No recent sales"
+msgstr "Нет последних продаж"
+
+msgid "No recent purchases"
+msgstr "Нет последних поступлений"
+

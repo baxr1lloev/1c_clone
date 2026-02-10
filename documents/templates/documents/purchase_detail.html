@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% blocktrans with number=doc.number %}Purchase Document #{{ number }}{% endblocktrans %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+            <h2>{% blocktrans with number=doc.number %}Purchase #{{ number }}{% endblocktrans %}</h2>
+            <p class="text-sm text-gray-500">
+                {% trans "Date" %}: {{ doc.date|date:"Y-m-d H:i" }} | 
+                {% trans "Supplier" %}: <strong>{{ doc.counterparty }}</strong> | 
+                {% trans "Warehouse" %}: <strong>{{ doc.warehouse }}</strong> |
+                {% trans "Currency" %}: <strong>{{ doc.currency }}</strong> @ {{ doc.rate }}
+            </p>
+        </div>
+        <div>
+            {% if doc.status == 'draft' %}
+            <form action="{% url 'documents:purchase_post' doc.pk %}" method="post" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">{% trans "Post (Receive Goods)" %}</button>
+            </form>
+            <a href="{% url 'documents:purchase_edit' doc.pk %}" class="btn btn-secondary" style="background: #d1d5db; color: #111827; border: 1px solid #9ca3af;">{% trans "Edit Header" %}</a>
+            {% else %}
+            <span class="badge badge-success">{% trans "POSTED" %}</span>
+            {% endif %}
+            <a href="{% url 'documents:purchase_list' %}" class="btn btn-secondary">{% trans "Back" %}</a>
+        </div>
+    </div>
+    
+
+    <!-- Lines Table -->
+    <table class="table">
+        <thead>
+            <tr>
+                <th>{% trans "Item" %}</th>
+                <th>{% trans "Quantity" %}</th>
+                <th>{% blocktrans with currency=doc.currency %}Price ({{ currency }}){% endblocktrans %}</th>
+                <th>{% blocktrans with currency=doc.currency %}Amount ({{ currency }}){% endblocktrans %}</th>
+                <th>{% trans "Price (Base)" %}</th>
+                <th>{% trans "Amount (Base)" %}</th>
+                <th>{% trans "Action" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in doc.lines.all %}
+            <tr>
+                <td>{% if line.item %}{{ line.item.name }}{% else %}<span class="text-danger">{% trans "Item Missing" %}</span>{% endif %}</td>
+                <td>{{ line.quantity|floatformat:"-3" }}</td>
+                <td>{{ line.price|floatformat:2 }}</td>
+                <td>{{ line.amount|floatformat:2 }}</td>
+                <td>{{ line.price_base|floatformat:2 }}</td>
+                <td>{{ line.amount_base|floatformat:2 }}</td>
+                <td>
+                    {% if doc.status == 'draft' %}
+                    <form action="{% url 'documents:purchase_line_delete' line.pk %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn text-red" style="padding:0; background:none; border:none; color:red; cursor:pointer;" onclick="return confirm('{% trans "Delete this line?" %}');">X</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center text-muted">{% trans "No lines yet." %}</td>
+            </tr>
+            {% endfor %}
+            <tr style="font-weight: bold; background-color: #f9fafb;">
+                <td colspan="3" style="text-align: right;">{% trans "Total:" %}</td>
+                <td>{{ doc.total_amount }} {{ doc.currency }}</td>
+                <td colspan="2"></td>
+            </tr>
+            <tr style="font-weight: bold; background-color: #f9fafb;">
+                <td colspan="3" style="text-align: right;">{% trans "Total Base:" %}</td>
+                <td colspan="3">{{ doc.total_amount_base }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Add Line Form -->
+    {% if not doc.is_posted %}
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+        <h3>{% trans "Add Line" %}</h3>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="form-group" style="flex: 2;">
+                    {{ line_form.item.label_tag }}
+                    {{ line_form.item }}
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    {{ line_form.quantity.label_tag }}
+                    {{ line_form.quantity }}
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    {{ line_form.price.label_tag }}
+                    {{ line_form.price }}
+                </div>
+                <div class="form-group" style="flex: 0 0 auto; align-self: flex-end;">
+                    <button type="submit" class="btn btn-primary">{% trans "Add" %}</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.form-row { display: flex; gap: 1rem; align-items: flex-start; }
+.form-group { margin-bottom: 0.5rem; }
+.alert-warning { background-color: #fff3cd; color: #856404; padding: 0.75rem; margin-bottom: 1rem; border-radius: 0.25rem; }
+</style>
+{% endblock %}

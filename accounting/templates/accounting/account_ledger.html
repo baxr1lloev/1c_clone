@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div style="max-width: 1400px; margin: 0 auto; padding: 2rem;">
+    <h1>📒 {% trans "Account Ledger" %}: {{ account.code }} - {{ account.name }}</h1>
+    
+    <div style="background: white; padding: 2rem; margin-top: 1.5rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f9fafb; border-radius: 4px;">
+            <strong>{% trans "Final Balance:" %}</strong> <span style="font-size: 1.2rem; color: {% if final_balance >= 0 %}#10b981{% else %}#ef4444{% endif %};">{{ final_balance|floatformat:2 }}</span>
+        </div>
+        
+        <table class="table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>{% trans "Date" %}</th>
+                    <th>{% trans "Description" %}</th>
+                    <th>{% trans "Debit" %}</th>
+                    <th>{% trans "Credit" %}</th>
+                    <th style="background: #f3f4f6;">{% trans "Running Balance" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                <tr>
+                    <td>{{ entry.date|date:"Y-m-d" }}</td>
+                    <td>
+                        {% if entry.get_document_url %}
+                            <a href="{{ entry.get_document_url }}" style="color: #3b82f6; text-decoration: none;">
+                                {{ entry.description|default:"-" }} 🔗
+                            </a>
+                        {% else %}
+                            {{ entry.description|default:"-" }}
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right; font-family: monospace;">{% if entry.debit %}{{ entry.debit|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td style="text-align: right; font-family: monospace;">{% if entry.credit %}{{ entry.credit|floatformat:2 }}{% else %}-{% endif %}</td>
+                    <td style="text-align: right; font-family: monospace; font-weight: 600; background: #f9fafb; color: {% if entry.running_balance >= 0 %}#10b981{% else %}#ef4444{% endif %};">
+                        {{ entry.running_balance|floatformat:2 }}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #6b7280; padding: 2rem;">{% trans "No entries for this account" %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <a href="{% url 'accounting:chart_list' %}" class="btn btn-secondary" style="margin-top: 1rem;">{% trans "← Back to Chart of Accounts" %}</a>
+</div>
+{% endblock %}

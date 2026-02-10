@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Financial Reports" %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h2>{% trans "Financial Reports" %}</h2>
+    <div class="report-links">
+        <a href="{% url 'accounting:profit_loss' %}" class="report-card">
+            <h3>{% trans "Profit & Loss" %}</h3>
+            <p>{% trans "Statement of revenues, costs, and expenses." %}</p>
+        </a>
+        <a href="{% url 'accounting:balance_sheet' %}" class="report-card">
+            <h3>{% trans "Balance Sheet" %}</h3>
+            <p>{% trans "Assets, Liabilities, and Equity." %}</p>
+        </a>
+        <a href="{% url 'accounting:report_tb' %}" class="report-card">
+            <h3>{% trans "Trial Balance" %}</h3>
+            <p>{% trans "List of all account balances at a point in time." %}</p>
+        </a>
+        <!-- Add more report links as needed -->
+    </div>
+</div>
+
+<style>
+.report-links { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; margin-top: 1rem; }
+.report-card { 
+    display: block; 
+    padding: 1.5rem; 
+    border: 1px solid #e5e7eb; 
+    border-radius: 0.5rem; 
+    text-decoration: none; 
+    color: inherit;
+    transition: background-color 0.2s;
+}
+.report-card:hover { background-color: #f9fafb; }
+.report-card h3 { margin-top: 0; color: #4f46e5; }
+.report-card p { color: #6b7280; margin-bottom: 0; }
+</style>
+{% endblock %}

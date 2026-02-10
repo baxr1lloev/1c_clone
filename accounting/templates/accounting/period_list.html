@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load permission_tags %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>📅 {% trans "Accounting Periods" %}</h1>
+    </div>
+
+    <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <table class="table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>{% trans "Period" %}</th>
+                    <th>{% trans "Status" %}</th>
+                    <th>{% trans "Closed By" %}</th>
+                    <th>{% trans "Closed At" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for period in periods %}
+                <tr>
+                    <td style="font-weight: 600;">
+                        {{ period.period|date:"Y-m" }}
+                    </td>
+                    <td>
+                        {% if period.status == 'CLOSED' %}
+                            <span style="padding: 4px 12px; background: #fee2e2; color: #991b1b; border-radius: 4px; font-size: 0.875rem; font-weight: 500;">
+                                🔒 {% trans "Closed" %}
+                            </span>
+                        {% elif period.status == 'OPEN' %}
+                            <span style="padding: 4px 12px; background: #d1fae5; color: #065f46; border-radius: 4px; font-size: 0.875rem; font-weight: 500;">
+                                🔓 {% trans "Open" %}
+                            </span>
+                        {% else %}
+                            <span style="padding: 4px 12px; background: #fef3c7; color: #92400e; border-radius: 4px; font-size: 0.875rem;">
+                                {{ period.status }}
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if period.closed_by %}
+                            {{ period.closed_by.get_full_name|default:period.closed_by.email }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if period.closed_at %}
+                            {{ period.closed_at|date:"Y-m-d H:i" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% has_perm 'registers.close_period' as can_close %}
+                        {% has_perm 'registers.reopen_period' as can_reopen %}
+                        
+                        {% if period.status == 'OPEN' and can_close %}
+                            <form method="post" action="{% url 'accounting:period_close' period.pk %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm" style="background: #dc2626; color: white; padding: 4px 12px; font-size: 0.875rem;" 
+                                        onclick="return confirm('{% trans "Close period" %} {{ period.period|date:\"Y-m\" }}?\n\n{% trans "This will:" %}\n- {% trans "Lock all documents in this period" %}\n- {% trans "Prevent posting/unposting" %}\n- {% trans "Calculate final balances" %}\n\n{% trans "Continue?" %}')">
+                                    🔒 {% trans "Close" %}
+                                </button>
+                            </form>
+                        {% elif period.status == 'CLOSED' and can_reopen %}
+                            <form method="post" action="{% url 'accounting:period_reopen' period.pk %}" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-warning" style="padding: 4px 12px; font-size: 0.875rem;"
+                                        onclick="return confirm('{% trans "Reopen period" %} {{ period.period|date:\"Y-m\" }}?\n\n{% trans "This will allow modifications again." %}\n\n{% trans "Continue?" %}')">
+                                    🔓 {% trans "Reopen" %}
+                                </button>
+                            </form>
+                        {% else %}
+                            <span style="color: #9ca3af; font-size: 0.875rem;">{% trans "No actions available" %}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: #6b7280; padding: 2rem;">
+                        {% trans "No periods found. Periods are created automatically when documents are posted." %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div style="margin-top: 1.5rem; padding: 1rem; background: #f0f9ff; border-left: 4px solid #3b82f6; border-radius: 4px;">
+        <strong>ℹ️ {% trans "About Periods:" %}</strong>
+        <ul style="margin: 0.5rem 0 0 1.5rem;">
+            <li>{% trans "Periods are automatically created from posted documents" %}</li>
+            <li>{% trans "Closed periods prevent any document posting/unposting" %}</li>
+            <li>{% trans "Only users with proper permissions can close/reopen periods" %}</li>
+            <li>{% trans "Period closing is logged in the audit trail" %}</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

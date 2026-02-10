@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="form-container">
+    <h1>{% trans "Change User Role" %}</h1>
+    
+    <div class="user-info">
+        <p><strong>{% trans "User:" %}</strong> {{ object.email }}</p>
+        <p><strong>{% trans "Current Role:" %}</strong> 
+            {% if object.role %}
+                {{ object.role.name }}
+            {% else %}
+                <span class="text-muted">{% trans "None" %}</span>
+            {% endif %}
+        </p>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="{{ form.role.id_for_label }}">{% trans "New Role:" %}</label>
+            {{ form.role }}
+            {% if form.role.errors %}
+                <div class="error">{{ form.role.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans "Save" %}</button>
+            <a href="{% url 'accounts:user_list' %}" class="btn btn-secondary">{% trans "Cancel" %}</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.form-container {
+    max-width: 600px;
+    margin: 2rem auto;
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.user-info {
+    background: #f9fafb;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.error {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+</style>
+{% endblock %}

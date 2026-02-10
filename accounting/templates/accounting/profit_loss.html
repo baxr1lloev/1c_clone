@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>📈 {% trans "Profit & Loss Statement" %}</h1>
+        <div style="display: flex; gap: 0.5rem;">
+            <form method="get" style="display: flex; gap: 1rem;">
+                <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" placeholder="{% trans 'Start Date' %}" style="padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" placeholder="{% trans 'End Date' %}" style="padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 4px;">
+                <button type="submit" class="btn btn-primary">{% trans "Update" %}</button>
+            </form>
+            <a href="{% url 'accounting:profit_loss_pdf' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}" class="btn btn-secondary">📄 {% trans "PDF" %}</a>
+            <a href="{% url 'accounting:profit_loss_excel' %}?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}" class="btn btn-secondary" style="background: #10b981; color: white;">📊 {% trans "Excel" %}</a>
+        </div>
+    </div>
+
+    <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <table style="width: 100%;">
+            <tr style="background: #f0fdf4; font-weight: 600;">
+                <td colspan="2" style="padding: 1rem; border-bottom: 2px solid #10b981;"><h2 style="margin: 0; color: #065f46;">{% trans "REVENUE" %}</h2></td>
+            </tr>
+            {% for account, amount in revenue.items %}
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 0.75rem 1rem; padding-left: 2rem;">{{ account.code }} {{ account.name }}</td>
+                <td style="padding: 0.75rem 1rem; text-align: right; font-family: monospace; color: #10b981;">{{ amount|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            <tr style="background: #d1fae5; font-weight: 600;">
+                <td style="padding: 1rem; padding-left: 2rem;">{% trans "Total Revenue" %}</td>
+                <td style="padding: 1rem; text-align: right; font-family: monospace; font-size: 1.1rem; color: #065f46;">{{ total_revenue|floatformat:2 }}</td>
+            </tr>
+            
+            <tr style="background: #fef2f2; font-weight: 600;">
+                <td colspan="2" style="padding: 1rem; border-top: 2px solid #ef4444; border-bottom: 2px solid #ef4444;"><h2 style="margin: 0; color: #991b1b;">{% trans "EXPENSES" %}</h2></td>
+            </tr>
+            {% for account, amount in expenses.items %}
+            <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 0.75rem 1rem; padding-left: 2rem;">{{ account.code }} {{ account.name }}</td>
+                <td style="padding: 0.75rem 1rem; text-align: right; font-family: monospace; color: #ef4444;">{{ amount|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+            <tr style="background: #fee2e2; font-weight: 600;">
+                <td style="padding: 1rem; padding-left: 2rem;">{% trans "Total Expenses" %}</td>
+                <td style="padding: 1rem; text-align: right; font-family: monospace; font-size: 1.1rem; color: #991b1b;">{{ total_expenses|floatformat:2 }}</td>
+            </tr>
+            
+            <tr style="background: {% if net_profit >= 0 %}#dbeafe{% else %}#fee2e2{% endif %}; font-weight: 700; border-top: 3px solid #3b82f6;">
+                <td style="padding: 1.5rem; font-size: 1.1rem;">{% if net_profit >= 0 %}{% trans "NET PROFIT" %}{% else %}{% trans "NET LOSS" %}{% endif %}</td>
+                <td style="padding: 1.5rem; text-align: right; font-family: monospace; font-size: 1.5rem; color: {% if net_profit >= 0 %}#065f46{% else %}#991b1b{% endif %};">{{ net_profit|floatformat:2 }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+{% endblock %}

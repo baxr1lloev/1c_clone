@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>💰 {% trans "Cash Flow Statement" %}</h1>
+        <form method="get" style="display: flex; gap: 1rem;">
+            <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" class="form-input">
+            <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" class="form-input">
+            <button type="submit" class="btn btn-primary">{% trans "Update" %}</button>
+        </form>
+    </div>
+
+    <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between;">
+                <strong>{% blocktrans with date=start_date|date:"M d, Y" %}Opening Balance ({{ date }}){% endblocktrans %}</strong>
+                <strong style="font-size: 1.2rem;">{{ cash_flow.opening_balance|floatformat:2 }}</strong>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 2rem;">
+            <h3 style="color: #10b981; margin-bottom: 1rem;">{% trans "+ Cash Inflows" %}</h3>
+            {% for category, amount in cash_flow.inflows.items %}
+                <div style="display: flex; justify-content: space-between; padding: 0.5rem 1rem; background: #f0fdf4; margin-bottom: 0.5rem; border-radius: 4px;">
+                    <span>{{category }}</span>
+                    <span style="color: #10b981; font-weight: 500;">+{{ amount|floatformat:2 }}</span>
+                </div>
+            {% empty %}
+                <p style="color: #6b7280; font-style: italic;">{% trans "No inflows in this period" %}</p>
+            {% endfor %}
+            <div style="display: flex; justify-content: space-between; padding: 0.75rem 1rem; background: #d1fae5; border-radius: 4px; margin-top: 0.5rem;">
+                <strong>{% trans "Total Inflows" %}</strong>
+                <strong style="color: #10b981; font-size: 1.1rem;">+{{ cash_flow.total_inflow|floatformat:2 }}</strong>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 2rem;">
+            <h3 style="color: #ef4444; margin-bottom: 1rem;">{% trans "- Cash Outflows" %}</h3>
+            {% for category, amount in cash_flow.outflows.items %}
+                <div style="display: flex; justify-content: space-between; padding: 0.5rem 1rem; background: #fef2f2; margin-bottom: 0.5rem; border-radius: 4px;">
+                    <span>{{ category }}</span>
+                    <span style="color: #ef4444; font-weight: 500;">-{{ amount|floatformat:2 }}</span>
+                </div>
+            {% empty %}
+                <p style="color: #6b7280; font-style: italic;">{% trans "No outflows in this period" %}</p>
+            {% endfor %}
+            <div style="display: flex; justify-content: space-between; padding: 0.75rem 1rem; background: #fee2e2; border-radius: 4px; margin-top: 0.5rem;">
+                <strong>{% trans "Total Outflows" %}</strong>
+                <strong style="color: #ef4444; font-size: 1.1rem;">-{{ cash_flow.total_outflow|floatformat:2 }}</strong>
+            </div>
+        </div>
+
+        <div style="border-top: 2px solid #e5e7eb; padding-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                <strong style="font-size: 1.2rem;">{% blocktrans with date=end_date|date:"M d, Y" %}Closing Balance ({{ date }}){% endblocktrans %}</strong>
+                <strong style="font-size: 1.5rem; color: {% if cash_flow.closing_balance >= 0 %}#10b981{% else %}#ef4444{% endif %};">
+                    {{ cash_flow.closing_balance|floatformat:2 }}
+                </strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; color: #6b7280;">
+                <span>{% trans "Net Change" %}</span>
+                <span style="color: {% if cash_flow.net_change >= 0 %}#10b981{% else %}#ef4444{% endif %}; font-weight: 500;">
+                    {{ cash_flow.net_change|floatformat:2 }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-input {
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+</style>
+{% endblock %}

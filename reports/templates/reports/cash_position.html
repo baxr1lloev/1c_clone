@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto; padding: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h1>💵 {% trans "Cash Position" %}</h1>
+        <form method="get">
+            <label>{% trans "As of:" %} </label>
+            <input type="date" name="as_of_date" value="{{ as_of_date|date:'Y-m-d' }}" class="form-input">
+            <button type="submit" class="btn btn-primary">{% trans "Update" %}</button>
+        </form>
+    </div>
+
+    <div style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <h3 style="margin-bottom: 1.5rem;">{% trans "Cash & Bank Balances" %}</h3>
+        
+        {% for item in cash_position.accounts %}
+            <div style="display: flex; justify-content: space-between; padding: 1rem;  background: #f9fafb; margin-bottom: 0.75rem; border-radius: 4px; border-left: 4px solid #3b82f6;">
+                <div>
+                    <strong>{{ item.account.name }}</strong>
+                    <div style="font-size: 0.875rem; color: #6b7280;">{{ item.account.code }}</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 1.2rem; font-weight: 600; color: {% if item.balance >= 0 %}#10b981{% else %}#ef4444{% endif %};">
+                        {{ item.balance|floatformat:2 }}
+                    </div>
+                    {% if item.currency %}
+                        <div style="font-size: 0.875rem; color: #6b7280;">{{ item.currency.code }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        {% empty %}
+            <p style="color: #6b7280; text-align: center; padding: 2rem;">{% trans "No cash or bank accounts with balance" %}</p>
+        {% endfor %}
+
+        <div style="border-top: 2px solid #e5e7eb; margin-top: 1.5rem; padding-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between;">
+                <strong style="font-size: 1.2rem;">{% trans "Total Cash Available" %}</strong>
+                <strong style="font-size: 1.5rem; color: {% if cash_position.total >= 0 %}#10b981{% else %}#ef4444{% endif %};">
+                    {{ cash_position.total|floatformat:2 }}
+                </strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-input {
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    margin: 0 0.5rem;
+}
+</style>
+{% endblock %}

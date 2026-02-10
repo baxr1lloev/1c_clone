@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Tax Reports{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2>Tax Reports</h2>
+        <a href="{% url 'taxes:report_wizard' %}" class="btn btn-primary">+ New Tax Report</a>
+    </div>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Report #</th>
+                <th>Period</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Created At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for report in reports %}
+            <tr>
+                <td><a href="{% url 'taxes:report_detail' report.pk %}">#{{ report.id }}</a></td>
+                <td>{{ report.period_start|date:"Y-m-d" }} - {{ report.period_end|date:"Y-m-d" }}</td>
+                <td>{{ report.tax_form.name }}</td>
+                <td>
+                    {% if report.status == 'DRAFT' %}
+                    <span class="badge badge-warning">Draft</span>
+                    {% else %}
+                    <span class="badge badge-success">Submitted</span>
+                    {% endif %}
+                </td>
+                <td>{{ report.created_at|date:"Y-m-d H:i" }}</td>
+                <td>
+                    <a href="{% url 'taxes:report_detail' report.pk %}">View</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center text-muted">No tax reports found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+.badge { padding: 0.25rem 0.5rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 500; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-success { background: #d1fae5; color: #065f46; }
+</style>
+{% endblock %}

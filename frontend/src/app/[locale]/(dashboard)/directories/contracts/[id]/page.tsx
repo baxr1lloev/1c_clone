@@ -1,0 +1,189 @@
+'use client';
+
+import { useParams } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/api';
+import { Breadcrumbs } from '@/components/ui/breadcrumbs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { DataTable } from '@/components/data-table/data-table';
+import { ColumnDef } from '@tanstack/react-table';
+import { LinkableCell } from '@/components/ui/linkable-cell';
+import { CopyLinkButton } from '@/components/ui/copy-link-button';
+import { Loader2 } from 'lucide-react';
+
+interface RelatedDocument {
+    id: number;
+    type: string;
+    number: string;
+    date: string;
+    total: number;
+}
+
+export default function ContractDetailPage() {
+    const params = useParams();
+    const id = parseInt(params.id as string);
+
+    const { data: contract, isLoading } = useQuery({
+        queryKey: ['contract', id],
+        queryFn: async () => {
+            const response = await api.get(`/api/contracts/${id}/`);
+            return response.data;
+        },
+    });
+
+    const { data: documentsData } = useQuery({
+        queryKey: ['contract', id, 'documents'],
+        queryFn: async () => {
+            // Mock data - replace with actual API call when backend is ready
+            return { documents: [] };
+        },
+    });
+
+    const breadcrumbs = [
+        { label: 'Home', href: '/' },
+        { label: 'Directories', href: '/directories' },
+        { label: 'Contracts', href: '/directories/contracts' },
+        { label: contract?.number || `Contract #${id}` },
+    ];
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+
+    const documentColumns: ColumnDef<RelatedDocument>[] = [
+        {
+            accessorKey: 'date',
+            header: 'Date',
+        },
+        {
+            accessorKey: 'type',
+            header: 'Type',
+            cell: ({ row }) => <Badge variant="outline">{row.original.type}</Badge>,
+        },
+        {
+            accessorKey: 'number',
+            header: 'Number',
+            cell: ({ row }) => (
+                <LinkableCell
+                    id={row.original.id}
+                    type={row.original.type as any}
+                    label={row.original.number}
+                />
+            ),
+        },
+        {
+            accessorKey: 'total',
+            header: 'Total',
+            cell: ({ row }) => `$${row.original.total.toFixed(2)}`,
+        },
+    ];
+
+    return (
+        <div className="container mx-auto py-6 space-y-6">
+            <Breadcrumbs segments={breadcrumbs} />
+
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold">{contract?.number}</h1>
+                    <p className="text-muted-foreground">
+                        {contract?.counterparty?.name}
+                    </p>
+                </div>
+                <div className="flex gap-2">
+                    <CopyLinkButton entityType="contract" entityId={id} />
+                    <Badge variant={contract?.is_active ? 'default' : 'secondary'}>
+                        {contract?.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
+                </div>
+            </div>
+
+            <Tabs defaultValue="details" className="w-full">
+                <TabsList>
+                    <TabsTrigger value="details">Details</TabsTrigger>
+                    <TabsTrigger value="documents">Related Documents</TabsTrigger>
+                    <TabsTrigger value="audit">Audit</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="details" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Contract Information</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-muted-foreground">Contract Number</p>
+                                <p className="font-medium">{contract?.number}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Counterparty</p>
+                                <p className="font-medium">
+                                    {contract?.counterparty?.name}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Type</p>
+                                <p className="font-medium">{contract?.contract_type}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Currency</p>
+                                <p className="font-medium">{contract?.currency?.code}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Start Date</p>
+                                <p className="font-medium">{contract?.date}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Valid Until</p>
+                                <p className="font-medium">{contract?.valid_until || 'N/A'}</p>
+                            </div>
+                            <div className="col-span-2">
+                                <p className="text-sm text-muted-foreground">Description</p>
+                                <p className="font-medium">{contract?.description || 'N/A'}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="documents">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Related Documents</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <DataTable
+                                columns={documentColumns}
+                                data={documentsData?.documents || []}
+                            />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="audit">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Audit Trail</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-2">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Created</p>
+                                    <p className="font-medium">{contract?.created_at}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-muted-foreground">Last Modified</p>
+                                    <p className="font-medium">{contract?.updated_at}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
+}

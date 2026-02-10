@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load permission_tags audit_tags %}
+
+{% block title %}{% blocktrans with number=doc.number %}Sales Document #{{ number }}{% endblocktrans %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <h2>{% blocktrans with number=doc.number %}Sales #{{ number }}{% endblocktrans %}</h2>
+                {% if doc.status == 'draft' %}
+                    <span style="padding: 4px 12px; background: #fef3c7; color: #92400e; border-radius: 4px; font-size: 0.875rem; font-weight: 500;">📝 {% trans "Draft" %}</span>
+                {% elif doc.status == 'posted' %}
+                    <span style="padding: 4px 12px; background: #d1fae5; color: #065f46; border-radius: 4px; font-size: 0.875rem; font-weight: 500;">✅ {% trans "Posted" %}</span>
+                {% endif %}
+            </div>
+            <p class="text-sm text-gray-500">
+                {% trans "Date" %}: {{ doc.date|date:"Y-m-d H:i" }} | 
+                {% trans "Customer" %}: <strong>{{ doc.counterparty }}</strong> | 
+                {% trans "Warehouse" %}: <strong>{{ doc.warehouse }}</strong> |
+                {% trans "Currency" %}: <strong>{{ doc.currency }}</strong> @ {{ doc.rate }}
+            </p>
+            {% if doc.posted_by %}
+                <p class="text-sm text-gray-500">{% blocktrans with user=doc.posted_by.get_full_name|default:doc.posted_by.email date=doc.posted_at|date:"Y-m-d H:i" %}Posted by: {{ user }} on {{ date }}{% endblocktrans %}</p>
+            {% endif %}
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            {% has_perm 'documents.post' as can_post %}
+            {% has_perm 'documents.unpost' as can_unpost %}
+            
+            {% if doc.status == 'draft' %}
+                {% if can_post %}
+                    <form action="{% url 'documents:sales_post' doc.pk %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success" onclick="return confirm('{% trans "Post this document?" %}')">📝 {% trans "Post" %}</button>
+                    </form>
+                {% endif %}
+                <a href="{% url 'documents:sales_edit' doc.pk %}" class="btn btn-secondary" style="background: #d1d5db; color: #111827; border: 1px solid #9ca3af;">{% trans "Edit" %}</a>
+            {% elif doc.status == 'posted' %}
+                {% if can_unpost %}
+                    <form action="{% url 'documents:sales_unpost' doc.pk %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning" onclick="return confirm('{% trans "Unpost this document?" %}')">↩️ {% trans "Unpost" %}</button>
+                    </form>
+                {% endif %}
+            {% endif %}
+            <a href="{% url 'documents:sales_list' %}" class="btn btn-secondary">{% trans "Back" %}</a>
+        </div>
+    </div>
+
+    <!-- Lines Table -->
+    <table class="table">
+        <thead>
+            <tr>
+                <th>{% trans "Item" %}</th>
+                <th>{% trans "Quantity" %}</th>
+                <th>{% blocktrans with currency=doc.currency %}Price ({{ currency }}){% endblocktrans %}</th>
+                <th>{% blocktrans with currency=doc.currency %}Amount ({{ currency }}){% endblocktrans %}</th>
+                <th>{% trans "Price (Base)" %}</th>
+                <th>{% trans "Amount (Base)" %}</th>
+                <th>{% trans "Action" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for line in doc.lines.all %}
+            <tr>
+                <td>{% if line.item %}{{ line.item.name }}{% else %}<span class="text-danger">{% trans "Item Missing" %}</span>{% endif %}</td>
+                <td>{{ line.quantity|floatformat:"-3" }}</td>
+                <td>{{ line.price|floatformat:2 }}</td>
+                <td>{{ line.amount|floatformat:2 }}</td>
+                <td>{{ line.price_base|floatformat:2 }}</td>
+                <td>{{ line.amount_base|floatformat:2 }}</td>
+                <td>
+                    {% if doc.status == 'draft' %}
+                    <form action="{% url 'documents:sales_line_delete' line.pk %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn text-red" style="padding:0; background:none; border:none; color:red; cursor:pointer;" onclick="return confirm('{% trans "Delete this line?" %}');">X</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center text-muted">{% trans "No lines yet." %}</td>
+            </tr>
+            {% endfor %}
+            <tr style="font-weight: bold; background-color: #f9fafb;">
+                <td colspan="3" style="text-align: right;">{% trans "Total:" %}</td>
+                <td>{{ doc.total_amount }} {{ doc.currency }}</td>
+                <td colspan="2"></td>
+            </tr>
+            <tr style="font-weight: bold; background-color: #f9fafb;">
+                <td colspan="3" style="text-align: right;">{% trans "Total Base:" %}</td>
+                <td colspan="3">{{ doc.total_amount_base }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Add Line Form -->
+    {% if not doc.is_posted %}
+    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+        <h3>{% trans "Add Line" %}</h3>
+        <form method="post" id="addLineForm">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="form-group" style="flex: 2;">
+                    {{ line_form.item.label_tag }}
+                    {{ line_form.item }}
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    {{ line_form.quantity.label_tag }}
+                    {{ line_form.quantity }}
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    {{ line_form.price.label_tag }}
+                    {{ line_form.price }}
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    {{ line_form.available_qty.label_tag }}
+                    {{ line_form.available_qty }}
+                </div>
+                <div class="form-group" style="flex: 0 0 auto; align-self: flex-end;">
+                    <button type="submit" class="btn btn-primary">{% trans "Add" %}</button>
+                </div>
+            </div>
+            {% if line_form.errors %}
+            <div class="text-danger">
+                {{ line_form.errors }}
+            </div>
+            {% endif %}
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    // Constants from template
+    const WAREHOUSE_ID = "{{ doc.warehouse.id }}";
+    
+    function updateAvailableQty(selectElement) {
+        const itemId = selectElement.value;
+        const availableInput = document.getElementById('{{ line_form.available_qty.id_for_label }}');
+        
+        if (!itemId) {
+            availableInput.value = '';
+            return;
+        }
+
+        // Fetch availability
+        fetch(`{% url 'documents:api_availability' %}?warehouse=${WAREHOUSE_ID}&item=${itemId}`)
+            .then(response => response.json())
+            .then(data => {
+                availableInput.value = data.available;
+                
+                // Optional: visual warning if low
+                if (data.available <= 0) {
+                    availableInput.style.color = 'red';
+                    availableInput.style.fontWeight = 'bold';
+                } else {
+                    availableInput.style.color = 'black';
+                    availableInput.style.fontWeight = 'normal';
+                }
+            })
+            .catch(error => console.error('Error fetching availability:', error));
+    }
+</script>
+
+{# Audit Trail #}
+{% show_audit_history doc %}
+
+<style>
+.form-row {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+.form-group {
+    margin-bottom: 0.5rem;
+}
+.text-sm { font-size: 0.875rem; }
+.text-gray-500 { color: #6b7280; }
+.text-danger { color: #dc2626; font-size: 0.875rem; margin-top: 0.25rem; }
+.btn-success { background-color: #059669; color: white; border: none; }
+.text-center { text-align: center; }
+.text-muted { color: #9ca3af; }
+</style>
+{% endblock %}
