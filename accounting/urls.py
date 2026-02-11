@@ -35,4 +35,7 @@ urlpatterns = [
     path('policy/', views.AccountingPolicyView.as_view(), name='policy'),
     path('reports/', views.ReportListView.as_view(), name='reports'),
     path('reports/tb/', views.TrialBalanceView.as_view(), name='report_tb'),
+    
+    # ENTERPRISE: Period status API for frontend
+    path('api/period-status/', lambda request: __import__('accounting.api_views', fromlist=['period_status']).period_status(request), name='api_period_status'),
 ]

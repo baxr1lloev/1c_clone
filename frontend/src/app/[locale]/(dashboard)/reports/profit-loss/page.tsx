@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { DataTable } from '@/components/data-table/data-table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +18,7 @@ interface PLItem {
 }
 
 export default function ProfitLossPage() {
+    const router = useRouter();
     const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0, 10));
     const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
 
@@ -49,11 +51,29 @@ export default function ProfitLossPage() {
         {
             accessorKey: 'amount',
             header: 'Amount',
-            cell: ({ row }) => (
-                <div className={`font-mono text-right ${row.original.type === 'total' ? 'font-bold border-t border-black' : ''} ${row.original.amount < 0 ? 'text-red-600' : ''}`}>
-                    {row.original.amount.toLocaleString()}
-                </div>
-            )
+            cell: ({ row }) => {
+                const router = useRouter();
+                const amount = row.original.amount;
+                const isClickable = row.original.type !== 'total';
+
+                return (
+                    <div
+                        className={`font-mono text-right ${row.original.type === 'total' ? 'font-bold border-t border-black' : ''
+                            } ${amount < 0 ? 'text-red-600' : ''} ${isClickable ? 'cursor-pointer hover:underline' : ''
+                            }`}
+                        onClick={() => {
+                            if (isClickable) {
+                                // Navigate to journal entries filtered by this type
+                                const accountFilter = row.original.type === 'income' ? 'revenue' : 'expense';
+                                router.push(`/registers/journal-entries?type=${accountFilter}&from=${startDate}&to=${endDate}`);
+                            }
+                        }}
+                        title={isClickable ? 'Кликните для просмотра проводок' : ''}
+                    >
+                        {amount.toLocaleString()}
+                    </div>
+                );
+            }
         }
     ];
 

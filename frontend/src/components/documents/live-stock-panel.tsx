@@ -45,7 +45,7 @@ export function LiveStockPanel({ warehouseId, lines, operation = 'OUT' }: LiveSt
             const response = await api.get('/registers/operational/stock-info/', {
                 params: { warehouse: warehouseId, items: itemIds.join(',') }
             });
-            return response.data as { items: StockItem[] };
+            return response as { items: StockItem[] };
         },
         enabled: !!warehouseId && itemIds.length > 0,
         refetchInterval: 10000, // Refresh every 10 seconds
@@ -61,7 +61,7 @@ export function LiveStockPanel({ warehouseId, lines, operation = 'OUT' }: LiveSt
                 lines: lines.filter(l => l.item && l.quantity),
                 operation
             });
-            return response.data as { items: PredictionItem[] };
+            return response as { items: PredictionItem[] };
         },
         enabled: !!warehouseId && lines.some(l => l.item && l.quantity),
     });

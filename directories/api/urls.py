@@ -16,6 +16,8 @@ from .viewsets import (
     BankAccountViewSet,
     EmployeeViewSet,
 )
+from documents.api.item_context import get_item_context
+from .counterparty_context import get_counterparty_context
 
 router = DefaultRouter()
 router.register(r'currencies', CurrencyViewSet, basename='currency')
@@ -30,4 +32,8 @@ router.register(r'employees', EmployeeViewSet, basename='employee')
 
 urlpatterns = [
     path('', include(router.urls)),
+    # Item intelligence - auto-fill context
+    path('items/<int:item_id>/context', get_item_context, name='item-context'),
+    # Counterparty context - debt, credit, recent docs
+    path('counterparties/<int:counterparty_id>/context', get_counterparty_context, name='counterparty-context'),
 ]

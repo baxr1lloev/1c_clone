@@ -43,7 +43,7 @@ export default function AccountCardPage() {
             if (!accountId) return [];
             // Mock API or Real API
             // Needs a dedicated endpoint that returns chronological entries with running balance
-            const res = await api.get(`/reports/api/account-card/?account=${accountId}&start=${startDate}&end=${endDate}`);
+            const res = await api.get(`/reports/account-card/?account=${accountId}&start=${startDate}&end=${endDate}`);
             return res.data as AccountCardEntry[];
         },
         enabled: !!accountId
@@ -139,7 +139,6 @@ export default function AccountCardPage() {
                     <DataTable
                         columns={columns}
                         data={data || []}
-                        isLoading={isLoading}
                         isLoading={isLoading}
                     />
                 </div>

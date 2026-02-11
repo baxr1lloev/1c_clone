@@ -15,7 +15,7 @@ export default function EditSalesDocumentPage() {
         queryKey: ['sales', id],
         queryFn: async () => {
             const response = await api.get(`/documents/sales/${id}/`);
-            return response.data as SalesDocument;
+            return response as unknown as SalesDocument;
         },
         enabled: !!id,
     });

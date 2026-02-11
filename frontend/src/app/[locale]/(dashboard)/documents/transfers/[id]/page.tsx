@@ -16,8 +16,10 @@ export default function TransferDocumentDetailPage() {
         queryKey: ['transfers', id],
         queryFn: async () => {
             const res = await api.get(`/documents/transfers/${id}/`);
-            return res.data;
-        }
+            return res; // API already returns unwrapped data
+        },
+        // Ensure query doesn't return undefined
+        initialData: undefined,
     });
 
     if (isLoading) {

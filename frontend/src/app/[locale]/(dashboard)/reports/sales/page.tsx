@@ -32,7 +32,7 @@ export default function SalesReportPage() {
             const params = new URLSearchParams();
             if (startDate) params.append('start_date', startDate);
             if (endDate) params.append('end_date', endDate);
-            const response = await api.get(`/api/reports/sales/?${params.toString()}`);
+            const response = await api.get(`/reports/sales/?${params.toString()}`);
             return response.data;
         },
     });
@@ -135,7 +135,7 @@ export default function SalesReportPage() {
             {selectedCounterparty && (
                 <DrillDownModal
                     title="Sales Documents"
-                    endpoint={`/api/reports/sales/drilldown/?counterparty=${selectedCounterparty}&start_date=${startDate}&end_date=${endDate}`}
+                    endpoint={`/reports/sales/drilldown/?counterparty=${selectedCounterparty}&start_date=${startDate}&end_date=${endDate}`}
                     isOpen={drillDownOpen}
                     onClose={() => setDrillDownOpen(false)}
                 />

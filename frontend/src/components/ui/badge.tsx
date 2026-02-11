@@ -28,6 +28,8 @@ const badgeVariants = cva(
           "border-transparent bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-sm",
         draft:
           "border-gray-300 bg-gray-100 text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300",
+        cancelled:
+          "border-transparent bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-sm",
         deleted:
           "border-transparent bg-gradient-to-r from-red-500 to-rose-500 text-white shadow-sm line-through",
       },

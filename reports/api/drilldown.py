@@ -6,7 +6,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from documents.models import SalesDocument, PurchaseDocument
-from registers.models import StockMovement, SettlementMovement, JournalEntry
+from registers.models import StockMovement, SettlementMovement
+from accounting.models import AccountingEntry
 
 
 class ReportDrillDownView(APIView):
@@ -32,7 +33,7 @@ class ReportDrillDownView(APIView):
 
         if report_type == 'trial-balance':
             # Drill down to journal entries for an account
-            entries = JournalEntry.objects.filter(tenant=tenant)
+            entries = AccountingEntry.objects.filter(tenant=tenant)
             
             if account:
                 if side == 'debit':
@@ -47,20 +48,32 @@ class ReportDrillDownView(APIView):
             if period:
                 entries = entries.filter(period=period)
             
-            entries = entries.select_related('document_content_type').order_by('-period', '-id')[:100]
+            # Prefetch document content type and object
+            entries = entries.select_related('content_type').prefetch_related('document').order_by('-period', '-id')[:100]
             
-            data = [{
-                'id': e.id,
-                'period': e.period,
-                'debit_account': e.debit_account,
-                'credit_account': e.credit_account,
-                'amount': float(e.amount),
-                'description': e.description,
-                'document_type': e.document_content_type.model if e.document_content_type else None,
-                'document_id': e.document_object_id
-            } for e in entries]
+            data = []
+            for e in entries:
+                doc = e.document
+                doc_number = getattr(doc, 'number', '-') if doc else '-'
+                doc_type = e.content_type.model if e.content_type else 'unknown'
+                
+                # Format description with accounts
+                desc = f"{e.debit_account.code} -> {e.credit_account.code}: {e.description or ''}"
+                
+                data.append({
+                    'id': e.object_id if e.object_id else 0, # Document ID
+                    'type': doc_type,
+                    'number': doc_number,
+                    'date': e.date.isoformat() if e.date else None,
+                    'amount': float(e.amount),
+                    'counterparty_name': '-', # Could try to extract from doc
+                    'description': desc
+                })
             
-            return Response({'entries': data})
+            return Response({
+                'documents': data,
+                'total_amount': sum(d['amount'] for d in data)
+            })
 
         elif report_type == 'sales':
             # Drill down to sales documents
@@ -81,11 +94,14 @@ class ReportDrillDownView(APIView):
                 'date': d.date.isoformat() if d.date else None,
                 'counterparty_id': d.counterparty_id,
                 'counterparty_name': d.counterparty.name if d.counterparty else None,
-                'total': float(d.total) if hasattr(d, 'total') else None,
+                'amount': float(d.total) if hasattr(d, 'total') else None,
                 'status': d.status
             } for d in docs]
             
-            return Response({'documents': data})
+            return Response({
+                'documents': data,
+                'total_amount': sum((d['amount'] or 0) for d in data)
+            })
 
         elif report_type == 'stock':
             # Drill down to stock movements
@@ -98,20 +114,36 @@ class ReportDrillDownView(APIView):
             if movement_type:
                 movements = movements.filter(type=movement_type)
             
-            movements = movements.select_related('item', 'warehouse').order_by('-date')[:100]
+            # Prefetch content objects (documents) to avoid N+1 queries
+            movements = movements.select_related(
+                'item', 
+                'warehouse', 
+                'content_type'
+            ).prefetch_related('content_object').order_by('-date')[:100]
             
-            data = [{
-                'id': m.id,
-                'date': m.date.isoformat() if m.date else None,
-                'item_id': m.item_id,
-                'item_name': m.item.name,
-                'warehouse_id': m.warehouse_id,
-                'warehouse_name': m.warehouse.name,
-                'quantity': float(m.quantity),
-                'type': m.type
-            } for m in movements]
+            data = []
+            for m in movements:
+                doc = m.content_object
+                doc_number = getattr(doc, 'number', '-')
+                doc_type = m.content_type.model
+                
+                # Format description
+                description = f"{m.get_type_display()} {m.quantity} {m.item.name}"
+                
+                data.append({
+                    'id': m.object_id,  # Use document ID for navigation
+                    'type': doc_type,   # e.g., 'purchasedocument'
+                    'number': doc_number,
+                    'date': m.date.isoformat() if m.date else None,
+                    'amount': float(m.quantity), # Map quantity to amount for the modal
+                    'counterparty_name': getattr(doc.counterparty, 'name', '-') if hasattr(doc, 'counterparty') else '-',
+                    'description': description
+                })
             
-            return Response({'movements': data})
+            return Response({
+                'documents': data,
+                'total_amount': sum(d['amount'] for d in data)
+            })
 
         else:
             return Response({'error': 'Unknown report type'}, status=400)

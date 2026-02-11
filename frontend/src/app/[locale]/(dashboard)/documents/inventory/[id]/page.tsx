@@ -18,7 +18,7 @@ export default function InventoryDocumentDetailPage() {
             // For Form, we can use standard detail endpoint
             // Assuming detail serializer returns enough info for Form
             const res = await api.get(`/documents/inventory/${id}/`);
-            return res.data;
+            return res;
         }
     });
 

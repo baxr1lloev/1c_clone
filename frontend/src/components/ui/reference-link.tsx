@@ -7,6 +7,8 @@ type ReferenceType =
     | 'sales_document' | 'purchase_document' | 'payment_document'
     | 'transfer_document' | 'inventory_document' | 'sales_order'
     | 'sales-document' | 'purchase-document' | 'payment-document'
+    | 'salesdocument' | 'purchasedocument' | 'paymentdocument'
+    | 'transferdocument' | 'inventorydocument' | 'stockmovement' | 'accountingentry'
     | 'account' | 'bank-account';
 
 
@@ -16,6 +18,7 @@ interface ReferenceLinkProps {
     label?: string | number | null;
     className?: string;
     showIcon?: boolean;
+    href?: string;
 }
 
 const URL_MAP: Record<ReferenceType, string> = {
@@ -32,21 +35,33 @@ const URL_MAP: Record<ReferenceType, string> = {
     'sales-document': '/documents/sales', // Legacy/Duplicate support
     'purchase-document': '/documents/purchases',
     'payment-document': '/documents/payments',
+    'salesdocument': '/documents/sales', // Django model name
+    'purchasedocument': '/documents/purchases',
+    'paymentdocument': '/documents/payments',
+    'transferdocument': '/documents/transfers',
+    'inventorydocument': '/documents/inventory',
+    'stockmovement': '/registers/stock-movements', // Fallback
+    'accountingentry': '/registers/journal-entries', // Fallback
     'account': '/accounting/general-ledger',
     'bank-account': '/directories/bank-accounts'
 };
 
 
-export function ReferenceLink({ id, type, label, className, showIcon = false }: ReferenceLinkProps) {
+export function ReferenceLink({ id, type, label, className, showIcon = false, href: customHref }: ReferenceLinkProps) {
     if (!id) return <span className="text-muted-foreground">-</span>;
 
     const baseUrl = URL_MAP[type as ReferenceType];
-    if (!baseUrl) return <span className="text-muted-foreground">{label || `#${id}`}</span>;
 
-    let href = `${baseUrl}/${id}`;
-    if (type === 'account') {
-        href = `${baseUrl}?account=${id}`;
+    let href = customHref;
+
+    if (!href && baseUrl) {
+        href = `${baseUrl}/${id}`;
+        if (type === 'account') {
+            href = `${baseUrl}?account=${id}`;
+        }
     }
+
+    if (!href) return <span className="text-muted-foreground">{label || `#${id}`}</span>;
 
     return (
         <Link

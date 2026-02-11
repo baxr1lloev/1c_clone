@@ -231,16 +231,16 @@ export function DocumentTab({ documentId, documentType, defaultTab = 'main' }: D
     const { data: document, isLoading } = useQuery({
         queryKey: [documentType, documentId],
         queryFn: async () => {
-            const response = await api.get(`/api/documents/${documentType}/${documentId}`);
-            return response.data as DocumentData;
+            const response = await api.get(`/documents/${documentType}/${documentId}`);
+            return response as DocumentData;
         },
     });
 
     const { data: movements } = useQuery({
         queryKey: [documentType, documentId, 'movements'],
         queryFn: async () => {
-            const response = await api.get(`/api/documents/${documentType}/${documentId}/movements`);
-            return response.data.movements as Movement[];
+            const response = await api.get(`/documents/${documentType}/${documentId}/movements`);
+            return response.movements as Movement[];
         },
         enabled: document?.status === 'posted',
     });
@@ -248,15 +248,15 @@ export function DocumentTab({ documentId, documentType, defaultTab = 'main' }: D
     const { data: journal } = useQuery({
         queryKey: [documentType, documentId, 'journal'],
         queryFn: async () => {
-            const response = await api.get(`/api/documents/${documentType}/${documentId}/journal`);
-            return response.data.entries as JournalEntry[];
+            const response = await api.get(`/documents/${documentType}/${documentId}/journal`);
+            return response.entries as JournalEntry[];
         },
         enabled: document?.status === 'posted',
     });
 
     const postMutation = useMutation({
         mutationFn: async () => {
-            return api.post(`/api/documents/${documentType}/${documentId}/post/`);
+            return api.post(`/documents/${documentType}/${documentId}/post/`);
         },
         onSuccess: () => {
             toast.success('Документ проведён успешно');
@@ -269,7 +269,7 @@ export function DocumentTab({ documentId, documentType, defaultTab = 'main' }: D
 
     const unpostMutation = useMutation({
         mutationFn: async () => {
-            return api.post(`/api/documents/${documentType}/${documentId}/unpost/`);
+            return api.post(`/documents/${documentType}/${documentId}/unpost/`);
         },
         onSuccess: () => {
             toast.success('Проведение отменено');

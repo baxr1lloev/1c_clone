@@ -66,7 +66,7 @@ export function DocumentChain({ documentType, documentId }: DocumentChainProps) 
         queryKey: ['document-chain', documentType, documentId],
         queryFn: async () => {
             const response = await api.get(`/${documentType}/${documentId}/chain/`);
-            return response.data;
+            return response;
         },
     });
 
@@ -244,7 +244,7 @@ function CreateOnBasisButton({ documentType, documentId, targetType, label }: Cr
                 `/${documentType}/${documentId}/create_on_basis/`,
                 { target_type: targetType }
             );
-            return response.data;
+            return response;
         },
         onSuccess: (data) => {
             // Invalidate chain data

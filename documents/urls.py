@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import api_views  # ENTERPRISE: REST API endpoints
 
 app_name = 'documents'
 
@@ -48,4 +49,8 @@ urlpatterns = [
     
     # API endpoints for frontend
     path('api/availability/', views.get_availability, name='api_availability'),
+    
+    # ENTERPRISE: Cascade dependency check
+    path('api/<str:document_type>/<int:document_id>/dependencies/', 
+         api_views.check_dependencies, name='check_dependencies'),
 ]

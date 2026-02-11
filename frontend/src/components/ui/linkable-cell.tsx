@@ -115,16 +115,19 @@ export function LinkableCell({ id, type, label, className, showIcon = false }: L
     return (
         <HoverCard openDelay={300} closeDelay={100}>
             <HoverCardTrigger
+                asChild
                 onMouseEnter={() => setIsHovering(true)}
                 onMouseLeave={() => setIsHovering(false)}
             >
-                <ReferenceLink
-                    id={id}
-                    type={type}
-                    label={label}
-                    className={className}
-                    showIcon={showIcon}
-                />
+                <span className="inline-block">
+                    <ReferenceLink
+                        id={id}
+                        type={type}
+                        label={label}
+                        className={className}
+                        showIcon={showIcon}
+                    />
+                </span>
             </HoverCardTrigger>
             <HoverCardContent side="right" align="start" className="w-auto">
                 <PreviewCard data={preview} type={type} />

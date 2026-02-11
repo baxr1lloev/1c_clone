@@ -24,6 +24,21 @@ interface DrillDownDocument {
     counterparty_name?: string;
 }
 
+const getDocumentUrl = (type: string, id: number) => {
+    // Map backend model names to frontend routes
+    const typeMap: Record<string, string> = {
+        'salesdocument': 'sales',
+        'purchasedocument': 'purchases',
+        'transferdocument': 'transfers',
+        'inventorydocument': 'inventories',
+        'sales': 'sales',       // Fallback for simple types
+        'purchase': 'purchases'
+    };
+
+    const route = typeMap[type.toLowerCase()] || type.toLowerCase() + 's';
+    return `/documents/${route}/${id}`;
+};
+
 const drillDownColumns: ColumnDef<DrillDownDocument>[] = [
     {
         accessorKey: 'date',
@@ -43,6 +58,7 @@ const drillDownColumns: ColumnDef<DrillDownDocument>[] = [
                 type={row.original.type as any}
                 label={row.getValue('number')}
                 className="font-mono font-medium"
+                href={getDocumentUrl(row.original.type, row.original.id)}
             />
         ),
     },
@@ -55,10 +71,10 @@ const drillDownColumns: ColumnDef<DrillDownDocument>[] = [
     },
     {
         accessorKey: 'amount',
-        header: 'Amount',
+        header: 'Qty / Amount',
         cell: ({ row }) => (
             <span className="font-mono font-medium">
-                ${parseFloat(row.getValue('amount')).toFixed(2)}
+                {parseFloat(row.getValue('amount')).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 3 })}
             </span>
         ),
     },
@@ -84,8 +100,7 @@ export function DrillDownModal({ title, description, endpoint, isOpen, onClose }
     });
 
     const handleRowClick = (row: DrillDownDocument) => {
-        // Open document in new tab
-        const url = `/${row.type}s/${row.id}`;
+        const url = getDocumentUrl(row.type, row.id);
         window.open(url, '_blank');
     };
 

@@ -8,6 +8,48 @@ cost calculation in Uzbekistan business context.
 from decimal import Decimal
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
+from django.db.models import Sum
+
+
+class StockService:
+    """Service for stock balance calculations"""
+    
+    @staticmethod
+    def get_stock_balance(item, warehouse, tenant) -> dict:
+        """
+        Get real-time stock balance for an item in a warehouse.
+        
+        Returns:
+            {
+                'on_hand': total quantity,
+                'reserved': reserved quantity,
+                'available': available for sale
+            }
+        """
+        from registers.models import StockBatch
+        
+        # Sum all batches for this item/warehouse
+        batches = StockBatch.objects.filter(
+            tenant=tenant,
+            item=item,
+            warehouse=warehouse,
+            qty_remaining__gt=0
+        )
+        
+        total_qty = batches.aggregate(
+            total=Sum('qty_remaining')
+        )['total'] or Decimal('0')
+        
+        # TODO: Calculate reserved quantity from unfulfilled orders
+        reserved = Decimal('0')
+        
+        available = total_qty - reserved
+        
+        return {
+            'on_hand': total_qty,
+            'reserved': reserved,
+            'available': max(available, Decimal('0'))
+        }
 
 
 class FIFOService:

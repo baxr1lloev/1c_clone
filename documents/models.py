@@ -25,7 +25,7 @@ class BaseDocument(models.Model):
     ]
     
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
-    number = models.CharField(_('Number'), max_length=50)
+    number = models.CharField(_('Number'), max_length=50, blank=True, db_index=True)
     date = models.DateTimeField(_('Date'))
     status = models.CharField(_('Status'), max_length=20, choices=STATUS_CHOICES, default=STATUS_DRAFT)
     comment = models.TextField(_('Comment'), blank=True)
@@ -39,6 +39,16 @@ class BaseDocument(models.Model):
                                    on_delete=models.SET_NULL, related_name='%(class)s_created')
     posted_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
                                   on_delete=models.SET_NULL, related_name='%(class)s_posted')
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # OPTIMISTIC LOCKING (Concurrency Control)
+    # ═══════════════════════════════════════════════════════════════════════════
+    version = models.IntegerField(
+        default=1,
+        editable=False,
+        verbose_name=_('Version'),
+        help_text=_('Incremented on each save to detect concurrent modifications')
+    )
     
     # ═══════════════════════════════════════════════════════════════════════════
     # 1C-STYLE DOCUMENT CHAIN (Цепочка документов)
@@ -138,6 +148,74 @@ class BaseDocument(models.Model):
         
         return chain
     
+    @classmethod
+    def get_document_prefix(cls):
+        """Overridden in subclasses to provide document-specific prefix"""
+        return "DOC"
+    
+    def save(self, *args, **kwargs):
+        """
+        Override save to implement:
+        1. Optimistic locking (version checking)
+        2. Auto-number generation
+        3. Number immutability after posting
+        """
+        # ═══════════════════════════════════════════════════════════════════
+        # OPTIMISTIC LOCKING: Check version hasn't changed
+        # ═══════════════════════════════════════════════════════════════════
+        skip_version_check = kwargs.pop('skip_version_check', False)
+        
+        if self.pk and not skip_version_check:
+            # This is an UPDATE - check concurrent modification
+            try:
+                current = self.__class__.objects.get(pk=self.pk)
+                if current.version != self.version:
+                    from django.core.exceptions import ValidationError
+                    raise ValidationError({
+                        'version': _(
+                            f'Document was modified by another user. '
+                            f'Expected version {self.version}, found {current.version}. '
+                            f'Please refresh and try again.'
+                        )
+                    })
+                # Increment version for this save
+                self.version = current.version + 1
+                
+                # ═══════════════════════════════════════════════════════════
+                # NUMBER IMMUTABILITY: Lock number after posting
+                # ═══════════════════════════════════════════════════════════
+                if current.status == self.STATUS_POSTED and current.number != self.number:
+                    raise ValidationError({
+                        'number': _('Cannot change document number after posting')
+                    })
+            except self.__class__.DoesNotExist:
+                # Document was deleted - let save fail naturally
+                pass
+        
+        # Auto-generate number if empty
+        if not self.number:
+            # Get the last document of this type for this tenant
+            last_doc = self.__class__.objects.filter(
+                tenant=self.tenant
+            ).order_by('-id').first()
+            
+            if last_doc and last_doc.number:
+                # Extract number from format like "SD-000123"
+                import re
+                match = re.search(r'(\d+)$', last_doc.number)
+                if match:
+                    next_num = int(match.group(1)) + 1
+                else:
+                    next_num = 1
+            else:
+                next_num = 1
+            
+            # Format: SD-000001 (Sales Document)
+            prefix = self.get_document_prefix()
+            self.number = f"{prefix}-{next_num:06d}"
+        
+        super().save(*args, **kwargs)
+    
     class Meta:
         abstract = True
 
@@ -155,6 +233,10 @@ class SalesDocument(BaseDocument):
     project = models.ForeignKey('directories.Project', on_delete=models.SET_NULL, null=True, blank=True)
     department = models.ForeignKey('directories.Department', on_delete=models.SET_NULL, null=True, blank=True)
     manager = models.ForeignKey('directories.Employee', on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_('Manager'))
+    
+    @classmethod
+    def get_document_prefix(cls):
+        return "SD"  # Sales Document
     
     # 1C-Architecture: Snapshot of Currency Data
     rate = models.DecimalField(_('Exchange Rate'), max_digits=12, decimal_places=6, default=1, help_text="Rate used at time of posting")
@@ -221,6 +303,39 @@ class SalesDocument(BaseDocument):
     def can_unpost(self):
         """Can be unposted if Posted and Period Open."""
         return self.status == self.STATUS_POSTED and not self.period_is_closed
+    
+    def check_cascade_dependencies(self):
+        """
+        ENTERPRISE: Check if safe to unpost/delete - prevents breaking document chains.
+        Returns dict: {can_unpost, can_delete, warnings, blockers, children}
+        """
+        from django.contrib.contenttypes.models import ContentType
+        children = self.get_child_documents()
+        warnings, blockers, children_list = [], [], []
+        
+        for child_type_name, child_docs in children.items():
+            if not child_docs:
+                continue
+            posted = [d for d in child_docs if hasattr(d, 'status') and d.status == 'posted']
+            draft = [d for d in child_docs if hasattr(d, 'status') and d.status == 'draft']
+            
+            if posted:
+                blockers.append(f"Has {len(posted)} posted {child_type_name}: " + ', '.join([d.number for d in posted[:3]]))
+            elif draft:
+                warnings.append(f"Has {len(draft)} draft {child_type_name}")
+            
+            children_list.append({
+                'type': child_type_name,
+                'documents': [{'number': d.number, 'status': getattr(d, 'status', 'unknown')} for d in child_docs[:10]]
+            })
+        
+        return {
+            'can_unpost': len(blockers) == 0,
+            'can_delete': len(blockers) == 0 and len(warnings) == 0,
+            'warnings': warnings,
+            'blockers': blockers,
+            'children': children_list
+        }
 
     def post(self, user=None):
         """
@@ -395,6 +510,49 @@ class SalesDocumentLine(models.Model):
     # Base currency fields (Snapshot)
     price_base = models.DecimalField(_('Price (Base)'), max_digits=15, decimal_places=2, default=0, editable=False)
     amount_base = models.DecimalField(_('Amount (Base)'), max_digits=15, decimal_places=2, default=0, editable=False)
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # ENTERPRISE: Price/Rate Source Tracking (для аудита)
+    # ═══════════════════════════════════════════════════════════════════════════
+    PRICE_SOURCE_CHOICES = [
+        ('MANUAL', _('Manual Entry')),
+        ('LAST_SALE', _('Last Sale Price')),
+        ('PRICE_LIST', _('Price List')),
+        ('CONTRACT', _('Contract Price')),
+        ('DEFAULT', _('Default Item Price')),
+    ]
+    price_source = models.CharField(
+        _('Price Source'),
+        max_length=20,
+        choices=PRICE_SOURCE_CHOICES,
+        default='MANUAL',
+        help_text="Источник цены - для объяснения 'откуда эта цена?'"
+    )
+    price_source_date = models.DateField(
+        _('Price Source Date'),
+        null=True,
+        blank=True,
+        help_text="Дата последней продажи/прайса (если применимо)"
+    )
+    
+    RATE_SOURCE_CHOICES = [
+        ('OFFICIAL', _('Official CBU Rate')),
+        ('MANUAL', _('Manual Entry')),
+        ('CONTRACT', _('Contract Rate')),
+    ]
+    rate_source = models.CharField(
+        _('Rate Source'),
+        max_length=20,
+        choices=RATE_SOURCE_CHOICES,
+        default='OFFICIAL',
+        help_text="Источник курса валюты"
+    )
+    rate_source_date = models.DateField(
+        _('Rate Source Date'),
+        null=True,
+        blank=True,
+        help_text="Дата официального курса"
+    )
 
     def save(self, *args, **kwargs):
         from django.core.exceptions import ValidationError
@@ -450,6 +608,10 @@ class PurchaseDocument(BaseDocument):
     # Analytics
     project = models.ForeignKey('directories.Project', on_delete=models.SET_NULL, null=True, blank=True)
     department = models.ForeignKey('directories.Department', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    @classmethod
+    def get_document_prefix(cls):
+        return "PD"  # Purchase Document
     
     # 1C-Architecture: Snapshot of Currency Data
     rate = models.DecimalField(_('Exchange Rate'), max_digits=12, decimal_places=6, default=1, help_text="Rate used at time of posting")
@@ -688,6 +850,10 @@ class PaymentDocument(BaseDocument):
     payment_type = models.CharField(_('Type'), max_length=20, choices=PAYMENT_TYPES)
     
     purpose = models.TextField(_('Payment Purpose'), blank=True, help_text="Назначение платежа")
+    
+    @classmethod
+    def get_document_prefix(cls):
+        return "PMT"  # Payment
     
     class Meta(BaseDocument.Meta):
         verbose_name = _('Payment Document')
@@ -1797,3 +1963,174 @@ class ProductionMaterialLine(models.Model):
     class Meta:
         verbose_name = _('Consumed Material')
 
+
+class OpeningBalanceDocument(BaseDocument):
+    """
+    Ввод начальных остатков (Entering Opening Balances).
+    
+    Acts as the bridge between the old system (1C) and this ERP.
+    All balances are entered against the auxiliary account "000".
+    """
+    OPERATION_STOCK = 'stock'
+    OPERATION_SETTLEMENT = 'settlement'
+    OPERATION_ACCOUNT = 'account'
+    
+    OPERATION_CHOICES = [
+        (OPERATION_STOCK, _('Stock Balances')),
+        (OPERATION_SETTLEMENT, _('Settlement Balances')),
+        (OPERATION_ACCOUNT, _('Account Balances')),
+    ]
+    
+    operation_type = models.CharField(_('Operation Type'), max_length=20, choices=OPERATION_CHOICES)
+    
+    # Optional filtering fields
+    warehouse = models.ForeignKey('directories.Warehouse', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    @classmethod
+    def get_document_prefix(cls):
+        return "OB"  # Opening Balance
+    
+    def post(self, user=None):
+        """
+        Post opening balances.
+        
+        Stock:
+        - Дт 41 "Товары" Кт 000 "Вспомогательный"
+        - Create StockBatches (date = 2026-01-01 usually)
+        
+        Settlements:
+        - Receivable: Дт 62 Кт 000
+        - Payable: Дт 000 Кт 60
+        """
+        from django.db import transaction
+        from django.utils import timezone
+        from django.core.exceptions import ValidationError
+        from django.contrib.contenttypes.models import ContentType
+        from registers.models import StockBatch, SettlementMovement
+        from accounting.models import AccountingEntry, ChartOfAccounts, validate_period_is_open
+        
+        if not self.can_post:
+            raise ValidationError(_("Document cannot be posted. Check status and period."))
+            
+        validate_period_is_open(self.date, self.tenant, check_type='ACCOUNTING')
+        
+        with transaction.atomic():
+            base_currency = Currency.objects.get(tenant=self.tenant, is_base=True)
+            acc_000, _ = ChartOfAccounts.objects.get_or_create(tenant=self.tenant, code='000', defaults={'name': 'Auxiliary', 'account_type': 'EQUITY'})
+            
+            if self.operation_type == self.OPERATION_STOCK:
+                acc_41 = ChartOfAccounts.objects.get(tenant=self.tenant, code='41')
+                
+                for line in self.stock_lines.all():
+                    # 1. Create Stock Batch
+                    StockBatch.objects.create(
+                        tenant=self.tenant,
+                        item=line.item,
+                        warehouse=self.warehouse or line.warehouse,
+                        incoming_document_type=ContentType.objects.get_for_model(self),
+                        incoming_document_id=self.id,
+                        incoming_date=self.date,
+                        qty_initial=line.quantity,
+                        qty_remaining=line.quantity,
+                        unit_cost=line.price  # Assumed base currency cost
+                    )
+                    
+                    # 2. Accounting Entry
+                    AccountingEntry.objects.create(
+                        tenant=self.tenant,
+                        date=self.date,
+                        period=self.date.date().replace(day=1),
+                        content_type=ContentType.objects.get_for_model(self),
+                        object_id=self.id,
+                        debit_account=acc_41,
+                        credit_account=acc_000,
+                        amount=line.amount,
+                        currency=base_currency,
+                        description=f"Opening Stock: {line.item.name}",
+                        item=line.item,
+                        warehouse=self.warehouse or line.warehouse,
+                        quantity=line.quantity
+                    )
+            
+            elif self.operation_type == self.OPERATION_SETTLEMENT:
+                acc_60 = ChartOfAccounts.objects.get(tenant=self.tenant, code='60')
+                acc_62 = ChartOfAccounts.objects.get(tenant=self.tenant, code='62')
+                
+                for line in self.settlement_lines.all():
+                    is_receivable = line.type == 'receivable'
+                    
+                    # 1. Create Settlement Movement (if register exists)
+                    # TODO: SettlementRegister
+                    
+                    # 2. Accounting Entry
+                    if is_receivable:
+                        # Client owes us (Debit 62, Credit 000)
+                        AccountingEntry.objects.create(
+                            tenant=self.tenant,
+                            date=self.date,
+                            period=self.date.date().replace(day=1),
+                            content_type=ContentType.objects.get_for_model(self),
+                            object_id=self.id,
+                            debit_account=acc_62,
+                            credit_account=acc_000,
+                            amount=line.amount,
+                            currency=base_currency, # Simplified
+                            description=f"Opening Balance: {line.counterparty.name}",
+                            counterparty=line.counterparty,
+                            contract=line.contract
+                        )
+                    else:
+                        # We owe supplier (Debit 000, Credit 60)
+                        AccountingEntry.objects.create(
+                            tenant=self.tenant,
+                            date=self.date,
+                            period=self.date.date().replace(day=1),
+                            content_type=ContentType.objects.get_for_model(self),
+                            object_id=self.id,
+                            debit_account=acc_000,
+                            credit_account=acc_60,
+                            amount=line.amount,
+                            currency=base_currency,
+                            description=f"Opening Balance: {line.counterparty.name}",
+                            counterparty=line.counterparty,
+                            contract=line.contract
+                        )
+            
+            self.status = self.STATUS_POSTED
+            self.posted_at = timezone.now()
+            self.posted_by = user
+            self.save(update_fields=['status', 'posted_at', 'posted_by'])
+    
+    def unpost(self):
+        # Implementation of unpost akin to other documents
+        pass
+
+    class Meta(BaseDocument.Meta):
+        verbose_name = _('Opening Balance Document')
+        verbose_name_plural = _('Opening Balance Documents')
+
+
+class OpeningBalanceStockLine(models.Model):
+    document = models.ForeignKey(OpeningBalanceDocument, on_delete=models.CASCADE, related_name='stock_lines')
+    item = models.ForeignKey(Item, on_delete=models.PROTECT)
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, null=True, blank=True)
+    quantity = models.DecimalField(_('Quantity'), max_digits=15, decimal_places=3)
+    price = models.DecimalField(_('Cost (Base)'), max_digits=15, decimal_places=2)
+    amount = models.DecimalField(_('Amount'), max_digits=15, decimal_places=2)
+    
+    def save(self, *args, **kwargs):
+        self.amount = self.quantity * self.price
+        super().save(*args, **kwargs)
+
+
+class OpeningBalanceSettlementLine(models.Model):
+    document = models.ForeignKey(OpeningBalanceDocument, on_delete=models.CASCADE, related_name='settlement_lines')
+    counterparty = models.ForeignKey(Counterparty, on_delete=models.PROTECT)
+    contract = models.ForeignKey(Contract, on_delete=models.PROTECT, null=True, blank=True)
+    
+    TYPE_CHOICES = [
+        ('receivable', _('Receivable (Debit)')),
+        ('payable', _('Payable (Credit)')),
+    ]
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    amount = models.DecimalField(_('Amount'), max_digits=15, decimal_places=2)

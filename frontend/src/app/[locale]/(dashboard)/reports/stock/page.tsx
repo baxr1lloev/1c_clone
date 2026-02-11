@@ -32,7 +32,7 @@ export default function StockReportPage() {
     const { data: reportData, isLoading } = useQuery({
         queryKey: ['stock-report'],
         queryFn: async () => {
-            const response = await api.get('/api/reports/stock/');
+            const response = await api.get('/reports/stock/');
             return response.data;
         },
     });
@@ -40,7 +40,7 @@ export default function StockReportPage() {
     const handleDrillDown = (itemId: number, warehouseId: number, type: string) => {
         setDrillDownConfig({
             title: `${type} Movements`,
-            endpoint: `/api/reports/stock/drilldown/?item=${itemId}&warehouse=${warehouseId}&type=${type}`,
+            endpoint: `/reports/stock/drilldown/?item=${itemId}&warehouse=${warehouseId}&type=${type}`,
         });
         setDrillDownOpen(true);
     };

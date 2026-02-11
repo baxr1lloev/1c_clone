@@ -48,12 +48,17 @@ urlpatterns = [
         path('accounts/', include('accounts.api.urls')),
         path('registers/', include('registers.api.urls')),
         path('fixed-assets/', include('fixed_assets.urls')),  # Fixed Assets module
+        path('migration/', include('migration.api.urls')),  # NEW: 1C Migration/Import
         
         # Admin / Audit
         path('admin/', include('audit_log.urls')),
         
         # Existing VAT API
+        # Existing VAT API
         path('vat/', include('accounting.api.urls')),
+        
+        # Reports API (consolidated)
+        path('reports/', include('reports.api.urls')),
     ])),
     
     # Legacy API endpoints (keep for backwards compatibility)

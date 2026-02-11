@@ -41,7 +41,7 @@ export default function TrialBalancePage() {
     const { data: reportData, isLoading } = useQuery({
         queryKey: ['trial-balance', startDate, endDate],
         queryFn: async () => {
-            const response = await api.get(`/reports/api/trial-balance/?start_date=${startDate}&end_date=${endDate}`);
+            const response = await api.get(`/reports/trial-balance/?start_date=${startDate}&end_date=${endDate}`);
             return response.data as TrialBalanceItem[];
         }
     });

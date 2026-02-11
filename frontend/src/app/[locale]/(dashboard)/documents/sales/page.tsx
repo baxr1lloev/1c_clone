@@ -7,6 +7,8 @@ import { GroupBySelector } from '@/components/data-table/group-by-selector';
 import { SavedViews, SavedView } from '@/components/data-table/saved-views';
 import { HelpPanel } from '@/components/layout/help-panel';
 import { ColumnCustomization } from '@/components/data-table/column-customization';
+// ENTERPRISE: Bulk operations toolbar
+import { BulkOperationsToolbar } from '@/components/documents/bulk-operations-toolbar';
 
 import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
@@ -22,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { PiDotsThreeOutlineBold, PiPencilBold, PiTrashBold, PiArrowsDownUpBold, PiReceiptBold, PiCheckCircleBold, PiXCircleBold, PiEyeBold } from 'react-icons/pi';
 import Link from 'next/link';
@@ -53,6 +56,8 @@ export default function SalesDocumentsPage() {
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<SalesDocument | null>(null);
+  // BULK OPERATIONS: Multi-select state
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [searchValue, setSearchValue] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [groupBy, setGroupBy] = useState<string | null>(null);
@@ -177,7 +182,50 @@ export default function SalesDocumentsPage() {
     return filtered;
   }, [data, statusFilter, searchValue]);
 
+  // BULK: Toggle selection
+  const toggleSelection = (id: number) => {
+    setSelectedIds(prev =>
+      prev.includes(id)
+        ? prev.filter(selectedId => selectedId !== id)
+        : [...prev, id]
+    );
+  };
+
+  // BULK: Select all visible
+  const selectAll = () => {
+    setSelectedIds(filteredData.map(doc => doc.id));
+  };
+
+  // BULK: Clear selection
+  const clearSelection = () => {
+    setSelectedIds([]);
+  };
+
   const columns: ColumnDef<SalesDocument>[] = [
+    // BULK OPERATIONS: Checkbox column
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={selectedIds.length === filteredData.length && filteredData.length > 0}
+          onCheckedChange={(value) => {
+            if (value) {
+              selectAll();
+            } else {
+              clearSelection();
+            }
+          }}
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={selectedIds.includes(row.original.id)}
+          onCheckedChange={() => toggleSelection(row.original.id)}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      size: 40,
+    },
     {
       accessorKey: 'date',
       header: ({ column }) => (

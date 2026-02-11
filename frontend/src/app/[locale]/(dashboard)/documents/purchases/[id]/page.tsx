@@ -7,6 +7,8 @@ import { PurchaseDocumentForm } from '@/components/documents/purchase-document-f
 import { DocumentTab } from '@/components/documents/document-tab';
 import { Loader2 } from 'lucide-react';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
+// ENTERPRISE: Period protection
+import { PeriodStatusBanner } from '@/components/documents/period-status-banner';
 
 export default function PurchaseDocumentDetailPage() {
     const params = useParams();
@@ -16,7 +18,7 @@ export default function PurchaseDocumentDetailPage() {
         queryKey: ['purchase', id],
         queryFn: async () => {
             const res = await api.get(`/documents/purchases/${id}/`);
-            return res.data;
+            return res;
         }
     });
 
@@ -42,6 +44,13 @@ export default function PurchaseDocumentDetailPage() {
             <div className="px-6 py-2 border-b">
                 <Breadcrumbs segments={breadcrumbs} />
             </div>
+
+            {/* ENTERPRISE: Period Closed Warning */}
+            {doc?.date && (
+                <div className="px-6">
+                    <PeriodStatusBanner date={doc.date} className="mt-4" />
+                </div>
+            )}
 
             <div className="flex-1 overflow-hidden">
                 {doc.status === 'draft' ? (
