@@ -37,6 +37,8 @@ import { InterfaceModeToggle } from "@/components/interface-mode-toggle"
 import { ReferenceSelector } from "@/components/ui/reference-selector"
 import { LiveStockPanel } from "@/components/documents/live-stock-panel"
 import { LiveSettlementPanel } from "@/components/documents/live-settlement-panel"
+import { DocumentPostings } from "@/components/documents/document-postings"
+import { DocumentHistoryPanel } from "@/components/documents/document-history-panel"
 
 interface PurchaseDocumentFormProps {
     initialData?: any;
@@ -497,8 +499,10 @@ export function PurchaseDocumentForm({ initialData, mode }: PurchaseDocumentForm
     return (
         <Tabs defaultValue="main" className="h-[calc(100vh-4rem)] flex flex-col bg-background">
             <div className="border-b px-4 flex items-center justify-between shrink-0 bg-muted/10">
-                <TabsList className="rounded-none bg-transparent p-0">
-                    <TabsTrigger value="main" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary px-4 py-2">Main</TabsTrigger>
+                <TabsList className="bg-transparent p-0">
+                    <TabsTrigger value="main" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Main</TabsTrigger>
+                    <TabsTrigger value="history" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">History</TabsTrigger>
+                    <TabsTrigger value="postings" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none" disabled={!isPosted}>Postings</TabsTrigger>
                 </TabsList>
                 <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground mr-2">Interface Mode:</span>
@@ -615,6 +619,22 @@ export function PurchaseDocumentForm({ initialData, mode }: PurchaseDocumentForm
                         </div>
                     </div>
                 </div>
+            </TabsContent>
+
+            <TabsContent value="history" className="p-8">
+                {initialData?.id ? (
+                    <DocumentHistoryPanel documentId={initialData.id} documentType="purchases" />
+                ) : (
+                    <div className="p-8 text-center text-muted-foreground">Save the document to view history.</div>
+                )}
+            </TabsContent>
+
+            <TabsContent value="postings" className="flex-1 p-8 m-0 overflow-auto">
+                {initialData?.id ? (
+                    <DocumentPostings documentId={initialData.id} endpoint="purchases" />
+                ) : (
+                    <div className="p-8 text-center text-muted-foreground">Save the document to view postings.</div>
+                )}
             </TabsContent>
         </Tabs>
     )

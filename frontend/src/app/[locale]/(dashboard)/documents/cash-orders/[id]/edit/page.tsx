@@ -1,5 +1,6 @@
 'use client';
 
+import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import api from '@/lib/api';
@@ -7,16 +8,18 @@ import { CashOrder } from '@/types';
 import { CashOrderForm } from '@/components/documents/cash-order-form';
 
 interface PageProps {
-    params: {
+    params: Promise<{
         id: string;
-    };
+    }>;
 }
 
 export default function CashOrderEditRoutePage({ params }: PageProps) {
+    const { id } = use(params);
+
     const { data: document, isLoading, error } = useQuery({
-        queryKey: ['cash-orders', params.id],
+        queryKey: ['cash-orders', id],
         queryFn: async () => {
-            const response = await api.get<CashOrder>(`/documents/cash-orders/${params.id}/`);
+            const response = await api.get<CashOrder>(`/documents/cash-orders/${id}/`);
             return response;
         }
     });

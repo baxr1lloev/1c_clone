@@ -1,8 +1,8 @@
 # 1C Clone ERP System - Complete Technical Documentation
 
-**Version**: 1.0  
-**Date**: February 2026  
-**Author**: Development Team  
+**Version**: 1.1
+**Date**: February 2026
+**Author**: Development Team
 **Classification**: Technical Reference
 
 ---
@@ -99,6 +99,7 @@ The **1C Clone ERP System** is a comprehensive, multi-tenant enterprise resource
    - Period closing (operational & accounting)
    - Tax calculations and reports
    - Financial statements (P&L, Balance Sheet)
+   - **Reconciliation Reports** (Register vs Accounting Check)
 
 5. **Reporting**
    - Sales reports by customer/item/period
@@ -106,6 +107,7 @@ The **1C Clone ERP System** is a comprehensive, multi-tenant enterprise resource
    - Accounts receivable/payable aging
    - Cash flow reports
    - Custom SQL-based reports
+   - **Balance as of Date** reporting
 
 6. **Integration & Migration**
    - **1C Import Service**: XML-based migration from legacy 1C systems
@@ -116,6 +118,7 @@ The **1C Clone ERP System** is a comprehensive, multi-tenant enterprise resource
    - **Universal Drill-Down**: Trace any number back to source documents
    - **Quick Menus**: Context-aware actions
    - **Keyboard Navigation**: Power-user optimized
+   - **Audit Log UI**: Full history visibility per document
 
 #### Technical Features
 1. **Multi-tenancy** with complete data isolation
@@ -168,6 +171,7 @@ graph TB
     F --> G
     F --> H
     F --> I
+    I --> J
     I --> J
     J --> K
     J --> L
@@ -753,4 +757,322 @@ class ExchangeRate(TenantAwareModel):
         return f"{self.currency.code}: {self.rate} on {self.date}"
 ```
 
-This document continues with detailed documentation of EVERY model, API endpoint, component, workflow, and system aspect. Due to length, I'll now convert this to PDF format.
+#### 3.3.8 CashFlowItem Model
+
+```python
+class CashFlowItem(TenantAwareModel):
+    """
+    Categories for Cash Flow Statement (DDS).
+    Classifies money movements into Operating, Investing, or Financing activities.
+    """
+    
+    TYPE_CHOICES = [
+        ('OPERATING', _('Operating Activities')),
+        ('INVESTING', _('Investing Activities')),
+        ('FINANCING', _('Financing Activities')),
+    ]
+    
+    name = models.CharField(max_length=255, verbose_name=_('Name'))
+    activity_type = models.CharField(
+        max_length=20, 
+        choices=TYPE_CHOICES,
+        verbose_name=_('Activity Type')
+    )
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        unique_together = ('tenant', 'name')
+        verbose_name = _('Cash Flow Item')
+        verbose_name_plural = _('Cash Flow Items')
+```
+
+### 3.4 Accounting Models
+
+#### 3.4.1 AccountingEntry Model
+
+```python
+class AccountingEntry(TenantAwareModel):
+    """
+    The atom of financial accounting (Wiring / Provodka).
+    Links a Debit Account to a Credit Account with an Amount.
+    """
+    period = models.DateField(db_index=True)  # First day of month
+    date = models.DateTimeField(db_index=True)
+    
+    debit_account = models.ForeignKey(ChartOfAccounts, related_name='debit_entries', ...)
+    credit_account = models.ForeignKey(ChartOfAccounts, related_name='credit_entries', ...)
+    
+    amount = models.DecimalField(max_digits=18, decimal_places=2)
+    amount_base = models.DecimalField(max_digits=18, decimal_places=2)  # In base currency
+    
+    currency = models.ForeignKey(Currency, ...)
+    exchange_rate = models.DecimalField(max_digits=18, decimal_places=6, default=1)
+    
+    # Analytics (Subconto)
+    counterparty = models.ForeignKey(Counterparty, null=True, blank=True, ...)
+    contract = models.ForeignKey(Contract, null=True, blank=True, ...)
+    item = models.ForeignKey(Item, null=True, blank=True, ...)
+    warehouse = models.ForeignKey(Warehouse, null=True, blank=True, ...)
+    
+    # Cash Flow Analytics
+    cash_flow_item = models.ForeignKey(
+        'directories.CashFlowItem',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name=_('Cash Flow Item'),
+        related_name='entries'
+    )
+    
+    description = models.CharField(max_length=500)
+    
+    # Link to source document
+    # GenericForeignKey to link to any document type (Sales, Purchase, etc.)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    document = GenericForeignKey('content_type', 'object_id')
+    
+    class Meta:
+        ordering = ['date', 'id']
+        verbose_name = _('Journal Entry')
+        verbose_name_plural = _('Journal Entries')
+```
+
+### 3.5 Audit Log Models
+
+The `AuditLog` model is crucial for the "Accountant Trust" initiative.
+
+```python
+class AuditLog(models.Model):
+    """
+    Tracks every significant change in the system (Create, Update, Delete, Post, Unpost).
+    """
+    ACTION_create = 'create'
+    ACTION_UPDATE = 'update'
+    ACTION_DELETE = 'delete'
+    ACTION_POST = 'post'
+    ACTION_UNPOST = 'unpost'
+    
+    ACTIONS = [
+        (ACTION_create, 'Create'),
+        (ACTION_UPDATE, 'Update'),
+        (ACTION_DELETE, 'Delete'),
+        (ACTION_POST, 'Post'),
+        (ACTION_UNPOST, 'Unpost'),
+    ]
+
+    action = models.CharField(max_length=20, choices=ACTIONS)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    # Target Object (Generic Relation)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, related_name='audit_log_entries')
+    object_id = models.CharField(max_length=50) # Use CharField to support UUIDs/BigInts
+    content_object = GenericForeignKey('content_type', 'object_id')
+    
+    # Data Changes
+    changes = models.JSONField(null=True, blank=True) # { "field": {"old": val, "new": val} }
+    
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['content_type', 'object_id']),
+            models.Index(fields=['user']),
+        ]
+```
+
+### 3.6 Reports Architecture
+
+Reports are generated using specialized Django Views (`TemplateView` or `APIView`) backed by services.
+
+-   **CashFlowService**: Aggregates `AccountingEntry` data filtered by `CashFlowItem` to produce Operating, Investing, and Financing cash flow statements.
+-   **FinancialReportService**: Generates Trial Balance, P&L, and Balance Sheet.
+-   **DrillDownService**: Provides the link between aggregated report numbers and the individual `AccountingEntry` or `StockMovement` records.
+
+---
+
+## 4. Frontend Architecture (Next.js)
+
+### 4.1 "Accountant Trust" Components
+
+To build trust with accountants, the UI exposes the underlying accounting logic transparently.
+
+#### 4.1.1 DocumentHistoryPanel
+
+Located in the "History" tab of every document form. Fetches data from `/api/v1/documents/{type}/{id}/audit/`.
+
+-   **Purpose**: Shows who changed the document and when.
+-   **Features**: Displays diffs of changed fields (Old Value -> New Value).
+-   **Usage**: Integrated into `SalesDocumentForm`, `PurchaseDocumentForm`, `PaymentDocumentForm`, `InventoryDocumentForm`, `SalesOrderForm`.
+
+#### 4.1.2 DocumentPostings
+
+Located in the "Postings" tab of posted documents.
+
+-   **Purpose**: Shows the *actual* accounting entries and register movements created by the document.
+-   **Philosophy**: "Trust but verify" - user sees the Debit/Credit impact immediately.
+
+#### 4.1.3 DrillDownCell
+
+A standardized UI component (`frontend/src/components/ui/drill-down-cell.tsx`) used in all reports.
+
+-   **Function**: Turns any number in a report into a clickable link.
+-   **Flow**: Report Cell -> List of Transactions -> Source Document.
+-   **UX**: Hovering shows a breadcrumb of the drill-down path.
+
+```tsx
+<DrillDownCell 
+    value={amount} 
+    steps={[
+        { label: 'Trial Balance', url: '/reports/trial-balance' },
+        { label: 'Account Card', url: `/accounting/card/${accountId}` },
+        { label: 'Document', url: `/documents/${type}/${id}` }
+    ]} 
+/>
+```
+
+### 4.2 Report Implementations
+
+-   **Cash Flow Report**: (`reports/cash-flow/page.tsx`) - Interactive report with date filtering and drill-down.
+-   **Reconciliation Report**: Compares Register Balances vs Accounting Balances to highlight discrepancies.
+-   **Balance As Of Date**: Allows viewing stock and settlement snapshots at any historical point in time.
+
+---
+
+## 5. Database Schema
+
+The schema follows a classic ERP pattern:
+
+-   **Master Data Tables**: `directories_counterparty`, `directories_item`, etc.
+-   **Document Tables**: `documents_salesdocument`, etc. (Header data)
+-   **Document Line Tables**: `documents_salesdocumentline` (Detail data)
+-   **Register Tables**: `registers_stockmovement` (Accumulation register)
+-   **Accounting Tables**: `accounting_accountingentry` (General Ledger)
+
+All tables (except shared ones like `Currency`) include a `tenant_id` column for isolation.
+
+---
+
+## 6. API Reference
+
+The API is built with Django REST Framework (DRF) and is fully typed.
+
+### 6.1 Key Endpoints
+
+-   **Documents**: `/api/v1/documents/{type}/{id}/`
+    -   Actions: `post`, `unpost`, `audit`, `postings`, `chain`
+-   **Registers**: `/api/v1/registers/stock/`, `/api/v1/registers/settlements/`
+-   **Reports**: `/api/v1/reports/trial-balance/`, `/api/v1/reports/cash-flow/`
+-   **Audit**: `/api/v1/documents/{type}/{id}/audit/` - Returns list of `AuditLog` entries.
+
+---
+
+## 7. Business Logic & Workflows
+
+### 7.1 The Posting Workflow (Conducting)
+
+When a user clicks "Post":
+1.  **Validation**: Check period closing, stock availability (if strict), and required fields.
+2.  **Locking**: Optimistic lock on the document.
+3.  **Register Updates**: Create `StockMovement` and `SettlementMovement` records.
+4.  **Accounting Entries**: Create `AccountingEntry` pairs (Debit/Credit).
+5.  **Status Change**: Mark document as `POSTED`.
+6.  **Audit**: Log the `post` action.
+
+### 7.2 The Drill-Down Philosophy
+
+Every financial figure in the system must be traceable to its source.
+-   **Level 1**: Aggregated Report (e.g., "Cash: $50,000")
+-   **Level 2**: Analytical View (e.g., "Cash in Main Safe: $20,000", "Bank: $30,000")
+-   **Level 3**: Transaction List (Account Card / Ledger)
+-   **Level 4**: Source Document (The Proof)
+
+---
+
+## 8. Security Architecture
+
+-   **Authentication**: JWT (JSON Web Tokens)
+-   **Authorization**: Role-Based Access Control (RBAC) checked via `PermissionService`.
+-   **Data Isolation**: Row-level filtering by `tenant_id` in `TenantManager`.
+-   **Audit**: All write operations are logged.
+
+---
+
+## 9. Deployment Guide
+
+(Standard Django/Next.js deployment on Linux/Docker)
+
+---
+
+## 10. Testing Strategy
+
+-   **Unit Tests**: Django `TestCase` for models and services.
+-   **Integration Tests**: Test the full Posting flow (Document -> Registers -> Reports).
+-   **Frontend Tests**: Component testing with Jest/React Testing Library.
+
+---
+
+## 11. Troubleshooting Guide
+
+Common issues and resolutions.
+
+---
+
+
+---
+
+## 13. Enterprise Reliability & Trust Architecture
+
+This section addresses critical data integrity questions asked by Chief Accountants and Auditors.
+
+### 13.1 Data Immutability & the "Reposting" Problem
+
+**Question**: "If I repost a document, do old entries disappear?"
+**Answer**: Infinite History Preservation.
+
+1.  **Strict State Machine**: The system forbids "Reposting" an already Posted document.
+    -   User must explicitly clicks **Unpost** (which logs an `UNPOST` event and soft-deletes movements).
+    -   Then User clicks **Post** (which logs a `POST` event and creates new movements).
+    -   Result: The Audit Log preserves the sequence: `CREATE` -> `POST` -> `UNPOST` -> `POST`.
+
+2.  **Closed Periods**:
+    -   In a **Closed Period**, the **Unpost** action is mathematically disabled.
+    -   To fix errors in a closed period, users MUST use a **Correction Document** (Storno/Reversal).
+    -   This guarantees that *Balance Sheet numbers for closed years never change*.
+
+### 13.2 Snapshot Architecture ("Backdated Directory Changes")
+
+**Question**: "If I change an Item's price or GL account today, does last year's report change?"
+**Answer**: No. We use **Snapshotting**.
+
+1.  **Exchange Rates**: The rate is copied into `Document.rate` at the moment of posting. Accessing the document 5 years later uses the *stored* rate, not the current Directory rate.
+2.  **Prices**: `DocumentLine.price` is a hard copy. Changing the Price List today does not affect historical documents.
+3.  **Package Coefficients**: The conversion factor (e.g., "1 Box = 10 pcs") is snapshotted in `DocumentLine.coefficient`. If the packaging standard changes later to 12 pcs, historical stock movements remain accurate at 10.
+
+### 13.3 "Explainable ERP" (The "Why?" Button)
+
+**Question**: "Why is the price $10.50?"
+**Answer**: Explicit Source Tracking.
+
+Every document line stores metadata about the origin of its values:
+-   `price_source`: Enum (`MANUAL`, `PRICE_LIST`, `LAST_SALE`, `CONTRACT`).
+-   `rate_source`: Enum (`CBU_API`, `MANUAL`, `CONTRACT_FIXED`).
+
+This allows the UI to show tooltips like: *"Price taken from 'Wholesale Price List' dated 2025-01-01"*.
+
+### 13.4 Reconciliation Guarantees
+
+**Question**: "Can Registers and Accounting diverge?"
+**Answer**: Only in case of direct DB tampering.
+
+1.  **Atomic Transactions**: Register Movements and Accounting Entries are created in the *same* database transaction. It is physically impossible for one to succeed and the other to fail.
+2.  **Reconciliation Report**: A built-in tool compares `Sum(StockMovement)` vs `Balance(Account 41)` and alerts strictly if they differ.
+
+---
+
+## 14. Appendices
+
+
+-   **A. Glossary of Terms**
+-   **B. 1C to System Mapping**

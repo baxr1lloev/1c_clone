@@ -60,57 +60,69 @@ export function EnhancedJournalEntriesTable({ entries, locale }: EnhancedJournal
                 </TableHeader>
                 <TableBody>
                     {entries.map((entry, index) => (
-                        <TableRow key={index} className="group hover:bg-blue-50">
-                            <TableCell>
-                                {/* PHASE C: Account is now clickable with context menu! */}
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button
-                                            variant="link"
-                                            className="font-mono font-bold text-blue-600 hover:text-blue-800 p-0 h-auto"
-                                        >
-                                            {entry.account_code || entry.account?.code}
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="start">
-                                        <DropdownMenuItem onClick={() => viewAccountCard(entry.account_id || entry.account?.id)}>
-                                            <PiFileTextBold className="mr-2 h-4 w-4" />
-                                            Account Card
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => viewAccountTurnover(entry.account_id || entry.account?.id)}>
-                                            <PiChartLineBold className="mr-2 h-4 w-4" />
-                                            Turnover Report
-                                        </DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={() => analyzeAccount(entry.account_id || entry.account?.id)}>
-                                            <PiMagnifyingGlassBold className="mr-2 h-4 w-4" />
-                                            Analyze Account
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                                <div className="text-xs text-muted-foreground mt-1">
-                                    {entry.account?.name || entry.account_name}
+                        <TableRow key={index} className="group hover:bg-blue-50/50">
+                            {/* Date (if needed, otherwise assumed document date) */}
+
+                            {/* Debit Account */}
+                            <TableCell className="align-top">
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-lg font-mono text-primary">
+                                            {entry.debit_account_code || entry.debit_account?.code}
+                                        </span>
+                                        {/* Future: Subconto Drill-down */}
+                                    </div>
+                                    <span className="text-xs text-muted-foreground line-clamp-1">
+                                        {entry.debit_account_name || entry.debit_account?.name}
+                                    </span>
+                                    {/* Debit Subconto/Analytics */}
+                                    {(entry.debit_subconto || entry.debit_analytics) && (
+                                        <div className="mt-1 text-xs bg-slate-100 p-1 rounded">
+                                            {entry.debit_subconto || entry.debit_analytics}
+                                        </div>
+                                    )}
                                 </div>
                             </TableCell>
-                            <TableCell className="text-sm">
-                                {entry.description || entry.memo || '-'}
-                            </TableCell>
-                            <TableCell className="text-right font-mono">
-                                {entry.debit > 0 && (
-                                    <span className="font-bold text-green-600">
-                                        {entry.debit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+
+                            {/* Credit Account */}
+                            <TableCell className="align-top">
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-lg font-mono text-primary">
+                                            {entry.credit_account_code || entry.credit_account?.code}
+                                        </span>
+                                    </div>
+                                    <span className="text-xs text-muted-foreground line-clamp-1">
+                                        {entry.credit_account_name || entry.credit_account?.name}
                                     </span>
+                                    {/* Credit Subconto/Analytics */}
+                                    {(entry.credit_subconto || entry.credit_analytics) && (
+                                        <div className="mt-1 text-xs bg-slate-100 p-1 rounded">
+                                            {entry.credit_subconto || entry.credit_analytics}
+                                        </div>
+                                    )}
+                                </div>
+                            </TableCell>
+
+                            {/* Amount */}
+                            <TableCell className="text-right align-top">
+                                <span className="font-mono text-base font-bold">
+                                    {/* Handle pure amount or debit/credit specific if data structure differs */}
+                                    {Number(entry.amount || entry.debit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                </span>
+                                {entry.currency && entry.currency !== 'UZS' && (
+                                    <div className="text-xs text-muted-foreground">
+                                        {Number(entry.currency_amount).toFixed(2)} {entry.currency}
+                                    </div>
                                 )}
                             </TableCell>
-                            <TableCell className="text-right font-mono">
-                                {entry.credit > 0 && (
-                                    <span className="font-bold text-blue-600">
-                                        {entry.credit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                                    </span>
-                                )}
+
+                            {/* Content / Description */}
+                            <TableCell className="align-top text-sm text-gray-600">
+                                {entry.description || entry.content || '-'}
                             </TableCell>
-                            <TableCell>
-                                {/* Additional context menu */}
+
+                            <TableCell className="align-top">
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button
@@ -122,8 +134,12 @@ export function EnhancedJournalEntriesTable({ entries, locale }: EnhancedJournal
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
-                                        <DropdownMenuItem>View Dimensions</DropdownMenuItem>
-                                        <DropdownMenuItem>Related Entries</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => viewAccountCard(entry.debit_account_id)}>
+                                            Debit Account Card
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => viewAccountCard(entry.credit_account_id)}>
+                                            Credit Account Card
+                                        </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
                             </TableCell>
@@ -131,15 +147,12 @@ export function EnhancedJournalEntriesTable({ entries, locale }: EnhancedJournal
                     ))}
 
                     {/* Totals row */}
-                    <TableRow className="bg-muted font-bold">
-                        <TableCell colSpan={2}>TOTAL</TableCell>
-                        <TableCell className="text-right font-mono">
-                            {entries.reduce((sum, e) => sum + (e.debit || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <TableRow className="bg-muted font-bold border-t-2 border-slate-300">
+                        <TableCell colSpan={2} className="text-right">TOTAL:</TableCell>
+                        <TableCell className="text-right font-mono text-lg">
+                            {entries.reduce((sum, e) => sum + Number(e.amount || e.debit || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </TableCell>
-                        <TableCell className="text-right font-mono">
-                            {entries.reduce((sum, e) => sum + (e.credit || 0), 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell></TableCell>
+                        <TableCell colSpan={2}></TableCell>
                     </TableRow>
                 </TableBody>
             </Table>

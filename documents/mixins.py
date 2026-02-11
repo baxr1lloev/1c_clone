@@ -19,21 +19,101 @@ class PeriodEnforcementMixin:
     - edit() - редактирование
     """
     
-    def validate_period_for_posting(self):
+    def validate_period_open(self, date=None):
         """
-        Validate period is open before post/unpost.
+        Validate that the period is open for the given date.
         
-        MUST be called in BOTH post() AND unpost()!
+        Args:
+            date: Date to check. If None, uses self.date or instance.date.
+        
+        Raises:
+            ValidationError: If period is closed.
         """
         from accounting.models import validate_period_is_open
         
-        # Check accounting period
+        target_date = date
+        if not target_date:
+            if hasattr(self, 'date'):
+                target_date = self.date
+            elif hasattr(self, 'get_object'):
+                try:
+                    target_date = self.get_object().date
+                except:
+                    pass
+        
+        if not target_date:
+            # If we still don't have a date (e.g. creating without date?), skip or default to today
+            # For strictness, better to let the model validation handle if date is missing
+            return
+
         validate_period_is_open(
-            date=self.date,
-            tenant=self.tenant,
+            date=target_date,
+            tenant=self.request.user.tenant if hasattr(self, 'request') else None,
             check_type='ACCOUNTING'
         )
+
+    def perform_create(self, serializer):
+        """
+        Prevent creation of documents in closed periods.
+        """
+        # Get date from validated data
+        date = serializer.validated_data.get('date')
+        if date:
+            from accounting.models import validate_period_is_open
+            validate_period_is_open(
+                date=date,
+                tenant=self.request.user.tenant,
+                check_type='ACCOUNTING'
+            )
+        super().perform_create(serializer)
+
+    def perform_update(self, serializer):
+        """
+        Prevent update of documents in closed periods.
+        """
+        # Check BOTH old date (if moving FROM closed period) AND new date (if moving TO closed period)
+        instance = self.get_object()
+        new_date = serializer.validated_data.get('date', instance.date)
+        
+        from accounting.models import validate_period_is_open
+        
+        # 1. 1C Rule: Cannot change objects IN a closed period
+        validate_period_is_open(
+            date=instance.date,
+            tenant=self.request.user.tenant,
+            check_type='ACCOUNTING'
+        )
+        
+        # 2. 1C Rule: Cannot move objects INTO a closed period
+        if new_date != instance.date:
+             validate_period_is_open(
+                date=new_date,
+                tenant=self.request.user.tenant,
+                check_type='ACCOUNTING'
+            )
+            
+        super().perform_update(serializer)
+
+    def perform_destroy(self, instance):
+        """
+        Prevent deletion of documents in closed periods.
+        """
+        from accounting.models import validate_period_is_open
+        
+        validate_period_is_open(
+            date=instance.date,
+            tenant=self.request.user.tenant,
+            check_type='ACCOUNTING'
+        )
+        super().perform_destroy(instance)
     
+    def validate_period_for_posting(self):
+        """
+        Validate period is open before post/unpost.
+        """
+        # This delegator method keeps the name expected by viewsets custom actions
+        self.validate_period_open()
+
     def post(self):
         """Override in subclass with actual posting logic"""
         raise NotImplementedError("Subclass must implement post()")

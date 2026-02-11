@@ -5,18 +5,15 @@ from accounting.models import ChartOfAccounts, AccountingEntry, TrialBalance
 
 class TrialBalanceService:
     @staticmethod
-    def get_trial_balance(tenant, start_date, end_date):
-        """
-        Generate hierarchical Trial Balance with:
-        - Opening Balance (Debit/Credit)
-        - Turnover (Debit/Credit)
-        - Closing Balance (Debit/Credit)
-        
-        Optimized to use TrialBalance snapshots for opening balances if available.
-        """
+    @staticmethod
+    def _to_float(val):
+        return float(val) if val is not None else 0.0
+
+    @classmethod
+    def get_trial_balance(cls, tenant, start_date, end_date):
+        # ... (same fetching logic)
         accounts = ChartOfAccounts.objects.filter(tenant=tenant).order_by('code')
         
-        # 1. Fetch data
         data = {}
         for account in accounts:
             data[account.id] = {
@@ -24,7 +21,7 @@ class TrialBalanceService:
                 'code': account.code,
                 'name': account.name,
                 'parent_id': account.parent_id,
-                'level': 0, # To be calculated
+                'level': 0,
                 'type': account.account_type,
                 'opening_debit': Decimal('0'),
                 'opening_credit': Decimal('0'),
@@ -35,8 +32,7 @@ class TrialBalanceService:
                 'children': []
             }
 
-        # 2. Calculate Opening Balances (before start_date)
-        # TODO: Optimize using latest closed period snapshot
+        # 2. Opening Balance
         opening_entries_debit = AccountingEntry.objects.filter(
             tenant=tenant,
             date__lt=start_date
@@ -52,10 +48,10 @@ class TrialBalanceService:
                 data[entry['debit_account']]['opening_debit'] = entry['sum']
                 
         for entry in opening_entries_credit:
-             if entry['credit_account'] in data:
-                 data[entry['credit_account']]['opening_credit'] = entry['sum']
+            if entry['credit_account'] in data:
+                data[entry['credit_account']]['opening_credit'] = entry['sum']
 
-        # 3. Calculate Turnover (within period)
+        # 3. Turnover
         turnover_debit = AccountingEntry.objects.filter(
             tenant=tenant,
             date__gte=start_date,
@@ -76,45 +72,17 @@ class TrialBalanceService:
             if entry['credit_account'] in data:
                 data[entry['credit_account']]['turnover_credit'] = entry['sum']
 
-        # 4. Normalize and Calculate Closing
-        root_nodes = []
-        
-        # Helper to process raw values into Accounting Logic (Debit/Credit nature)
-        # For Trial Balance formatting, we usually show raw Debit/Credit
+        # calculate net opening
         for account_id, row in data.items():
-            # Net Opening
             net_opening = row['opening_debit'] - row['opening_credit']
-            if net_opening > 0:
+            if net_opening >= 0:
                 row['opening_debit'] = net_opening
                 row['opening_credit'] = Decimal('0')
             else:
                 row['opening_debit'] = Decimal('0')
                 row['opening_credit'] = abs(net_opening)
-
-            # Closing = Opening + Turnover Debit - Turnover Credit
-            # (Simplified, real accounting depends on account type active/passive)
-            
-            # Asset/Expense (Active): Debit + Debit - Credit
-            # Liability/Equity/Revenue (Passive): Credit + Credit - Debit
-            
-            # For pure display (like 1C often does raw), we calculate net:
-            net_closing = (row['opening_debit'] - row['opening_credit']) + \
-                          (row['turnover_debit'] - row['turnover_credit'])
-            
-            if net_closing > 0:
-                row['closing_debit'] = net_closing
-                row['closing_credit'] = Decimal('0')
-            else:
-                row['closing_debit'] = Decimal('0')
-                row['closing_credit'] = abs(net_closing)
-
-        # 5. Build Hierarchy
-        # We need to roll up values to parents
-        # This is strictly for display purposes. Actual accounting usually forbids posting to parents.
         
-        # Sort by code strictly to ensure parents come before children? No, code length.
-        # Better: Build tree then recurse for totals.
-        
+        # Build tree and calculate closing + rollups
         tree_map = {id: node for id, node in data.items()}
         roots = []
         
@@ -124,42 +92,63 @@ class TrialBalanceService:
                 if parent:
                     parent['children'].append(node)
                 else:
-                     roots.append(node) # Parent missing/deleted?
+                    roots.append(node)
             else:
                 roots.append(node)
                 
-        # Recursive function to sum up totals
-        def calculate_hierarchy_totals(node, level=0):
+        def calculate_totals(node, level=0):
             node['level'] = level
-            
-            # Sort children by code
             node['children'].sort(key=lambda x: x['code'])
             
             for child in node['children']:
-                calculate_hierarchy_totals(child, level + 1)
+                calculate_totals(child, level + 1)
                 
-                # Roll up values
+                # Rollup
                 node['opening_debit'] += child['opening_debit']
                 node['opening_credit'] += child['opening_credit']
                 node['turnover_debit'] += child['turnover_debit']
                 node['turnover_credit'] += child['turnover_credit']
-                node['closing_debit'] += child['closing_debit']
-                node['closing_credit'] += child['closing_credit']
-        
-        for root in roots:
-            calculate_hierarchy_totals(root)
             
-        # Flatten for table display (DFS)
+            # Calculate Closing Balance for this node (after rollup!)
+            # Closing = Opening + Turnover (Dr - Cr)
+            # Actually, standard OSV logic:
+            # Active: OpDr - OpCr + TurnDr - TurnCr
+            # Net result -> ClDr or ClCr
+            
+            # Since we rolled up, we can just use the aggregates
+            net_result = (node['opening_debit'] - node['opening_credit']) + \
+                         (node['turnover_debit'] - node['turnover_credit'])
+                         
+            if net_result >= 0:
+                node['closing_debit'] = net_result
+                node['closing_credit'] = Decimal('0')
+            else:
+                node['closing_debit'] = Decimal('0')
+                node['closing_credit'] = abs(net_result)
+
+        for root in roots:
+            calculate_totals(root)
+
+        # Flatten and Convert to Float
         result_rows = []
         def flatten(node):
-            # Create a copy without children list to avoid circular/large JSON
-            row_copy = {k: v for k, v in node.items() if k != 'children'}
-            row_copy['has_children'] = len(node['children']) > 0
+            row_copy = {
+                'id': node['id'],
+                'code': node['code'],
+                'name': node['name'],
+                'level': node['level'],
+                'has_children': len(node['children']) > 0,
+                'opening_debit': cls._to_float(node['opening_debit']),
+                'opening_credit': cls._to_float(node['opening_credit']),
+                'turnover_debit': cls._to_float(node['turnover_debit']),
+                'turnover_credit': cls._to_float(node['turnover_credit']),
+                'closing_debit': cls._to_float(node['closing_debit']),
+                'closing_credit': cls._to_float(node['closing_credit']),
+            }
             result_rows.append(row_copy)
             for child in node['children']:
                 flatten(child)
                 
-        # Sort roots
         roots.sort(key=lambda x: x['code'])
         for root in roots:
             flatten(root)

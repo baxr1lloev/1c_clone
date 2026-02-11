@@ -1,5 +1,7 @@
 ﻿'use client';
 
+import Link from 'next/link';
+
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
@@ -58,7 +60,32 @@ export default function JournalEntriesPage() {
     },
     { accessorKey: 'date', header: tc('date'), cell: ({ row }) => new Date(row.getValue('date')).toLocaleDateString() },
     { accessorKey: 'description', header: tc('description'), cell: ({ row }) => <span className="text-sm">{row.getValue('description')}</span> },
-    { accessorKey: 'document_type', header: 'Source', cell: ({ row }) => `${(row.getValue('document_type') as string).charAt(0).toUpperCase() + (row.getValue('document_type') as string).slice(1)} #${row.original.document_id}` },
+    {
+      accessorKey: 'document_type',
+      header: 'Source',
+      cell: ({ row }) => {
+        const type = row.getValue('document_type') as string;
+        const id = row.original.document_id;
+        // Simple mapping - can be extracted to a helper if reused often
+        const routeMap: Record<string, string> = {
+          'sale': 'sales',
+          'purchase': 'purchases',
+          'payment': 'payments',
+          'transfer': 'transfers',
+          'inventory': 'inventory'
+        };
+        const route = routeMap[type] || type + 's';
+
+        return (
+          <Link
+            href={`/documents/${route}/${id}`}
+            className="font-medium text-primary hover:underline"
+          >
+            {type.charAt(0).toUpperCase() + type.slice(1)} #{row.original.number || id}
+          </Link>
+        );
+      }
+    },
     { accessorKey: 'total_debit', header: 'Debit', cell: ({ row }) => <span className="font-mono text-emerald-600">${parseFloat(row.getValue('total_debit')).toFixed(2)}</span> },
     { accessorKey: 'total_credit', header: 'Credit', cell: ({ row }) => <span className="font-mono text-rose-600">${parseFloat(row.getValue('total_credit')).toFixed(2)}</span> },
   ];

@@ -56,6 +56,9 @@ from .serializers import (
     ProductionDocumentCreateUpdateSerializer,
 )
 from documents.models import PayrollDocument, ProductionDocument
+from documents.models import PayrollDocument, ProductionDocument
+from .protection_mixins import PostedDocumentProtectionMixin
+from documents.mixins import PeriodEnforcementMixin
 
 
 class TenantFilterMixin:
@@ -184,9 +187,26 @@ class DocumentChainMixin:
             )
 
 
+from audit_log.models import AuditLog
+from audit_log.serializers import AuditLogSerializer
+
 class DocumentPostingsMixin:
     """Mixin to provide drill-down actions for documents."""
     
+    @action(detail=True, methods=['get'])
+    def audit(self, request, pk=None):
+        """Get audit trail for this document."""
+        doc = self.get_object()
+        content_type = ContentType.objects.get_for_model(doc)
+        
+        logs = AuditLog.objects.filter(
+            content_type=content_type,
+            object_id=doc.id
+        ).select_related('user').order_by('-timestamp')
+        
+        serializer = AuditLogSerializer(logs, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['get'])
     def postings(self, request, pk=None):
         """Return all register movements for this document."""
@@ -402,7 +422,7 @@ class DocumentPostingsMixin:
         })
 
 
-class SalesDocumentViewSet(TenantFilterMixin, DocumentChainMixin, DocumentPostingsMixin, viewsets.ModelViewSet):
+class SalesDocumentViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocumentProtectionMixin, PeriodEnforcementMixin, DocumentPostingsMixin, viewsets.ModelViewSet):
     """
     API endpoint for sales documents.
     
@@ -446,6 +466,9 @@ class SalesDocumentViewSet(TenantFilterMixin, DocumentChainMixin, DocumentPostin
             )
         
         try:
+            # 1C Rule: Check period before posting
+            self.validate_period_open(doc.date)
+            
             DocumentPostingService.post_sales_document(doc)
             doc.posted_by = request.user
             doc.save()
@@ -478,6 +501,9 @@ class SalesDocumentViewSet(TenantFilterMixin, DocumentChainMixin, DocumentPostin
             )
         
         try:
+            # 1C Rule: Check period before unposting
+            self.validate_period_open(doc.date)
+            
             DocumentPostingService.unpost_sales_document(doc)
             return Response({'status': 'draft', 'message': f'Document #{doc.number} unposted successfully'})
         except ValueError as e:
@@ -501,7 +527,7 @@ class SalesDocumentViewSet(TenantFilterMixin, DocumentChainMixin, DocumentPostin
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PurchaseDocumentViewSet(TenantFilterMixin, DocumentChainMixin, DocumentPostingsMixin, viewsets.ModelViewSet):
+class PurchaseDocumentViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocumentProtectionMixin, PeriodEnforcementMixin, DocumentPostingsMixin, viewsets.ModelViewSet):
     """API endpoint for purchase documents."""
     queryset = PurchaseDocument.objects.select_related(
         'counterparty', 'contract', 'warehouse', 'currency'
@@ -531,6 +557,9 @@ class PurchaseDocumentViewSet(TenantFilterMixin, DocumentChainMixin, DocumentPos
             return Response({'error': 'Only draft documents can be posted'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            # 1C Rule: Check period before posting
+            self.validate_period_open(doc.date)
+
             DocumentPostingService.post_purchase_document(doc)
             doc.posted_by = request.user
             doc.save()
@@ -557,13 +586,16 @@ class PurchaseDocumentViewSet(TenantFilterMixin, DocumentChainMixin, DocumentPos
             return Response({'error': 'Only posted documents can be unposted'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            # 1C Rule: Check period before unposting
+            self.validate_period_open(doc.date)
+
             DocumentPostingService.unpost_purchase_document(doc)
             return Response({'status': 'draft', 'message': f'Purchase #{doc.number} unposted'})
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PaymentDocumentViewSet(TenantFilterMixin, DocumentChainMixin, DocumentPostingsMixin, viewsets.ModelViewSet):
+class PaymentDocumentViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocumentProtectionMixin, PeriodEnforcementMixin, DocumentPostingsMixin, viewsets.ModelViewSet):
     """API endpoint for payment documents."""
     queryset = PaymentDocument.objects.select_related(
         'counterparty', 'contract', 'currency'
@@ -591,6 +623,9 @@ class PaymentDocumentViewSet(TenantFilterMixin, DocumentChainMixin, DocumentPost
             return Response({'error': 'Only draft documents can be posted'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            # 1C Rule: Check period before posting
+            self.validate_period_open(doc.date)
+
             DocumentPostingService.post_payment_document(doc)
             return Response({'status': 'posted', 'message': f'Payment #{doc.number} posted'})
         except Exception as e:
@@ -615,13 +650,16 @@ class PaymentDocumentViewSet(TenantFilterMixin, DocumentChainMixin, DocumentPost
             return Response({'error': 'Only posted documents can be unposted'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            # 1C Rule: Check period before unposting
+            self.validate_period_open(doc.date)
+
             DocumentPostingService.unpost_payment_document(doc)
             return Response({'status': 'draft', 'message': f'Payment #{doc.number} unposted'})
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class TransferDocumentViewSet(TenantFilterMixin, viewsets.ModelViewSet):
+class TransferDocumentViewSet(TenantFilterMixin, PostedDocumentProtectionMixin, PeriodEnforcementMixin, viewsets.ModelViewSet):
     """API endpoint for transfer documents."""
     queryset = TransferDocument.objects.select_related(
         'from_warehouse', 'to_warehouse', 'counterparty'
@@ -647,6 +685,9 @@ class TransferDocumentViewSet(TenantFilterMixin, viewsets.ModelViewSet):
             return Response({'error': 'Only draft documents can be posted'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            # 1C Rule: Check period before posting
+            self.validate_period_open(doc.date)
+
             DocumentPostingService.post_transfer_document(doc)
             return Response({'status': 'posted', 'message': f'Transfer #{doc.number} posted'})
         except Exception as e:
@@ -660,7 +701,7 @@ class TransferDocumentViewSet(TenantFilterMixin, viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class SalesOrderViewSet(TenantFilterMixin, DocumentChainMixin, viewsets.ModelViewSet):
+class SalesOrderViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocumentProtectionMixin, PeriodEnforcementMixin, viewsets.ModelViewSet):
     """API endpoint for sales orders."""
     queryset = SalesOrder.objects.select_related(
         'counterparty', 'contract', 'warehouse', 'currency'
@@ -686,6 +727,9 @@ class SalesOrderViewSet(TenantFilterMixin, DocumentChainMixin, viewsets.ModelVie
             return Response({'error': 'Only draft orders can be posted'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            # 1C Rule: Check period before posting
+            self.validate_period_open(doc.date)
+
             DocumentPostingService.post_sales_order(doc)
             return Response({'status': 'posted', 'message': f'Order #{doc.number} posted (Stock Reserved)'})
         except ValueError as e:
@@ -706,6 +750,9 @@ class SalesOrderViewSet(TenantFilterMixin, DocumentChainMixin, viewsets.ModelVie
             return Response({'error': 'Only posted orders can be unposted'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            # 1C Rule: Check period before unposting
+            self.validate_period_open(doc.date)
+
             DocumentPostingService.unpost_sales_order(doc)
             return Response({'status': 'draft', 'message': f'Order #{doc.number} unposted'})
         except ValueError as e:
@@ -727,7 +774,7 @@ class SalesOrderViewSet(TenantFilterMixin, DocumentChainMixin, viewsets.ModelVie
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class InventoryDocumentViewSet(TenantFilterMixin, DocumentPostingsMixin, viewsets.ModelViewSet):
+class InventoryDocumentViewSet(TenantFilterMixin, PostedDocumentProtectionMixin, PeriodEnforcementMixin, DocumentPostingsMixin, viewsets.ModelViewSet):
     """API endpoint for inventory documents."""
     queryset = InventoryDocument.objects.select_related(
         'warehouse'
@@ -750,6 +797,9 @@ class InventoryDocumentViewSet(TenantFilterMixin, DocumentPostingsMixin, viewset
             return Response({'error': 'Only draft documents can be posted'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            # 1C Rule: Check period before posting
+            self.validate_period_open(doc.date)
+
             DocumentPostingService.post_inventory_document(doc)
             return Response({'status': 'posted', 'message': f'Inventory #{doc.number} posted'})
         except Exception as e:
@@ -769,6 +819,9 @@ class InventoryDocumentViewSet(TenantFilterMixin, DocumentPostingsMixin, viewset
             return Response({'error': 'Only posted documents can be unposted'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
+            # 1C Rule: Check period before unposting
+            self.validate_period_open(doc.date)
+
             DocumentPostingService.unpost_inventory_document(doc)
             return Response({'status': 'draft', 'message': f'Inventory #{doc.number} unposted'})
         except Exception as e:

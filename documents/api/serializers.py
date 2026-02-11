@@ -35,9 +35,11 @@ class SalesDocumentLineSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'item', 'item_name', 'item_sku',
             'quantity', 'package', 'package_name', 'coefficient',
-            'price', 'amount', 'price_base', 'amount_base'
+            'price', 'discount', 'amount', 
+            'vat_rate', 'vat_amount', 'total_with_vat',
+            'price_base', 'amount_base'
         ]
-        read_only_fields = ['amount', 'price_base', 'amount_base']
+        read_only_fields = ['amount', 'vat_amount', 'total_with_vat', 'price_base', 'amount_base']
 
 
 class SalesDocumentListSerializer(serializers.ModelSerializer):
@@ -81,7 +83,7 @@ class SalesDocumentDetailSerializer(serializers.ModelSerializer):
             'counterparty', 'contract', 'warehouse', 'warehouse_name',
             'currency', 'currency_code', 'rate',
             'project', 'department', 'manager',
-            'total_amount', 'total_amount_base',
+            'subtotal', 'tax_amount', 'total_amount', 'total_amount_base',
             'lines', 'created_at', 'updated_at', 'posted_at',
             # Document Chain
             'base_document_display', 'base_document_url',

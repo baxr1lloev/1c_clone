@@ -10,5 +10,5 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all().select_related('user', 'content_type')
     serializer_class = AuditLogSerializer
     permission_classes = [permissions.IsAuthenticated] # Should be IsAdminUser in prod
-    filterset_fields = ['action', 'user']
+    filterset_fields = ['action', 'user', 'object_id', 'content_type']
     search_fields = ['object_id', 'user__username']

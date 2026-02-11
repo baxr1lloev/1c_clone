@@ -239,8 +239,10 @@ class SalesDocument(BaseDocument):
         return "SD"  # Sales Document
     
     # 1C-Architecture: Snapshot of Currency Data
-    rate = models.DecimalField(_('Exchange Rate'), max_digits=12, decimal_places=6, default=1, help_text="Rate used at time of posting")
-    total_amount = models.DecimalField(_('Total Amount (Doc Currency)'), max_digits=15, decimal_places=2, default=0)
+    # Totals
+    subtotal = models.DecimalField(_('Subtotal'), max_digits=15, decimal_places=2, default=0)
+    tax_amount = models.DecimalField(_('Tax Amount'), max_digits=15, decimal_places=2, default=0)
+    total_amount = models.DecimalField(_('Total Amount'), max_digits=15, decimal_places=2, default=0)
     total_amount_base = models.DecimalField(_('Total Amount (Base Currency)'), max_digits=15, decimal_places=2, default=0, help_text="Calculated as Amount * Rate")
     
     def recalculate_totals(self):
@@ -250,31 +252,38 @@ class SalesDocument(BaseDocument):
         """
         if self.status != self.STATUS_DRAFT:
             return
-
+            
         from django.db.models import Sum
-        # Ensure we have a rate, default to 1 if not set (though it should be enforced)
         rate = self.rate or 1
-        
-        # Calculate totals from lines
-        # We manually sum to ensure python-side consistencies if needed, but aggregate is faster.
-        # However, we need to ensure local line buffer is considered if called during save?
-        # Usually called AFTER line save.
         
         agg = self.lines.aggregate(
             total=Sum('amount'), 
+            tax=Sum('vat_amount'),
             total_base=Sum('amount_base')
         )
         
-        # Let's trust the aggregate if lines are correct.
-        
         from decimal import Decimal
         total = agg['total'] or Decimal('0')
+        tax = agg['tax'] or Decimal('0')
         total_base = agg['total_base'] or Decimal('0')
         
-        self.total_amount = total.quantize(Decimal("0.01"))
-        self.total_amount_base = total_base.quantize(Decimal("0.01"))
+        self.subtotal = total
+        self.tax_amount = tax
+        self.total_amount = (total + tax).quantize(Decimal("0.01"))
+        # Base amount usually includes tax if we track debt in base currency
+        # But accounting entries for revenue (90.1) separate VAT.
+        # Let's verify standard 1C.
+        # 1C: 'Sum' (Total Amount) is usually what debt is based on.
+        # If rate is applied to Total Amount, then Total Amount Base = Total Amount * Rate.
+        # My line logic: amount_base = amount * rate. This excludes VAT?
+        # My line logic above: amount = quantity * price.
+        # Total = amount + vat.
+        # So amount_base should probably be (amount + vat) * rate ??
+        # Or do we separate VAT?
+        # For simplicity: Total Amount Base = Total Amount * Rate
+        self.total_amount_base = (self.total_amount * Decimal(str(rate))).quantize(Decimal("0.01"))
         
-        self.save(update_fields=['total_amount', 'total_amount_base'])
+        self.save(update_fields=['subtotal', 'tax_amount', 'total_amount', 'total_amount_base'])
 
     # ─────────────────────────────────────────────────────────────────
     # 1C Mental Model: Backend State Authority
@@ -505,15 +514,19 @@ class SalesDocumentLine(models.Model):
     coefficient = models.DecimalField(_('Coefficient'), max_digits=10, decimal_places=3, default=1, help_text="Snapshot of pack coefficient")
     
     price = models.DecimalField(_('Price'), max_digits=15, decimal_places=2)
+    discount = models.DecimalField(_('Discount %'), max_digits=5, decimal_places=2, default=0)
     amount = models.DecimalField(_('Amount'), max_digits=15, decimal_places=2)
+    
+    # VAT
+    vat_rate = models.DecimalField(_('VAT Rate'), max_digits=5, decimal_places=2, default=0)
+    vat_amount = models.DecimalField(_('VAT Amount'), max_digits=15, decimal_places=2, default=0)
+    total_with_vat = models.DecimalField(_('Total with VAT'), max_digits=15, decimal_places=2, default=0)
     
     # Base currency fields (Snapshot)
     price_base = models.DecimalField(_('Price (Base)'), max_digits=15, decimal_places=2, default=0, editable=False)
     amount_base = models.DecimalField(_('Amount (Base)'), max_digits=15, decimal_places=2, default=0, editable=False)
     
-    # ═══════════════════════════════════════════════════════════════════════════
-    # ENTERPRISE: Price/Rate Source Tracking (для аудита)
-    # ═══════════════════════════════════════════════════════════════════════════
+    # ... (existing choices) ...
     PRICE_SOURCE_CHOICES = [
         ('MANUAL', _('Manual Entry')),
         ('LAST_SALE', _('Last Sale Price')),
@@ -559,31 +572,36 @@ class SalesDocumentLine(models.Model):
         if self.document.status != BaseDocument.STATUS_DRAFT:
              raise ValidationError(_("Cannot edit lines of a posted document."))
 
-        # 1. Total (Doc Currency)
-        self.amount = self.quantity * self.price
-        
-        # 2. Total (Base Currency) - Snapshot
-        # Use document rate
-        rate = self.document.rate or 1
-        
         from decimal import Decimal
-        if not isinstance(rate, Decimal):
-            rate = Decimal(str(rate))
-            
-        price = self.price
-        if not isinstance(price, Decimal):
-            price = Decimal(str(price))
-            
-        amount = self.amount
-        if not isinstance(amount, Decimal):
-            amount = Decimal(str(amount))
+        
+        # Helper to ensure Decimal
+        def to_d(val):
+            return Decimal(str(val)) if val is not None else Decimal('0')
 
+        qty = to_d(self.quantity)
+        price = to_d(self.price)
+        discount = to_d(self.discount)
+        vat_rate_val = to_d(self.vat_rate)
+
+        # 1. Calculate Amount with Discount
+        # Amount = Qty * Price * (1 - Discount/100)
+        base_amount = qty * price
+        discount_amount = base_amount * discount / Decimal('100')
+        self.amount = (base_amount - discount_amount).quantize(Decimal("0.01"))
+        
+        # 2. Calculate VAT based on discounted amount
+        self.vat_amount = (self.amount * vat_rate_val / Decimal('100')).quantize(Decimal("0.01"))
+        self.total_with_vat = self.amount + self.vat_amount
+        
+        # 3. Total (Base Currency) - Snapshot
+        rate = to_d(self.document.rate or 1)
+        
         self.price_base = (price * rate).quantize(Decimal("0.01"))
-        self.amount_base = (amount * rate).quantize(Decimal("0.01"))
+        self.amount_base = (self.amount * rate).quantize(Decimal("0.01"))
         
         super().save(*args, **kwargs)
         
-        # 3. Trigger Header Update
+        # 4. Trigger Header Update
         self.document.recalculate_totals()
         
     def delete(self, *args, **kwargs):

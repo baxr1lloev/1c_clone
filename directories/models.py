@@ -312,3 +312,29 @@ class Project(models.Model):
         
     def __str__(self):
         return self.name
+
+
+class CashFlowItem(models.Model):
+    """
+    Статьи движения денежных средств (Cash Flow Items).
+    """
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='cash_flow_items')
+    name = models.CharField(_('Name'), max_length=255)
+    
+    TYPE_CHOICES = [
+        ('OPERATING', _('Operating Activities')),
+        ('INVESTING', _('Investing Activities')),
+        ('FINANCING', _('Financing Activities')),
+    ]
+    activity_type = models.CharField(_('Activity Type'), max_length=20, choices=TYPE_CHOICES)
+    
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        unique_together = ('tenant', 'name')
+        verbose_name = _('Cash Flow Item')
+        verbose_name_plural = _('Cash Flow Items')
+        ordering = ['activity_type', 'name']
+    
+    def __str__(self):
+        return self.name

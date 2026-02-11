@@ -36,6 +36,7 @@ import { ReferenceSelector } from "@/components/ui/reference-selector"
 import { DocumentPostings } from "@/components/documents/document-postings"
 import { LiveStockPanel } from "@/components/documents/live-stock-panel"
 import { LiveSettlementPanel } from "@/components/documents/live-settlement-panel"
+import { DocumentHistoryPanel } from "@/components/documents/document-history-panel"
 
 interface SalesDocumentFormProps {
     mode: 'create' | 'edit'
@@ -604,12 +605,11 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
             </TabsContent>
 
             <TabsContent value="history" className="p-8">
-                <div className="border rounded-md p-4">
-                    <h3 className="font-bold mb-2">Internal Data (Debug)</h3>
-                    <pre className="text-xs font-mono bg-muted p-2 rounded overflow-auto max-h-96">
-                        {JSON.stringify({ formData, lines, dbPayload: preparePayload() }, null, 2)}
-                    </pre>
-                </div>
+                {initialData?.id ? (
+                    <DocumentHistoryPanel documentId={initialData.id} documentType="sales" />
+                ) : (
+                    <div className="p-8 text-center text-muted-foreground">Save the document to view history.</div>
+                )}
             </TabsContent>
 
             <TabsContent value="postings" className="flex-1 p-8 m-0 overflow-auto">

@@ -443,7 +443,7 @@ class ItemViewSet(TenantFilterMixin, viewsets.ModelViewSet):
                 'type': 'sales',
                 'number': doc.number,
                 'date': doc.date.isoformat() if doc.date else None,
-                'total': float(doc.total) if hasattr(doc, 'total') else None
+                'total': float(doc.total_amount) if hasattr(doc, 'total_amount') else None
             })
         for doc in purchases:
             documents.append({
@@ -451,7 +451,7 @@ class ItemViewSet(TenantFilterMixin, viewsets.ModelViewSet):
                 'type': 'purchase',
                 'number': doc.number,
                 'date': doc.date.isoformat() if doc.date else None,
-                'total': float(doc.total) if hasattr(doc, 'total') else None
+                'total': float(doc.total_amount) if hasattr(doc, 'total_amount') else None
             })
         
         # Sort by date
@@ -484,23 +484,23 @@ class ItemViewSet(TenantFilterMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def batches(self, request, pk=None):
         """Get FIFO batch list for this item (1C-style drill-down)."""
-        from warehouse.models import Batch
+        from registers.models import StockBatch
         
         item = self.get_object()
-        batches = Batch.objects.filter(
+        batches = StockBatch.objects.filter(
             tenant=item.tenant,
             item_id=pk,
-            quantity__gt=0
-        ).select_related('warehouse').order_by('date')
+            qty_remaining__gt=0
+        ).select_related('warehouse').order_by('incoming_date')
         
         batches_data = [{
             'id': b.id,
-            'batch_number': b.batch_number or f'BATCH-{b.id}',
+            'batch_number': f'BATCH-{b.id}',
             'warehouse_id': b.warehouse_id,
             'warehouse_name': b.warehouse.name,
-            'date': b.date.isoformat() if b.date else None,
-            'quantity': float(b.quantity),
-            'cost_per_unit': float(b.cost / b.quantity) if b.quantity and b.cost else 0
+            'date': b.incoming_date.isoformat() if b.incoming_date else None,
+            'quantity': float(b.qty_remaining),
+            'cost_per_unit': float(b.unit_cost)
         } for b in batches]
         
         return Response({'batches': batches_data})

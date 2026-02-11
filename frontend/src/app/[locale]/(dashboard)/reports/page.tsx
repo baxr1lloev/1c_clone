@@ -14,6 +14,7 @@ import {
   PiDownloadBold,
   PiCalendarBold,
   PiArrowRightBold,
+  PiUsersBold,
 } from 'react-icons/pi';
 import Link from 'next/link';
 
@@ -138,6 +139,15 @@ export default function ReportsPage() {
                 </div>
               </div>
             </Link>
+            <Link href="/reports/reconciliation">
+              <div className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors border-l-4 border-l-primary/50">
+                <PiTrendUpBold className="h-8 w-8 text-primary" />
+                <div>
+                  <p className="font-medium">Reconciliation Check</p>
+                  <p className="text-sm text-muted-foreground">Level 6 Trust: Verify all registers match accounting</p>
+                </div>
+              </div>
+            </Link>
           </div>
         </CardContent>
       </Card>
@@ -188,6 +198,24 @@ export default function ReportsPage() {
                 <div>
                   <p className="font-medium">{t('salesReport')}</p>
                   <p className="text-sm text-muted-foreground">{t('salesReportDesc')}</p>
+                </div>
+              </div>
+            </Link>
+            <Link href="/reports/stock-as-of-date">
+              <div className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors">
+                <PiCalendarBold className="h-8 w-8 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Stock (As Of Date)</p>
+                  <p className="text-sm text-muted-foreground">Level 7 Trust: Historical balances</p>
+                </div>
+              </div>
+            </Link>
+            <Link href="/reports/settlements-as-of-date">
+              <div className="flex items-center gap-4 p-4 rounded-lg border hover:bg-muted/50 transition-colors">
+                <PiUsersBold className="h-8 w-8 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Settlements (As Of Date)</p>
+                  <p className="text-sm text-muted-foreground">Level 7 Trust: Historical debts</p>
                 </div>
               </div>
             </Link>

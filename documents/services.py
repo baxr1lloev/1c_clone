@@ -643,7 +643,7 @@ class DocumentPostingService:
             affected_items.add((movement.warehouse, movement.item))
             # Restore batch quantity
             if movement.batch:
-                movement.batch.qty_current += abs(movement.quantity)
+                movement.batch.qty_remaining += abs(movement.quantity)
                 movement.batch.save()
             movement.delete()
         
@@ -755,6 +755,7 @@ class DocumentPostingService:
             'shortage_consumptions': shortage_consumptions
         }
 
+
     @staticmethod
     @transaction.atomic
     def unpost_inventory_document(document):
@@ -776,42 +777,116 @@ class DocumentPostingService:
         ).delete()
         
         # 2. Reverse consumptions (Shortage)
-        # Delete movements
-        StockMovement.objects.filter(
-            content_type=content_type,
-            object_id=document.id
-        ).delete()
-        
-        # Restore batches qty?
-        # NO! StockMovement delete doesn't restore batch qty automatically?
-        # BatchService needs a 'restore' method or we do it manually.
-        # Check unpost_sales_document logic (Line 612 in services.py)
-        # It MANUALLY restores batch qty.
-        
-        # Actually, simpler to implement 'unpost_inventory' by copying unpost_sales logic for Shortages
-        # And unpost_purchase logic for Surplus.
-        
-        # ... (Abbreviated for safety, relying on recalculate)
-        
-        # Restore Batches consumed by Shortage
+        from registers.models import StockMovement
         movements = StockMovement.objects.filter(
             tenant=document.tenant,
             content_type=content_type,
-            object_id=document.id,
-            type='OUT' # Shortage
+            object_id=document.id
         )
-        for mov in movements:
-            if mov.batch:
-                mov.batch.qty_remaining += mov.quantity
-                mov.batch.save()
         
-        movements.delete() # Delete OUT movements
-        
-        # Recalculate Stock Balances
+        # Manually restore batch quantities
+        for movement in movements:
+             if movement.batch:
+                 movement.batch.qty_remaining += abs(movement.quantity)
+                 movement.batch.save()
+             movement.delete()
+             
+        # Recalculate Stock Balances for all affected items
+        # Just use the document lines logic
         affected_items = set(line.item for line in document.lines.all())
         for item in affected_items:
             StockBalance.recalculate_for_item(document.tenant, document.warehouse, item)
-            
+
         document.status = 'draft'
         document.posted_at = None
         document.save()
+
+
+class SequenceRestorationService:
+    """
+    Service for restoring the document sequence (Group Reposting).
+    
+    Why needed?
+    In 1C/Accounting, if you edit a document in the past (e.g. Purchase),
+    subsequent documents (e.g. Sales) might now validly post but with WRONG cost/profit stats.
+    
+    Sequence Restoration:
+    1. Unposts all documents from Start Date.
+    2. Reposts them in strict chronological order.
+    3. Stops on first error.
+    """
+    
+    @staticmethod
+    def restore_sequence(tenant, start_date, user):
+        """
+        Repost all documents starting from start_date.
+        """
+        logs = []
+        
+        # 1. Collect all POSTED documents >= start_date
+        documents = []
+        from documents.models import (
+            SalesDocument, PurchaseDocument, 
+            PaymentDocument, TransferDocument, 
+            InventoryDocument
+        )
+        
+        models_to_check = [
+            SalesDocument, PurchaseDocument, 
+            PaymentDocument, TransferDocument, 
+            InventoryDocument
+        ]
+        
+        for model in models_to_check:
+            docs = model.objects.filter(
+                tenant=tenant,
+                date__gte=start_date,
+                status='posted'
+            )
+            for doc in docs:
+                documents.append(doc)
+                
+        # 2. Sort critically by Date + Time
+        documents.sort(key=lambda x: x.date)
+        
+        logs.append(f"Found {len(documents)} documents to repost from {start_date}.")
+        
+        success_count = 0
+        error_count = 0
+        
+        # 3. Process
+        for doc in documents:
+            doc_str = f"{doc._meta.verbose_name} #{doc.number} ({doc.date})"
+            try:
+                if isinstance(doc, SalesDocument):
+                    DocumentPostingService.unpost_sales_document(doc)
+                    DocumentPostingService.post_sales_document(doc)
+                elif isinstance(doc, PurchaseDocument):
+                    DocumentPostingService.unpost_purchase_document(doc)
+                    DocumentPostingService.post_purchase_document(doc)
+                elif isinstance(doc, PaymentDocument):
+                    DocumentPostingService.unpost_payment_document(doc)
+                    DocumentPostingService.post_payment_document(doc)
+                elif isinstance(doc, TransferDocument):
+                    DocumentPostingService.post_transfer_document(doc) 
+                elif isinstance(doc, InventoryDocument):
+                    DocumentPostingService.unpost_inventory_document(doc)
+                    DocumentPostingService.post_inventory_document(doc)
+                
+                logs.append(f"✅ Reposted: {doc_str}")
+                success_count += 1
+                
+            except Exception as e:
+                logs.append(f"❌ FAILED: {doc_str} - {str(e)}")
+                error_count += 1
+                logs.append("⛔ Sequence restoration STOPPED due to error.")
+                break
+                
+        return {
+            'total_found': len(documents),
+            'success_count': success_count,
+            'error_count': error_count,
+            'logs': logs
+        }
+
+

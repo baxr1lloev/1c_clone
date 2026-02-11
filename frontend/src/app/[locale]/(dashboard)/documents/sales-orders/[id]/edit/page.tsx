@@ -1,5 +1,6 @@
 'use client';
 
+import { use } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import api from '@/lib/api';
@@ -7,16 +8,18 @@ import { SalesOrder } from '@/types';
 import { SalesOrderForm } from '@/components/documents/sales-order-form';
 
 interface PageProps {
-    params: {
+    params: Promise<{
         id: string;
-    };
+    }>;
 }
 
 export default function SalesOrderEditRoutePage({ params }: PageProps) {
+    const { id } = use(params);
+
     const { data: document, isLoading, error } = useQuery({
-        queryKey: ['sales-orders', params.id],
+        queryKey: ['sales-orders', id],
         queryFn: async () => {
-            const response = await api.get<SalesOrder>(`/documents/sales-orders/${params.id}/`);
+            const response = await api.get<SalesOrder>(`/documents/sales-orders/${id}/`);
             return response;
         }
     });

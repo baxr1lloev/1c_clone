@@ -12,9 +12,11 @@ import {
 
 interface ReportFilterBarProps {
     reportType?: 'financial' | 'sales'
+    onFilterChange?: (start: string, end: string) => void
+    onRefresh?: () => void
 }
 
-export function ReportFilterBar({ reportType = 'financial' }: ReportFilterBarProps) {
+export function ReportFilterBar({ reportType = 'financial', onFilterChange, onRefresh }: ReportFilterBarProps) {
     const [periodStart, setPeriodStart] = useState(new Date().toISOString().slice(0, 10))
     const [periodEnd, setPeriodEnd] = useState(new Date().toISOString().slice(0, 10))
     const [isAdvanced, setIsAdvanced] = useState(false)
@@ -33,7 +35,10 @@ export function ReportFilterBar({ reportType = 'financial' }: ReportFilterBarPro
                             <Input
                                 type="date"
                                 value={periodStart}
-                                onChange={(e) => setPeriodStart(e.target.value)}
+                                onChange={(e) => {
+                                    setPeriodStart(e.target.value)
+                                    onFilterChange?.(e.target.value, periodEnd)
+                                }}
                                 className="h-8 w-32"
                             />
                         </div>
@@ -42,7 +47,10 @@ export function ReportFilterBar({ reportType = 'financial' }: ReportFilterBarPro
                             <Input
                                 type="date"
                                 value={periodEnd}
-                                onChange={(e) => setPeriodEnd(e.target.value)}
+                                onChange={(e) => {
+                                    setPeriodEnd(e.target.value)
+                                    onFilterChange?.(periodStart, e.target.value)
+                                }}
                                 className="h-8 w-32"
                             />
                         </div>

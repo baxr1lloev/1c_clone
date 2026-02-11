@@ -29,6 +29,7 @@ import { PrintPreviewDialog } from "@/components/documents/print-preview-dialog"
 import { ReferenceSelector } from "@/components/ui/reference-selector"
 import { Badge } from "@/components/ui/badge"
 import { DocumentPostings } from "@/components/documents/document-postings"
+import { DocumentHistoryPanel } from "@/components/documents/document-history-panel"
 
 interface PaymentDocumentFormProps {
     mode: 'create' | 'edit'
@@ -160,6 +161,7 @@ export function PaymentDocumentForm({ initialData, mode }: PaymentDocumentFormPr
             <div className="border-b px-4 flex items-center justify-between shrink-0 bg-muted/10">
                 <TabsList className="bg-transparent p-0">
                     <TabsTrigger value="main" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">Main</TabsTrigger>
+                    <TabsTrigger value="history" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">History</TabsTrigger>
                     <TabsTrigger value="postings" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary" disabled={!isPosted}>Postings</TabsTrigger>
                 </TabsList>
 
@@ -313,6 +315,14 @@ export function PaymentDocumentForm({ initialData, mode }: PaymentDocumentFormPr
                         />
                     </div>
                 </div>
+            </TabsContent>
+
+            <TabsContent value="history" className="p-8">
+                {initialData?.id ? (
+                    <DocumentHistoryPanel documentId={initialData.id} documentType="payments" />
+                ) : (
+                    <div className="p-8 text-center text-muted-foreground">Save the document to view history.</div>
+                )}
             </TabsContent>
 
             <TabsContent value="postings" className="flex-1 p-8 m-0 overflow-auto">

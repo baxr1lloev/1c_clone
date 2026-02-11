@@ -16,6 +16,9 @@ import api from "@/lib/api"
 import { PiFloppyDiskBold, PiXBold, PiPlusBold, PiTrashBold } from "react-icons/pi"
 import { mapApiError } from "@/lib/error-mapper"
 import { ReferenceSelector } from "@/components/ui/reference-selector"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { DocumentPostings } from "@/components/documents/document-postings"
+import { DocumentHistoryPanel } from "@/components/documents/document-history-panel"
 
 interface InventoryDocumentLine {
     id?: number
@@ -277,72 +280,97 @@ export function InventoryDocumentForm({ initialData, mode }: InventoryDocumentFo
     ]
 
     return (
-        <div className="flex flex-col h-full">
-            <CommandBar mainActions={actions} />
+        <Tabs defaultValue="main" className="bg-background flex flex-col h-full">
+            <div className="border-b px-4 flex items-center justify-between shrink-0 bg-muted/10">
+                <TabsList className="bg-transparent p-0">
+                    <TabsTrigger value="main" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Main</TabsTrigger>
+                    <TabsTrigger value="history" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">History</TabsTrigger>
+                    <TabsTrigger value="postings" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none" disabled={!isPosted}>Postings</TabsTrigger>
+                </TabsList>
+            </div>
 
-            <div className="flex-1 overflow-auto p-6">
-                <div className="max-w-6xl mx-auto space-y-6">
-                    {/* Header */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <Label>{tf('number')}</Label>
-                            <Input
-                                value={formData.number || ''}
-                                onChange={(e) => setFormData({ ...formData, number: e.target.value })}
-                                disabled={!canEdit}
-                            />
+            <TabsContent value="main" className="flex-1 flex flex-col h-full m-0 p-0 outline-none overflow-hidden">
+                <CommandBar mainActions={actions} className="border-b shrink-0" />
+                <div className="flex-1 overflow-auto p-6">
+                    <div className="max-w-6xl mx-auto space-y-6">
+                        {/* Header */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label>{tf('number')}</Label>
+                                <Input
+                                    value={formData.number || ''}
+                                    onChange={(e) => setFormData({ ...formData, number: e.target.value })}
+                                    disabled={!canEdit}
+                                />
+                            </div>
+                            <div>
+                                <Label>{tf('date')}</Label>
+                                <Input
+                                    type="datetime-local"
+                                    value={formData.date?.slice(0, 16) || ''}
+                                    onChange={(e) => setFormData({ ...formData, date: new Date(e.target.value).toISOString() })}
+                                    disabled={!canEdit}
+                                />
+                            </div>
+                            <div>
+                                <Label>Warehouse</Label>
+                                <ReferenceSelector
+                                    apiEndpoint="/directories/warehouses/"
+                                    value={formData.warehouse}
+                                    onSelect={(val) => setFormData({ ...formData, warehouse: val as number })}
+                                    disabled={!canEdit}
+                                />
+                            </div>
+                            <div>
+                                <Label>Responsible Person</Label>
+                                <Input
+                                    value={formData.responsible || ''}
+                                    onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
+                                    disabled={!canEdit}
+                                />
+                            </div>
+                            <div className="col-span-2">
+                                <Label>{tf('comment')}</Label>
+                                <Input
+                                    value={formData.comment || ''}
+                                    onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
+                                    disabled={!canEdit}
+                                />
+                            </div>
                         </div>
-                        <div>
-                            <Label>{tf('date')}</Label>
-                            <Input
-                                type="datetime-local"
-                                value={formData.date?.slice(0, 16) || ''}
-                                onChange={(e) => setFormData({ ...formData, date: new Date(e.target.value).toISOString() })}
-                                disabled={!canEdit}
-                            />
-                        </div>
-                        <div>
-                            <Label>Warehouse</Label>
-                            <ReferenceSelector
-                                apiEndpoint="/directories/warehouses/"
-                                value={formData.warehouse}
-                                onSelect={(val) => setFormData({ ...formData, warehouse: val as number })}
-                                disabled={!canEdit}
-                            />
-                        </div>
-                        <div>
-                            <Label>Responsible Person</Label>
-                            <Input
-                                value={formData.responsible || ''}
-                                onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
-                                disabled={!canEdit}
-                            />
-                        </div>
-                        <div className="col-span-2">
-                            <Label>{tf('comment')}</Label>
-                            <Input
-                                value={formData.comment || ''}
-                                onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
-                                disabled={!canEdit}
-                            />
-                        </div>
-                    </div>
 
-                    {/* Lines */}
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <h3 className="text-lg font-semibold">Items</h3>
-                            {canEdit && (
-                                <Button onClick={addLine} size="sm">
-                                    <PiPlusBold className="mr-2 h-4 w-4" />
-                                    Add Line
-                                </Button>
-                            )}
+                        {/* Lines */}
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 className="text-lg font-semibold">Items</h3>
+                                {canEdit && (
+                                    <Button onClick={addLine} size="sm">
+                                        <PiPlusBold className="mr-2 h-4 w-4" />
+                                        Add Line
+                                    </Button>
+                                )}
+                            </div>
+                            <DataTable columns={columns} data={lines} isLoading={false} />
                         </div>
-                        <DataTable columns={columns} data={lines} isLoading={false} />
                     </div>
                 </div>
-            </div>
-        </div>
+            </TabsContent>
+
+            <TabsContent value="history" className="p-8">
+                {initialData?.id ? (
+                    <DocumentHistoryPanel documentId={initialData.id} documentType="inventory" />
+                ) : (
+                    <div className="p-8 text-center text-muted-foreground">Save the document to view history.</div>
+                )}
+            </TabsContent>
+
+            <TabsContent value="postings" className="flex-1 p-8 m-0 overflow-auto">
+                {initialData?.id ? (
+                    <DocumentPostings documentId={initialData.id} endpoint="inventory" />
+                ) : (
+                    <div className="p-8 text-center text-muted-foreground">Save the document to view postings.</div>
+                )}
+            </TabsContent>
+        </Tabs>
     )
 }

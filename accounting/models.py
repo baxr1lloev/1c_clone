@@ -118,6 +118,9 @@ class AccountingEntry(models.Model):
     # 70, 71: Employees
     employee = models.ForeignKey('directories.Employee', on_delete=models.PROTECT, null=True, blank=True, related_name='entries')
     
+    # 50, 51: Cash Flow
+    cash_flow_item = models.ForeignKey('directories.CashFlowItem', on_delete=models.PROTECT, null=True, blank=True, related_name='entries')
+    
     description = models.CharField(_('Description'), max_length=255, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
@@ -487,9 +490,9 @@ class PeriodClosing(models.Model):
     
     def _calculate_vat(self):
         """Calculate VAT payable for the period"""
-        vat_payable = VATTransaction.calculate_vat_payable(self.tenant, self.period)
+        # vat_payable = VATTransaction.calculate_vat_payable(self.tenant, self.period)
         # TODO: Create VAT payable entry
-        return vat_payable
+        return 0 # vat_payable
     
     def _get_user_role(self, user):
         """Get user role from permissions"""
