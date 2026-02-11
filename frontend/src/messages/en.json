@@ -32,7 +32,18 @@
         "updatedSuccessfully": "Updated successfully",
         "view": "View",
         "entries": "entries",
-        "noData": "No data"
+        "noData": "No data",
+        "newDocument": "New Document",
+        "document": "Document",
+        "page": "Page",
+        "searchPlaceholder": "Search...",
+        "searchNumberCounterparty": "Search number, counterparty...",
+        "searchCounterparties": "Search counterparties...",
+        "searchOrders": "Search orders...",
+        "searchNumber": "Search number...",
+        "groupBy": "Group by",
+        "columns": "Columns",
+        "views": "Views"
     },
     "auth": {
         "login": "Login",
@@ -65,7 +76,43 @@
         "settings": "Settings",
         "profile": "Profile",
         "help": "Help",
-        "allFunctions": "All Functions"
+        "allFunctions": "All Functions",
+        "main": "Main",
+        "gettingStarted": "Getting Started",
+        "bank_cash": "Bank and Cash",
+        "bankStatements": "Bank Statements",
+        "cashOrders": "Cash Orders",
+        "payments": "Payments",
+        "sales": "Sales",
+        "salesRealization": "Sales (Realization)",
+        "salesOrders": "Sales Orders",
+        "counterparties": "Counterparties",
+        "purchases": "Purchases",
+        "purchasesReceipts": "Purchases (Receipts)",
+        "warehouse": "Warehouse",
+        "stockBalance": "Stock Balance",
+        "transfers": "Transfers",
+        "inventory": "Inventories",
+        "nomenclature": "Nomenclature",
+        "warehouses": "Warehouses",
+        "production": "Production",
+        "productionOrders": "Production Orders",
+        "productionOutput": "Output",
+        "os_nma": "OS and NMA",
+        "fixedAssets": "Fixed Assets",
+        "salary": "Salary and Personnel",
+        "employees": "Employees",
+        "payroll": "Payroll",
+        "operations": "Operations",
+        "journalEntries": "Journal Entries",
+        "periodClosing": "Period Closing",
+        "trialBalance": "Trial Balance",
+        "profitLoss": "Profit & Loss",
+        "contracts": "Contracts",
+        "currencies": "Currencies",
+        "allDirectories": "All Directories",
+        "admin": "Administration",
+        "users": "Users"
     },
     "directories": {
         "title": "Directories",
@@ -84,7 +131,21 @@
         "editCounterparty": "Edit Counterparty",
         "editContract": "Edit Contract",
         "editWarehouse": "Edit Warehouse",
-        "editItem": "Edit Item"
+        "editItem": "Edit Item",
+        "counterpartiesPage": {
+            "filters": {
+                "all": "All",
+                "customer": "Customers",
+                "supplier": "Suppliers",
+                "agent": "Agents",
+                "other": "Other",
+                "clear": "Clear"
+            },
+            "alerts": {
+                "deleteTitle": "Delete Counterparty",
+                "deleteConfirmation": "Are you sure you want to delete \"{name}\"? This action cannot be undone."
+            }
+        }
     },
     "documents": {
         "title": "Documents",
@@ -105,7 +166,54 @@
         "unpost": "Unpost",
         "draft": "Draft",
         "posted": "Posted",
-        "cancelled": "Cancelled"
+        "cancelled": "Cancelled",
+        "post_failed": "Failed to post document",
+        "unpost_failed": "Failed to unpost document",
+        "delete_failed": "Failed to delete document",
+        "cashOrders": {
+            "title": "Cash Orders",
+            "description": "Cash Orders (PKO / RKO)",
+            "tabs": {
+                "all": "All",
+                "incoming": "Incoming (PKO)",
+                "outgoing": "Outgoing (RKO)"
+            },
+            "actions": {
+                "newPko": "New PKO",
+                "newRko": "New RKO"
+            },
+            "alerts": {
+                "deleteTitle": "Delete Cash Order",
+                "deleteConfirmation": "Are you sure you want to delete {number}?"
+            }
+        },
+        "salesOrders": {
+            "title": "Sales Orders",
+            "actions": {
+                "createOrder": "Create Order",
+                "createInvoice": "Create Invoice",
+                "confirm": "Confirm (Reserve)",
+                "cancel": "Cancel (Release)"
+            },
+            "status": {
+                "draft": "Draft",
+                "confirmed": "Confirmed",
+                "shipped": "Shipped",
+                "cancelled": "Cancelled"
+            }
+        },
+        "sales": {
+            "filters": {
+                "all": "All",
+                "draft": "Draft",
+                "posted": "Posted",
+                "cancelled": "Cancelled"
+            },
+            "alerts": {
+                "markForDeletion": "Mark for deletion?",
+                "deleteConfirmation": "Are you sure you want to delete {number}?"
+            }
+        }
     },
     "registers": {
         "title": "Registers",
@@ -220,7 +328,27 @@
         "topProducts": "Top Products",
         "topCustomers": "Top Customers",
         "salesChart": "Sales Overview",
-        "quickActions": "Quick Actions"
+        "salesChartDesc": "Revenue vs Expenses over time",
+        "revenue": "Revenue",
+        "expenses": "Expenses",
+        "overviewDesc": "Key metrics at a glance",
+        "fromLastMonth": "from last month",
+        "quickActions": "Quick Actions",
+        "quickActionsDesc": "Frequently used actions",
+        "quickActionsCreateSale": "Create Sales Document",
+        "quickActionsCreatePurchase": "Create Purchase",
+        "quickActionsAddCounterparty": "Add Counterparty",
+        "quickActionsAddProduct": "Add Product",
+        "recentDocuments": "Recent Documents",
+        "noRecentDocuments": "No recent documents",
+        "quickCreate": "Quick Create",
+        "todaysSummary": "Today's Summary",
+        "salesLabel": "Sales:",
+        "purchasesLabel": "Purchases:",
+        "documentsLabel": "Documents:",
+        "salesDocument": "Sales Document",
+        "purchaseDocument": "Purchase Document",
+        "counterparty": "Counterparty"
     },
     "fields": {
         "name": "Name",

@@ -32,7 +32,18 @@
         "updatedSuccessfully": "Успешно обновлено",
         "view": "Просмотр",
         "entries": "записей",
-        "noData": "Нет данных"
+        "noData": "Нет данных",
+        "newDocument": "Новый документ",
+        "document": "Документ",
+        "page": "Страница",
+        "searchPlaceholder": "Поиск...",
+        "searchNumberCounterparty": "Поиск номера, контрагента...",
+        "searchCounterparties": "Поиск контрагентов...",
+        "searchOrders": "Поиск заказов...",
+        "searchNumber": "Поиск по номеру...",
+        "groupBy": "Группировать по",
+        "columns": "Колонки",
+        "views": "Виды"
     },
     "auth": {
         "login": "Войти",
@@ -65,7 +76,43 @@
         "settings": "Настройки",
         "profile": "Профиль",
         "help": "Помощь",
-        "allFunctions": "Все функции"
+        "allFunctions": "Все функции",
+        "main": "Главная",
+        "gettingStarted": "Рабочий стол",
+        "bank_cash": "Банк и касса",
+        "bankStatements": "Банковские выписки",
+        "cashOrders": "Кассовые ордера",
+        "payments": "Платежи",
+        "sales": "Продажи",
+        "salesRealization": "Реализации",
+        "salesOrders": "Заказы покупателей",
+        "counterparties": "Контрагенты",
+        "purchases": "Закупки",
+        "purchasesReceipts": "Поступления",
+        "warehouse": "Склад",
+        "stockBalance": "Остатки товаров",
+        "transfers": "Перемещения",
+        "inventory": "Инвентаризация",
+        "nomenclature": "Номенклатура",
+        "warehouses": "Склады",
+        "production": "Производство",
+        "productionOrders": "Заказы на производство",
+        "productionOutput": "Выпуск продукции",
+        "os_nma": "ОС и НМА",
+        "fixedAssets": "Основные средства",
+        "salary": "Зарплата и кадры",
+        "employees": "Сотрудники",
+        "payroll": "Начисления",
+        "operations": "Операции",
+        "journalEntries": "Журнал операций",
+        "periodClosing": "Закрытие месяца",
+        "trialBalance": "Оборотно-сальдовая ведомость",
+        "profitLoss": "Прибыли и убытки",
+        "contracts": "Договоры",
+        "currencies": "Валюты",
+        "allDirectories": "Все справочники",
+        "admin": "Администрирование",
+        "users": "Пользователи"
     },
     "directories": {
         "title": "Справочники",
@@ -84,7 +131,21 @@
         "editCounterparty": "Редактировать контрагента",
         "editContract": "Редактировать договор",
         "editWarehouse": "Редактировать склад",
-        "editItem": "Редактировать номенклатуру"
+        "editItem": "Редактировать номенклатуру",
+        "counterpartiesPage": {
+            "filters": {
+                "all": "Все",
+                "customer": "Покупатели",
+                "supplier": "Поставщики",
+                "agent": "Агенты",
+                "other": "Прочее",
+                "clear": "Очистить"
+            },
+            "alerts": {
+                "deleteTitle": "Удалить контрагента",
+                "deleteConfirmation": "Вы уверены, что хотите удалить \"{name}\"? Это действие нельзя отменить."
+            }
+        }
     },
     "documents": {
         "title": "Документы",
@@ -105,7 +166,54 @@
         "unpost": "Отменить проведение",
         "draft": "Черновик",
         "posted": "Проведен",
-        "cancelled": "Отменен"
+        "cancelled": "Отменен",
+        "post_failed": "Не удалось провести документ",
+        "unpost_failed": "Не удалось отменить проведение",
+        "delete_failed": "Не удалось удалить документ",
+        "cashOrders": {
+            "title": "Кассовые ордера",
+            "description": "Кассовые ордера (ПКО / РКО)",
+            "tabs": {
+                "all": "Все",
+                "incoming": "Входящие (ПКО)",
+                "outgoing": "Исходящие (РКО)"
+            },
+            "actions": {
+                "newPko": "Новый ПКО",
+                "newRko": "Новый РКО"
+            },
+            "alerts": {
+                "deleteTitle": "Удалить кассовый ордер",
+                "deleteConfirmation": "Вы уверены, что хотите удалить {number}?"
+            }
+        },
+        "salesOrders": {
+            "title": "Заказы покупателей",
+            "actions": {
+                "createOrder": "Создать заказ",
+                "createInvoice": "Создать реализацию",
+                "confirm": "Подтвердить (Резерв)",
+                "cancel": "Отменить (Снять)"
+            },
+            "status": {
+                "draft": "Черновик",
+                "confirmed": "Подтвержден",
+                "shipped": "Отгружен",
+                "cancelled": "Отменен"
+            }
+        },
+        "sales": {
+            "filters": {
+                "all": "Все",
+                "draft": "Черновик",
+                "posted": "Проведен",
+                "cancelled": "Отменен"
+            },
+            "alerts": {
+                "markForDeletion": "Пометить на удаление?",
+                "deleteConfirmation": "Вы уверены, что хотите удалить {number}?"
+            }
+        }
     },
     "registers": {
         "title": "Регистры",
@@ -220,7 +328,27 @@
         "topProducts": "Популярные товары",
         "topCustomers": "Топ покупатели",
         "salesChart": "Обзор продаж",
-        "quickActions": "Быстрые действия"
+        "salesChartDesc": "Доходы и расходы за период",
+        "revenue": "Доходы",
+        "expenses": "Расходы",
+        "overviewDesc": "Ключевые показатели",
+        "fromLastMonth": "к прошлому месяцу",
+        "quickActions": "Быстрые действия",
+        "quickActionsDesc": "Часто используемые функции",
+        "quickActionsCreateSale": "Создать реализацию",
+        "quickActionsCreatePurchase": "Создать поступление",
+        "quickActionsAddCounterparty": "Добавить контрагента",
+        "quickActionsAddProduct": "Добавить товар",
+        "recentDocuments": "Недавние документы",
+        "noRecentDocuments": "Нет недавних документов",
+        "quickCreate": "Быстрое создание",
+        "todaysSummary": "Сводка за сегодня",
+        "salesLabel": "Продажи:",
+        "purchasesLabel": "Закупки:",
+        "documentsLabel": "Документы:",
+        "salesDocument": "Продажа",
+        "purchaseDocument": "Закупка",
+        "counterparty": "Контрагент"
     },
     "fields": {
         "name": "Наименование",

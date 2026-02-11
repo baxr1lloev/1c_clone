@@ -437,8 +437,7 @@ msgstr "Добавить товар"
 msgid "Payment Documents"
 msgstr "Документы оплаты"
 
-msgid "+ New Payment"
-msgstr "+ Новый платеж"
+
 
 msgid "Type"
 msgstr "Тип"
@@ -569,8 +568,7 @@ msgstr "Анализ дебиторки"
 msgid "Payables Aging"
 msgstr "Анализ кредиторки"
 
-msgid "Total:"
-msgstr "Всего:"
+
 
 msgid "Summary by Age"
 msgstr "Сводка по срокам"

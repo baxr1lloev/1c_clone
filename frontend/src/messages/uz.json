@@ -13,6 +13,17 @@
         "refresh": "Yangilash",
         "loading": "Yuklanmoqda...",
         "noData": "Ma'lumot yo'q",
+        "newDocument": "Yangi hujjat",
+        "document": "Hujjat",
+        "page": "Sahifa",
+        "searchPlaceholder": "Qidirish...",
+        "searchNumberCounterparty": "Raqam, kontragent bo'yicha qidirish...",
+        "searchCounterparties": "Kontragentlarni qidirish...",
+        "searchOrders": "Buyurtmalarni qidirish...",
+        "searchNumber": "Raqam bo'yicha qidirish...",
+        "groupBy": "Guruhlash",
+        "columns": "Ustunlar",
+        "views": "Ko'rinishlar",
         "actions": "Amallar",
         "status": "Holat",
         "date": "Sana",
@@ -46,7 +57,22 @@
         "entries": "yozuv",
         "perPage": "har sahifada",
         "required": "Majburiy",
-        "optional": "Ixtiyoriy"
+        "optional": "Ixtiyoriy",
+        "add": "Qo'shish",
+        "confirmDelete": "O'chirishni tasdiqlash",
+        "createdSuccessfully": "Muvaffaqiyatli yaratildi",
+        "delete_confirmation": "O'chirishni tasdiqlash",
+        "deletedSuccessfully": "Muvaffaqiyatli o'chirildi",
+        "deleting": "O'chirilmoqda...",
+        "errorDeleting": "O'chirishda xatolik",
+        "errorPosting": "O'tkazishda xatolik",
+        "errorSaving": "Saqlashda xatolik",
+        "post": "O'tkazish",
+        "postedSuccessfully": "Muvaffaqiyatli o'tkazildi",
+        "print": "Chop etish",
+        "saveAndClose": "Saqlash va yopish",
+        "savedSuccessfully": "Muvaffaqiyatli saqlandi",
+        "updatedSuccessfully": "Muvaffaqiyatli yangilandi"
     },
     "auth": {
         "login": "Kirish",
@@ -78,7 +104,44 @@
         "reports": "Hisobotlar",
         "settings": "Sozlamalar",
         "profile": "Profil",
-        "help": "Yordam"
+        "help": "Yordam",
+        "allFunctions": "Barcha funksiyalar",
+        "main": "Asosiy",
+        "gettingStarted": "Bosh sahifa",
+        "bank_cash": "Bank va Kassa",
+        "bankStatements": "Bank ko'chirmalari",
+        "cashOrders": "Kassa orderlari",
+        "payments": "To'lovlar",
+        "sales": "Sotuvlar",
+        "salesRealization": "Sotuvlar",
+        "salesOrders": "Mijoz buyurtmalari",
+        "counterparties": "Kontragentlar",
+        "purchases": "Xaridlar",
+        "purchasesReceipts": "Xaridlar",
+        "warehouse": "Ombor",
+        "stockBalance": "Ombor qoldiqlari",
+        "transfers": "Ko'chirishlar",
+        "inventory": "Inventarizatsiya",
+        "nomenclature": "Nomenklatura",
+        "warehouses": "Omborlar",
+        "production": "Ishlab chiqarish",
+        "productionOrders": "Ishlab chiqarish buyurtmalari",
+        "productionOutput": "Mahsulot ishlab chiqarish",
+        "os_nma": "Asosiy vositalar va Nomoddiy aktivlar",
+        "fixedAssets": "Asosiy vositalar",
+        "salary": "Ish haqi va Kadrlar",
+        "employees": "Xodimlar",
+        "payroll": "Ish haqi hisoblash",
+        "operations": "Operatsiyalar",
+        "journalEntries": "Jurnal o'tkazmalari",
+        "periodClosing": "Davrni yopish",
+        "trialBalance": "Aylanma balans",
+        "profitLoss": "Foyda va zararlar",
+        "contracts": "Shartnomalar",
+        "currencies": "Valyutalar",
+        "allDirectories": "Barcha ma'lumotnomalar",
+        "admin": "Ma'muriyat",
+        "users": "Foydalanuvchilar"
     },
     "directories": {
         "title": "Ma'lumotnomalar",
@@ -97,7 +160,21 @@
         "editCounterparty": "Kontragentni tahrirlash",
         "editContract": "Shartnomani tahrirlash",
         "editWarehouse": "Omborni tahrirlash",
-        "editItem": "Mahsulotni tahrirlash"
+        "editItem": "Mahsulotni tahrirlash",
+        "counterpartiesPage": {
+            "filters": {
+                "all": "Barchasi",
+                "customer": "Mijozlar",
+                "supplier": "Yetkazib beruvchilar",
+                "agent": "Agentlar",
+                "other": "Boshqa",
+                "clear": "Tozalash"
+            },
+            "alerts": {
+                "deleteTitle": "Kontragentni o'chirish",
+                "deleteConfirmation": "\"{name}\"ni o'chirishni xohlaysizmi? Bu amalni bekor qilib bo'lmaydi."
+            }
+        }
     },
     "documents": {
         "title": "Hujjatlar",
@@ -118,7 +195,54 @@
         "unpost": "O'tkazishni bekor qilish",
         "draft": "Qoralama",
         "posted": "O'tkazilgan",
-        "cancelled": "Bekor qilingan"
+        "cancelled": "Bekor qilingan",
+        "post_failed": "Hujjatni o'tkazib bo'lmadi",
+        "unpost_failed": "O'tkazmani bekor qilib bo'lmadi",
+        "delete_failed": "Hujjatni o'chirib bo'lmadi",
+        "cashOrders": {
+            "title": "Kassa orderlari",
+            "description": "Kassa orderlari (Kirimi / Chiqimi)",
+            "tabs": {
+                "all": "Barchasi",
+                "incoming": "Kiruvchi (PKO)",
+                "outgoing": "Chiquvchi (RKO)"
+            },
+            "actions": {
+                "newPko": "Yangi PKO",
+                "newRko": "Yangi RKO"
+            },
+            "alerts": {
+                "deleteTitle": "Kassa orderini o'chirish",
+                "deleteConfirmation": "{number} ni o'chirishni xohlaysizmi?"
+            }
+        },
+        "salesOrders": {
+            "title": "Mijoz buyurtmalari",
+            "actions": {
+                "createOrder": "Buyurtma yaratish",
+                "createInvoice": "Sotuv hujjati yaratish",
+                "confirm": "Tasdiqlash (Band qilish)",
+                "cancel": "Bekor qilish (Bo'shatish)"
+            },
+            "status": {
+                "draft": "Qoralama",
+                "confirmed": "Tasdiqlangan",
+                "shipped": "Jo'natilgan",
+                "cancelled": "Bekor qilingan"
+            }
+        },
+        "sales": {
+            "filters": {
+                "all": "Barchasi",
+                "draft": "Qoralama",
+                "posted": "O'tkazilgan",
+                "cancelled": "Bekor qilingan"
+            },
+            "alerts": {
+                "markForDeletion": "O'chirishga belgilash?",
+                "deleteConfirmation": "{number} ni o'chirishni xohlaysizmi?"
+            }
+        }
     },
     "registers": {
         "title": "Registrlar",
@@ -232,8 +356,28 @@
         "recentActivity": "So'nggi faoliyat",
         "topProducts": "Top mahsulotlar",
         "topCustomers": "Top mijozlar",
-        "salesChart": "Sotuvlar ko'rinishi",
-        "quickActions": "Tez amallar"
+        "salesChart": "Sotuvlar tahlili",
+        "salesChartDesc": "Daromad va xarajatlar tahlili",
+        "revenue": "Daromad",
+        "expenses": "Xarajat",
+        "overviewDesc": "Asosiy ko'rsatkichlar",
+        "fromLastMonth": "o'tgan oyga nisbatan",
+        "quickActions": "Tezkor amallar",
+        "quickActionsDesc": "Ko'p ishlatiladigan funksiyalar",
+        "quickActionsCreateSale": "Sotuv hujjatini yaratish",
+        "quickActionsCreatePurchase": "Xarid hujjatini yaratish",
+        "quickActionsAddCounterparty": "Kontragent qo'shish",
+        "quickActionsAddProduct": "Mahsulot qo'shish",
+        "recentDocuments": "So'nggi hujjatlar",
+        "noRecentDocuments": "So'nggi hujjatlar yo'q",
+        "quickCreate": "Tezkor yaratish",
+        "todaysSummary": "Bugungi xulosa",
+        "salesLabel": "Sotuvlar:",
+        "purchasesLabel": "Xaridlar:",
+        "documentsLabel": "Hujjatlar:",
+        "salesDocument": "Sotuv hujjati",
+        "purchaseDocument": "Xarid hujjati",
+        "counterparty": "Kontragent"
     },
     "fields": {
         "account": "Hisob",
@@ -283,7 +427,16 @@
         "totalValue": "Jami qiymat",
         "symbol": "Belgi",
         "baseCurrency": "Asosiy valyuta",
-        "movementType": "Harakat turi"
+        "movementType": "Harakat turi",
+        "amount": "Summa",
+        "available": "Mavjud",
+        "date": "Sana",
+        "description": "Tavsif",
+        "email": "Elektron pochta",
+        "name": "Nomi",
+        "number": "Raqam",
+        "price": "Narx",
+        "reserved": "Zaxirada"
     },
     "errors": {
         "required": "Bu maydon to'ldirilishi shart",

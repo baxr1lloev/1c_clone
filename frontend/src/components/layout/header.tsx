@@ -95,7 +95,7 @@ export function Header() {
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 z-30 flex h-14 items-center justify-between border-b bg-card px-4 transition-all duration-300",
+        "fixed top-0 right-0 z-30 flex h-14 items-center justify-between border-b bg-card px-4 transition-all duration-300 overflow-x-auto overflow-y-hidden custom-scrollbar",
         sidebarCollapsed ? "left-16" : "left-64",
       )}
     >

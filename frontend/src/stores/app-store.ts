@@ -43,6 +43,7 @@ export interface Tab {
     label: string;
     path: string;
     icon?: string;
+    translationKey?: string;
 }
 
 
@@ -75,7 +76,14 @@ export const useAppStore = create<AppState>()(
             // Tabs Logic
             tabs: [],
             addTab: (tab) => set((state) => {
-                if (state.tabs.find(t => t.path === tab.path)) return state;
+                const existingIndex = state.tabs.findIndex(t => t.path === tab.path);
+                if (existingIndex !== -1) {
+                    const newTabs = [...state.tabs];
+                    // Only update if properties changed to avoid unnecessary re-renders if possible, 
+                    // but for now simple spread is fine.
+                    newTabs[existingIndex] = { ...newTabs[existingIndex], ...tab };
+                    return { tabs: newTabs };
+                }
                 return { tabs: [...state.tabs, tab] };
             }),
             removeTab: (path) => set((state) => ({
