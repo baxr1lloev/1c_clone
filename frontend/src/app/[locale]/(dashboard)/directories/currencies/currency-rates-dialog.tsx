@@ -1,13 +1,14 @@
 ﻿"use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { api } from "@/lib/api"
-import { useQueryClient } from "@tanstack/react-query"
-import { Loader2, Trash2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
+import type { PaginatedResponse } from "@/types"
+import { useTranslations } from "next-intl"
 
 interface ExchangeRate {
     id: number
@@ -27,30 +28,41 @@ interface CurrencyRatesDialogProps {
     onOpenChange: (open: boolean) => void
 }
 
+type ExchangeRatesResponse = PaginatedResponse<ExchangeRate> | ExchangeRate[]
+
+function normalizeRatesResponse(response: ExchangeRatesResponse): ExchangeRate[] {
+    if (Array.isArray(response)) return response
+    if (Array.isArray(response?.results)) return response.results
+    return []
+}
+
 export function CurrencyRatesDialog({ currency, open, onOpenChange }: CurrencyRatesDialogProps) {
     const [rates, setRates] = useState<ExchangeRate[]>([])
     const [loading, setLoading] = useState(false)
     const [newRate, setNewRate] = useState({ date: new Date().toISOString().split('T')[0], rate: '' })
     const [adding, setAdding] = useState(false)
+    const td = useTranslations("directories")
+    const tc = useTranslations("common")
+    const tf = useTranslations("fields")
 
-    useEffect(() => {
-        if (open && currency) {
-            loadHistory()
-        }
-    }, [open, currency])
-
-    const loadHistory = async () => {
+    const loadHistory = useCallback(async () => {
         if (!currency) return
         setLoading(true)
         try {
-            const res = await api.get<ExchangeRate[]>(`/directories/currencies/${currency.id}/history/`)
-            setRates(res || [])
+            const res = await api.get<ExchangeRatesResponse>(`/directories/currencies/${currency.id}/history/`)
+            setRates(normalizeRatesResponse(res))
         } catch (error) {
             console.error("Failed to load rates", error)
         } finally {
             setLoading(false)
         }
-    }
+    }, [currency])
+
+    useEffect(() => {
+        if (open && currency) {
+            loadHistory()
+        }
+    }, [open, currency, loadHistory])
 
     const handleAddRate = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -75,7 +87,7 @@ export function CurrencyRatesDialog({ currency, open, onOpenChange }: CurrencyRa
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Exchange Rates: {currency?.code}</DialogTitle>
+                    <DialogTitle>{td("currenciesPage.exchangeRatesFor", { code: currency?.code || "-" })}</DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleAddRate} className="flex gap-2 my-4">
@@ -89,14 +101,14 @@ export function CurrencyRatesDialog({ currency, open, onOpenChange }: CurrencyRa
                     <Input
                         type="number"
                         step="0.000001"
-                        placeholder="Rate"
+                        placeholder={td("currenciesPage.ratePlaceholder")}
                         value={newRate.rate}
                         onChange={e => setNewRate({ ...newRate, rate: e.target.value })}
                         required
                         className="flex-1"
                     />
                     <Button type="submit" disabled={adding}>
-                        {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+                        {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : tc("add")}
                     </Button>
                 </form>
 
@@ -109,8 +121,8 @@ export function CurrencyRatesDialog({ currency, open, onOpenChange }: CurrencyRa
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Date</TableHead>
-                                    <TableHead className="text-right">Rate</TableHead>
+                                    <TableHead>{tc("date")}</TableHead>
+                                    <TableHead className="text-right">{tf("exchangeRate")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -123,7 +135,7 @@ export function CurrencyRatesDialog({ currency, open, onOpenChange }: CurrencyRa
                                 {rates.length === 0 && (
                                     <TableRow>
                                         <TableCell colSpan={2} className="text-center text-muted-foreground py-4">
-                                            No rates history found
+                                            {td("currenciesPage.noRatesHistory")}
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -135,4 +147,3 @@ export function CurrencyRatesDialog({ currency, open, onOpenChange }: CurrencyRa
         </Dialog>
     )
 }
-

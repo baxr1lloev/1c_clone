@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { TransferDocumentForm } from '@/components/documents/transfer-document-form';
 import { DocumentTab } from '@/components/documents/document-tab';
@@ -10,6 +11,8 @@ import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 
 export default function TransferDocumentDetailPage() {
     const params = useParams();
+    const tNav = useTranslations('nav');
+    const tDetail = useTranslations('documents.detail');
     const id = parseInt(params.id as string);
 
     const { data: doc, isLoading } = useQuery({
@@ -30,12 +33,12 @@ export default function TransferDocumentDetailPage() {
         );
     }
 
-    if (!doc) return <div>Document not found</div>;
+    if (!doc) return <div>{tDetail('notFound')}</div>;
 
     const breadcrumbs = [
-        { label: 'Home', href: '/' },
-        { label: 'Documents', href: '/documents' },
-        { label: 'Transfers', href: '/documents/transfers' },
+        { label: tNav('main'), href: '/' },
+        { label: tNav('documents'), href: '/documents' },
+        { label: tNav('transfers'), href: '/documents/transfers' },
         { label: doc.number },
     ];
 

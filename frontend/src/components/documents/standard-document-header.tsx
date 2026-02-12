@@ -4,6 +4,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { useTranslations } from 'next-intl';
 
 interface DocumentHeaderField {
     label: string;
@@ -20,13 +21,15 @@ interface StandardDocumentHeaderProps {
 }
 
 function StatusBadge({ status }: { status: 'draft' | 'posted' | 'cancelled' }) {
+    const tDocuments = useTranslations('documents');
+
     switch (status) {
         case 'posted':
-            return <Badge variant="posted">Posted</Badge>;
+            return <Badge variant="posted">{tDocuments('posted')}</Badge>;
         case 'cancelled':
-            return <Badge variant="cancelled">Cancelled</Badge>;
+            return <Badge variant="cancelled">{tDocuments('cancelled')}</Badge>;
         default:
-            return <Badge variant="draft">Draft</Badge>;
+            return <Badge variant="draft">{tDocuments('draft')}</Badge>;
     }
 }
 
@@ -37,6 +40,8 @@ export function StandardDocumentHeader({
     fields,
     className
 }: StandardDocumentHeaderProps) {
+    const tCommon = useTranslations('common');
+
     return (
         <Card className={className}>
             <CardContent className="pt-6">
@@ -44,7 +49,7 @@ export function StandardDocumentHeader({
                     {/* Number - always first */}
                     <div>
                         <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Number
+                            {tCommon('number')}
                         </Label>
                         <div className="font-mono font-bold text-lg mt-1">
                             {documentNumber}
@@ -54,7 +59,7 @@ export function StandardDocumentHeader({
                     {/* Date - always second */}
                     <div>
                         <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Date
+                            {tCommon('date')}
                         </Label>
                         <div className="font-mono mt-1">
                             {new Date(documentDate).toLocaleDateString()}
@@ -64,7 +69,7 @@ export function StandardDocumentHeader({
                     {/* Status - always third */}
                     <div>
                         <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                            Status
+                            {tCommon('status')}
                         </Label>
                         <div className="mt-1">
                             <StatusBadge status={status} />

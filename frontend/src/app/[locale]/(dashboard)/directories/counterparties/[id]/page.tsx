@@ -22,6 +22,8 @@ interface Counterparty {
     email: string;
     phone: string;
     is_active: boolean;
+    created_at?: string;
+    updated_at?: string;
 }
 
 interface BalanceDetail {
@@ -40,31 +42,67 @@ interface RelatedDocument {
     amount?: number;
 }
 
+interface CounterpartyBalanceResponse {
+    total_balance: number;
+    balances: BalanceDetail[];
+}
+
+interface CounterpartyDocumentsResponse {
+    documents: RelatedDocument[];
+}
+
+type LinkableDocumentType =
+    | 'sales-document'
+    | 'purchase-document'
+    | 'payment-document'
+    | 'transfer-document';
+
+function normalizeCounterpartyType(type: unknown): 'customer' | 'supplier' | 'agent' | 'other' {
+    const value = String(type ?? '').toLowerCase();
+    if (value === 'customer' || value === 'supplier' || value === 'agent') {
+        return value;
+    }
+    return 'other';
+}
+
+function mapRelatedDocumentType(type: unknown): LinkableDocumentType | null {
+    const value = String(type ?? '').toLowerCase();
+    if (value === 'sales') return 'sales-document';
+    if (value === 'purchase') return 'purchase-document';
+    if (value === 'payment') return 'payment-document';
+    if (value === 'transfer') return 'transfer-document';
+    return null;
+}
+
 export default function CounterpartyDetailPage() {
     const params = useParams();
-    const t = useTranslations();
+    const tNav = useTranslations('nav');
+    const tCommon = useTranslations('common');
+    const tFields = useTranslations('fields');
+    const tDirectories = useTranslations('directories');
+    const tDetail = useTranslations('directories.counterpartyDetail');
     const id = parseInt(params.id as string);
 
-    const { data: counterparty, isLoading } = useQuery({
+    const { data: counterparty, isLoading } = useQuery<Counterparty>({
         queryKey: ['counterparty', id],
-        queryFn: () => api.get(`/api/counterparties/${id}/`),
+        queryFn: () => api.get<Counterparty>(`/api/counterparties/${id}/`),
     });
 
-    const { data: balanceData } = useQuery({
+    const { data: balanceData } = useQuery<CounterpartyBalanceResponse>({
         queryKey: ['counterparty', id, 'balance'],
-        queryFn: () => api.get(`/api/counterparties/${id}/balance/`),
+        queryFn: () => api.get<CounterpartyBalanceResponse>(`/api/counterparties/${id}/balance/`),
     });
 
-    const { data: documentsData } = useQuery({
+    const { data: documentsData } = useQuery<CounterpartyDocumentsResponse>({
         queryKey: ['counterparty', id, 'documents'],
-        queryFn: () => api.get(`/api/counterparties/${id}/documents/`),
+        queryFn: () => api.get<CounterpartyDocumentsResponse>(`/api/counterparties/${id}/documents/`),
     });
 
     const breadcrumbs = [
-        { label: 'Home', href: '/' },
-        { label: 'Directories', href: '/directories' },
-        { label: 'Counterparties', href: '/directories/counterparties' },
-        { label: counterparty?.name || `Counterparty #${id}` },
+        { label: tNav('main'), href: '/' },
+        { label: tNav('directories'), href: '/directories' },
+        { label: tNav('counterparties'), href: '/directories/counterparties' },
+        { label: counterparty?.name || tDetail('counterpartyFallback', { id }) },
     ];
 
     if (isLoading) {
@@ -78,17 +116,17 @@ export default function CounterpartyDetailPage() {
     const balanceColumns: ColumnDef<BalanceDetail>[] = [
         {
             accessorKey: 'contract_number',
-            header: 'Contract',
+            header: tFields('contract'),
         },
         {
             accessorKey: 'currency',
-            header: 'Currency',
+            header: tFields('currency'),
         },
         {
             accessorKey: 'amount',
-            header: 'Balance',
+            header: tDetail('columns.balance'),
             cell: ({ row }) => {
-                const amount = row.original.amount;
+                const amount = Number(row.original.amount || 0);
                 const isDebt = amount > 0;
                 return (
                     <span className={isDebt ? 'text-green-600' : 'text-red-600'}>
@@ -102,31 +140,39 @@ export default function CounterpartyDetailPage() {
     const documentColumns: ColumnDef<RelatedDocument>[] = [
         {
             accessorKey: 'date',
-            header: 'Date',
+            header: tCommon('date'),
         },
         {
             accessorKey: 'type',
-            header: 'Type',
+            header: tFields('type'),
             cell: ({ row }) => (
-                <Badge variant="outline">{row.original.type}</Badge>
+                <Badge variant="outline">
+                    {tDirectories(`counterpartiesPage.filters.${normalizeCounterpartyType(row.original.type)}`)}
+                </Badge>
             ),
         },
         {
             accessorKey: 'number',
-            header: 'Number',
-            cell: ({ row }) => (
-                <LinkableCell
-                    id={row.original.id}
-                    type={row.original.type as any}
-                    label={row.original.number}
-                />
-            ),
+            header: tCommon('number'),
+            cell: ({ row }) => {
+                const linkType = mapRelatedDocumentType(row.original.type);
+                if (!linkType) {
+                    return <span className="font-medium">{row.original.number}</span>;
+                }
+                return (
+                    <LinkableCell
+                        id={row.original.id}
+                        type={linkType}
+                        label={row.original.number}
+                    />
+                );
+            },
         },
         {
             accessorKey: 'total',
-            header: 'Amount',
+            header: tCommon('amount'),
             cell: ({ row }) => {
-                const amount = row.original.total || row.original.amount || 0;
+                const amount = Number(row.original.total || row.original.amount || 0);
                 return `$${amount.toFixed(2)}`;
             },
         },
@@ -141,19 +187,19 @@ export default function CounterpartyDetailPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold">{counterparty?.name}</h1>
-                    <p className="text-muted-foreground">INN: {counterparty?.inn}</p>
+                    <p className="text-muted-foreground">{tFields('inn')}: {counterparty?.inn}</p>
                 </div>
                 <div className="flex gap-2">
                     <CopyLinkButton entityType="counterparty" entityId={id} />
                     <Badge variant={counterparty?.is_active ? 'default' : 'secondary'}>
-                        {counterparty?.is_active ? 'Active' : 'Inactive'}
+                        {counterparty?.is_active ? tDetail('status.active') : tDetail('status.inactive')}
                     </Badge>
                 </div>
             </div>
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Settlement Balance</CardTitle>
+                    <CardTitle>{tDetail('settlementBalance')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="text-3xl font-bold">
@@ -162,43 +208,45 @@ export default function CounterpartyDetailPage() {
                         </span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                        {totalBalance > 0 ? 'Customer owes us' : totalBalance < 0 ? 'We owe customer' : 'No debt'}
+                        {totalBalance > 0 ? tDetail('balanceState.customerOwesUs') : totalBalance < 0 ? tDetail('balanceState.weOweCustomer') : tDetail('balanceState.noDebt')}
                     </p>
                 </CardContent>
             </Card>
 
             <Tabs defaultValue="details" className="w-full">
                 <TabsList>
-                    <TabsTrigger value="details">Details</TabsTrigger>
-                    <TabsTrigger value="balance">Balance Details</TabsTrigger>
-                    <TabsTrigger value="documents">Documents</TabsTrigger>
-                    <TabsTrigger value="audit">Audit</TabsTrigger>
+                    <TabsTrigger value="details">{tDetail('tabs.details')}</TabsTrigger>
+                    <TabsTrigger value="balance">{tDetail('tabs.balance')}</TabsTrigger>
+                    <TabsTrigger value="documents">{tDetail('tabs.documents')}</TabsTrigger>
+                    <TabsTrigger value="audit">{tDetail('tabs.audit')}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="details" className="space-y-4">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Counterparty Information</CardTitle>
+                            <CardTitle>{tDetail('counterpartyInformation')}</CardTitle>
                         </CardHeader>
                         <CardContent className="grid grid-cols-2 gap-4">
                             <div>
-                                <p className="text-sm text-muted-foreground">Name</p>
+                                <p className="text-sm text-muted-foreground">{tCommon('name')}</p>
                                 <p className="font-medium">{counterparty?.name}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">INN</p>
+                                <p className="text-sm text-muted-foreground">{tFields('inn')}</p>
                                 <p className="font-medium">{counterparty?.inn}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Type</p>
-                                <p className="font-medium">{counterparty?.type}</p>
+                                <p className="text-sm text-muted-foreground">{tFields('type')}</p>
+                                <p className="font-medium">
+                                    {tDirectories(`counterpartiesPage.filters.${normalizeCounterpartyType(counterparty?.type)}`)}
+                                </p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Email</p>
+                                <p className="text-sm text-muted-foreground">{tFields('email')}</p>
                                 <p className="font-medium">{counterparty?.email}</p>
                             </div>
                             <div>
-                                <p className="text-sm text-muted-foreground">Phone</p>
+                                <p className="text-sm text-muted-foreground">{tFields('phone')}</p>
                                 <p className="font-medium">{counterparty?.phone}</p>
                             </div>
                         </CardContent>
@@ -208,7 +256,7 @@ export default function CounterpartyDetailPage() {
                 <TabsContent value="balance">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Balance by Contract</CardTitle>
+                            <CardTitle>{tDetail('balanceByContract')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <DataTable
@@ -222,7 +270,7 @@ export default function CounterpartyDetailPage() {
                 <TabsContent value="documents">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Related Documents</CardTitle>
+                            <CardTitle>{tDetail('relatedDocuments')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <DataTable
@@ -236,16 +284,16 @@ export default function CounterpartyDetailPage() {
                 <TabsContent value="audit">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Audit Trail</CardTitle>
+                            <CardTitle>{tDetail('auditTrail')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-2">
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Created</p>
+                                    <p className="text-sm text-muted-foreground">{tDetail('audit.created')}</p>
                                     <p className="font-medium">{counterparty?.created_at}</p>
                                 </div>
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Last Modified</p>
+                                    <p className="text-sm text-muted-foreground">{tDetail('audit.lastModified')}</p>
                                     <p className="font-medium">{counterparty?.updated_at}</p>
                                 </div>
                             </div>

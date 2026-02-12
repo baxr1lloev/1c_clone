@@ -54,10 +54,10 @@ export default function AccountCardPage() {
         queryKey: ['account-card', accountId, startDate, endDate],
         queryFn: async () => {
             if (!accountId) return null;
-            const res = await api.get('/reports/account-card-report/', {
+            const report = await api.get<AccountCardReport | null>('/reports/account-card-report/', {
                 params: { account_id: accountId, start_date: startDate, end_date: endDate }
             });
-            return res.data as AccountCardReport;
+            return report ?? null;
         },
         enabled: !!accountId
     });

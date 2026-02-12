@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ColumnDef } from "@tanstack/react-table";
+import { ColumnDef, SortingState } from "@tanstack/react-table";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import { DataTable } from "@/components/data-table/data-table";
@@ -52,6 +52,14 @@ const typeColors: Record<CounterpartyType, string> = {
   other: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
 };
 
+function normalizeCounterpartyType(type: unknown): CounterpartyType {
+  const value = String(type ?? "").toLowerCase();
+  if (value === "customer" || value === "supplier" || value === "agent") {
+    return value;
+  }
+  return "other";
+}
+
 export default function CounterpartiesPage() {
   const t = useTranslations("directories");
   const tc = useTranslations("common");
@@ -67,7 +75,7 @@ export default function CounterpartiesPage() {
   const [columnVisibility, setColumnVisibility] = useState<
     Record<string, boolean>
   >({});
-  const [sorting, setSorting] = useState<any>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["counterparties"],
@@ -114,7 +122,9 @@ export default function CounterpartiesPage() {
     let filtered = data;
 
     if (typeFilter !== "all") {
-      filtered = filtered.filter((item) => item.type === typeFilter);
+      filtered = filtered.filter(
+        (item) => normalizeCounterpartyType(item.type) === typeFilter,
+      );
     }
 
     if (searchValue) {
@@ -187,13 +197,13 @@ export default function CounterpartiesPage() {
       accessorKey: "type",
       header: tf("type"),
       cell: ({ row }) => {
-        const type = row.getValue("type") as CounterpartyType;
+        const type = normalizeCounterpartyType(row.getValue("type"));
         return (
           <Badge
             variant="outline"
             className={cn("text-[10px] h-5 px-1", typeColors[type])}
           >
-            {t(`counterpartiesPage.filters.${type}`) || type}
+            {t(`counterpartiesPage.filters.${type}`)}
           </Badge>
         );
       },

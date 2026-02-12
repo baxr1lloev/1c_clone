@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useQuery } from '@tanstack/react-query';
@@ -12,6 +11,7 @@ import { AuditTrailTable } from './audit-trail-table';
 import { DocumentChain } from './document-chain';
 import { Badge } from '@/components/ui/badge';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 interface DocumentTabsProps {
     documentId: number;
@@ -23,6 +23,7 @@ interface DocumentTabsProps {
 export function DocumentTabs({ documentId, documentType, activeTab, onTabChange }: DocumentTabsProps) {
     const params = useParams();
     const locale = params.locale as string;
+    const tTabs = useTranslations('documents.detail.tabs');
 
     // Fetch movements
     const { data: movements } = useQuery({
@@ -55,7 +56,7 @@ export function DocumentTabs({ documentId, documentType, activeTab, onTabChange 
     });
 
     // Fetch document chain
-    const { data: documentChain } = useQuery({
+    useQuery({
         queryKey: ['document-chain', documentType, documentId],
         queryFn: async () => {
             const response = await api.get(`/documents/${documentType}/${documentId}/chain`);
@@ -74,13 +75,13 @@ export function DocumentTabs({ documentId, documentType, activeTab, onTabChange 
                                 value="details"
                                 className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium"
                             >
-                                Details
+                                {tTabs('details')}
                             </TabsTrigger>
                             <TabsTrigger
                                 value="movements"
                                 className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium"
                             >
-                                Movements
+                                {tTabs('movements')}
                                 {movements && movements.length > 0 && (
                                     <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
                                         {movements.length}
@@ -91,7 +92,7 @@ export function DocumentTabs({ documentId, documentType, activeTab, onTabChange 
                                 value="journal"
                                 className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium"
                             >
-                                Journal Entries
+                                {tTabs('journal')}
                                 {journalEntries && journalEntries.length > 0 && (
                                     <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
                                         {journalEntries.length}
@@ -102,14 +103,14 @@ export function DocumentTabs({ documentId, documentType, activeTab, onTabChange 
                                 value="audit"
                                 className="h-12 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 font-medium"
                             >
-                                Audit Trail
+                                {tTabs('audit')}
                             </TabsTrigger>
                         </TabsList>
                     </div>
 
                     <TabsContent value="details" className="mt-6 px-6">
                         <p className="text-sm text-muted-foreground">
-                            Document details are shown in the main view above.
+                            {tTabs('detailsInfo')}
                         </p>
                     </TabsContent>
 
@@ -118,7 +119,7 @@ export function DocumentTabs({ documentId, documentType, activeTab, onTabChange 
                             <MovementsTable movements={movements} />
                         ) : (
                             <p className="text-sm text-muted-foreground text-center py-8">
-                                No movements yet. Post the document to create movements.
+                                {tTabs('noMovements')}
                             </p>
                         )}
                     </TabsContent>
@@ -136,7 +137,7 @@ export function DocumentTabs({ documentId, documentType, activeTab, onTabChange 
                             <AuditTrailTable trail={auditTrail} />
                         ) : (
                             <p className="text-sm text-muted-foreground text-center py-8">
-                                No audit trail available.
+                                {tTabs('noAudit')}
                             </p>
                         )}
                     </TabsContent>

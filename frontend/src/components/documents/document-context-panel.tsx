@@ -8,13 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ReferenceLink } from '@/components/ui/reference-link';
 import { cn } from '@/lib/utils';
+import { useTranslations } from 'next-intl';
 import {
     PiWarningCircleBold,
-    PiCheckCircleBold,
     PiXCircleBold
 } from 'react-icons/pi';
 
@@ -50,12 +49,15 @@ export function DocumentContextPanel({
     itemId,
     warehouseId
 }: DocumentContextPanelProps) {
+    const tFields = useTranslations('fields');
+    const tContext = useTranslations('documents.detail.context');
+
     // Fetch customer context
     const { data: customerInfo, isLoading: loadingCustomer } = useQuery({
         queryKey: ['customer-context', customerId],
         queryFn: async () => {
             const response = await api.get(`/counterparties/${customerId}/context`);
-            return response.data;
+            return response;
         },
         enabled: !!customerId,
     });
@@ -67,7 +69,7 @@ export function DocumentContextPanel({
             const response = await api.get(`/items/${itemId}/stock`, {
                 params: { warehouse: warehouseId }
             });
-            return response.data;
+            return response;
         },
         enabled: !!itemId && !!warehouseId,
     });
@@ -88,7 +90,7 @@ export function DocumentContextPanel({
     return (
         <Card className="sticky top-20">
             <CardHeader>
-                <CardTitle className="text-sm uppercase text-muted-foreground">Context</CardTitle>
+                <CardTitle className="text-sm uppercase text-muted-foreground">{tContext('title')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
                 {/* Customer Context */}
@@ -108,19 +110,19 @@ export function DocumentContextPanel({
                                         {riskLevel === 'danger' && <PiWarningCircleBold className="h-5 w-5" />}
                                         {riskLevel === 'warning' && <PiWarningCircleBold className="h-5 w-5" />}
                                         <AlertTitle className="font-bold">
-                                            {riskLevel === 'critical' && 'БЛОКИРОВКА!'}
-                                            {riskLevel === 'danger' && 'ПРЕВЫШЕН ЛИМИТ'}
-                                            {riskLevel === 'warning' && 'ВНИМАНИЕ'}
+                                            {riskLevel === 'critical' && tContext('risk.blocked')}
+                                            {riskLevel === 'danger' && tContext('risk.limitExceeded')}
+                                            {riskLevel === 'warning' && tContext('risk.attention')}
                                         </AlertTitle>
                                         <AlertDescription>
                                             {customerInfo.overdue_days > 30 && (
                                                 <div className="font-bold">
-                                                    Просрочка: {customerInfo.overdue_days} дней
+                                                    {tContext('risk.overdue')}: {customerInfo.overdue_days} {tContext('days')}
                                                 </div>
                                             )}
                                             {customerInfo.debt > customerInfo.credit_limit && (
                                                 <div>
-                                                    Долг превышает лимит на{' '}
+                                                    {tContext('risk.debtExceededBy')}{' '}
                                                     {(customerInfo.debt - customerInfo.credit_limit).toFixed(2)} UZS
                                                 </div>
                                             )}
@@ -130,7 +132,7 @@ export function DocumentContextPanel({
 
                                 <div>
                                     <Label className="text-xs text-muted-foreground uppercase">
-                                        Customer Debt
+                                        {tContext('customerDebt')}
                                     </Label>
                                     <div className={cn(
                                         "text-3xl font-bold font-mono mt-1",
@@ -142,14 +144,14 @@ export function DocumentContextPanel({
                                     </div>
                                     {customerInfo.overdue_days > 0 && (
                                         <Badge variant="destructive" className="mt-2">
-                                            ⚠️ {customerInfo.overdue_days} days overdue
+                                            ⚠️ {customerInfo.overdue_days} {tContext('daysOverdue')}
                                         </Badge>
                                     )}
                                 </div>
 
                                 <div>
                                     <Label className="text-xs text-muted-foreground uppercase">
-                                        Credit Limit
+                                        {tContext('creditLimit')}
                                     </Label>
                                     <Progress
                                         value={(customerInfo.used_credit / customerInfo.credit_limit) * 100}
@@ -166,7 +168,7 @@ export function DocumentContextPanel({
                                     </div>
                                     {customerInfo.used_credit > customerInfo.credit_limit && (
                                         <Badge variant="destructive" className="mt-2 w-full justify-center">
-                                            Over Limit!
+                                            {tContext('overLimit')}
                                         </Badge>
                                     )}
                                 </div>
@@ -175,7 +177,7 @@ export function DocumentContextPanel({
                                 {customerInfo.last_payment_date && (
                                     <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
                                         <Label className="text-xs text-muted-foreground uppercase">
-                                            Last Payment
+                                            {tContext('lastPayment')}
                                         </Label>
                                         <div className="text-sm font-medium mt-1">
                                             {new Date(customerInfo.last_payment_date).toLocaleDateString()}
@@ -191,10 +193,15 @@ export function DocumentContextPanel({
                                 {customerInfo.recent_docs && customerInfo.recent_docs.length > 0 && (
                                     <div>
                                         <Label className="text-xs text-muted-foreground uppercase">
-                                            Recent Documents
+                                            {tContext('recentDocuments')}
                                         </Label>
                                         <div className="space-y-1 mt-2">
-                                            {customerInfo.recent_docs.slice(0, 5).map((doc: any) => (
+                                            {customerInfo.recent_docs.slice(0, 5).map((doc: {
+                                                id: number;
+                                                type: string;
+                                                number: string;
+                                                amount?: number;
+                                            }) => (
                                                 <div key={doc.id} className="flex items-center justify-between text-sm p-2 hover:bg-gray-50 rounded">
                                                     <ReferenceLink
                                                         id={doc.id}
@@ -226,19 +233,19 @@ export function DocumentContextPanel({
                             <>
                                 <div>
                                     <Label className="text-xs text-muted-foreground uppercase">
-                                        Stock Balance
+                                        {tContext('stockBalance')}
                                     </Label>
                                     <div className="space-y-2 mt-2">
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm">On Hand:</span>
+                                            <span className="text-sm">{tContext('onHand')}:</span>
                                             <span className="font-mono font-bold text-lg">{itemStock.on_hand}</span>
                                         </div>
                                         <div className="flex justify-between items-center text-muted-foreground">
-                                            <span className="text-sm">Reserved:</span>
+                                            <span className="text-sm">{tFields('reserved')}:</span>
                                             <span className="font-mono">{itemStock.reserved}</span>
                                         </div>
                                         <div className="border-t pt-2 flex justify-between items-center">
-                                            <span className="text-sm font-bold">Available:</span>
+                                            <span className="text-sm font-bold">{tFields('available')}:</span>
                                             <span className={cn(
                                                 "font-mono font-bold text-xl",
                                                 itemStock.available > 0 ? "text-green-600" : "text-red-600"

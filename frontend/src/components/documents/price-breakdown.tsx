@@ -8,6 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { PiMagnifyingGlassBold } from 'react-icons/pi';
+import { useTranslations } from 'next-intl';
 
 interface PriceBreakdownProps {
     price: number;
@@ -28,6 +29,9 @@ export function PriceBreakdown({
     exchangeRate = 1,
     currency = 'UZS'
 }: PriceBreakdownProps) {
+    const tCommon = useTranslations('common');
+    const tFields = useTranslations('fields');
+    const tPrice = useTranslations('documents.detail.priceBreakdown');
     const subtotalBeforeDiscount = price * quantity;
     const discountAmount = discount || (subtotalBeforeDiscount * discountPercent / 100);
     const subtotal = subtotalBeforeDiscount - discountAmount;
@@ -44,42 +48,42 @@ export function PriceBreakdown({
             </PopoverTrigger>
             <PopoverContent className="w-80">
                 <div className="space-y-3">
-                    <div className="font-semibold text-sm">Price Calculation</div>
+                    <div className="font-semibold text-sm">{tPrice('title')}</div>
 
                     <div className="space-y-2 font-mono text-sm">
                         <div className="flex justify-between">
-                            <span className="text-muted-foreground">Price:</span>
+                            <span className="text-muted-foreground">{tFields('price')}:</span>
                             <span>{price.toFixed(2)} × {quantity}</span>
                         </div>
 
                         <div className="flex justify-between font-bold">
-                            <span>Subtotal:</span>
+                            <span>{tFields('subtotal')}:</span>
                             <span>{subtotalBeforeDiscount.toFixed(2)}</span>
                         </div>
 
                         {discountAmount > 0 && (
                             <>
                                 <div className="flex justify-between text-red-600">
-                                    <span>- Discount {discountPercent > 0 && `(${discountPercent}%)`}:</span>
+                                    <span>- {tPrice('discount')} {discountPercent > 0 && `(${discountPercent}%)`}:</span>
                                     <span>-{discountAmount.toFixed(2)}</span>
                                 </div>
                                 <Separator />
                                 <div className="flex justify-between font-bold">
-                                    <span>After Discount:</span>
+                                    <span>{tPrice('afterDiscount')}:</span>
                                     <span>{subtotal.toFixed(2)}</span>
                                 </div>
                             </>
                         )}
 
                         <div className="flex justify-between">
-                            <span className="text-muted-foreground">+ VAT ({vatRate}%):</span>
+                            <span className="text-muted-foreground">+ {tPrice('vat')} ({vatRate}%):</span>
                             <span>{vatAmount.toFixed(2)}</span>
                         </div>
 
                         <Separator />
 
                         <div className="flex justify-between font-bold text-lg">
-                            <span>Total:</span>
+                            <span>{tCommon('total')}:</span>
                             <span>{total.toFixed(2)} {currency}</span>
                         </div>
 
@@ -87,9 +91,9 @@ export function PriceBreakdown({
                             <>
                                 <Separator />
                                 <div className="text-muted-foreground text-xs space-y-1">
-                                    <div>Exchange Rate: {exchangeRate}</div>
+                                    <div>{tFields('exchangeRate')}: {exchangeRate}</div>
                                     <div className="flex justify-between">
-                                        <span>Base Currency:</span>
+                                        <span>{tFields('baseCurrency')}:</span>
                                         <span className="font-bold">{totalBase.toFixed(2)} UZS</span>
                                     </div>
                                 </div>

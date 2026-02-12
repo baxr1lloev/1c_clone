@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
     Table,
     TableBody,
@@ -18,7 +19,6 @@ import {
 } from '@/components/ui/tooltip';
 import { PiInfo, PiCaretRight, PiCaretDown } from 'react-icons/pi';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
 
 interface PLItem {
     id: string;
@@ -45,6 +45,7 @@ interface ProfitLossTableProps {
 
 export function ProfitLossTable({ data, startDate, endDate }: ProfitLossTableProps) {
     const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+    const tPlTable = useTranslations('reports.profitLossPage.table');
 
     // Toggle group collapse
     const toggleGroup = (id: string) => {
@@ -54,42 +55,41 @@ export function ProfitLossTable({ data, startDate, endDate }: ProfitLossTablePro
         }));
     };
 
-    // Calculate row visibility based on groups
-    // Simplified: level 1 is hidden if parent group is collapsed.
-    // Ideally we need a parent-child structure in data. 
-    // For now assuming: header (level 0) is followed by items (level 1).
-    // Let's implement simpler logic: if item.level > 0, check if we are in a collapsed section?
-    // Actually, backend returns flat list. 
-    // Let's assume all level 1 items belong to the preceding level 0 group header.
+    const visibleData = data.reduce(
+        (acc, item) => {
+            if (item.type === 'group_header') {
+                const isCollapsed = collapsedGroups[item.id] || false;
+                return {
+                    currentGroupCollapsed: isCollapsed,
+                    rows: [...acc.rows, item],
+                };
+            }
 
-    // Refined logic:
-    // Iterate and determine visibility.
+            if (item.level > 0 && acc.currentGroupCollapsed) {
+                return acc;
+            }
 
-    let currentGroupCollapsed = false;
-
-    const visibleData = data.filter(item => {
-        if (item.type === 'group_header') {
-            currentGroupCollapsed = collapsedGroups[item.id] || false;
-            return true; // Headers always visible
+            const nextCollapsed = item.level === 0 ? false : acc.currentGroupCollapsed;
+            return {
+                currentGroupCollapsed: nextCollapsed,
+                rows: [...acc.rows, item],
+            };
+        },
+        {
+            currentGroupCollapsed: false,
+            rows: [] as PLItem[],
         }
-        if (item.level > 0 && currentGroupCollapsed) {
-            return false;
-        }
-        if (item.level === 0) {
-            currentGroupCollapsed = false; // Reset on root items
-        }
-        return true;
-    });
+    ).rows;
 
     return (
         <div className="rounded-md border">
             <Table>
                 <TableHeader>
                     <TableRow className="bg-muted/50">
-                        <TableHead className="w-[400px]">Indicator</TableHead>
-                        <TableHead className="text-right">Current Period</TableHead>
-                        <TableHead className="text-right text-muted-foreground">Previous Period</TableHead>
-                        <TableHead className="text-right text-muted-foreground">Change</TableHead>
+                        <TableHead className="w-[400px]">{tPlTable('indicator')}</TableHead>
+                        <TableHead className="text-right">{tPlTable('currentPeriod')}</TableHead>
+                        <TableHead className="text-right text-muted-foreground">{tPlTable('previousPeriod')}</TableHead>
+                        <TableHead className="text-right text-muted-foreground">{tPlTable('change')}</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -142,9 +142,9 @@ export function ProfitLossTable({ data, startDate, endDate }: ProfitLossTablePro
                                     <DrillDownCell
                                         value={row.amount}
                                         steps={[
-                                            { label: 'Report', onClick: () => { } },
+                                            { label: tPlTable('report'), onClick: () => { } },
                                             {
-                                                label: 'Journal Entries',
+                                                label: tPlTable('journalEntries'),
                                                 url: `/registers/journal-entries?account=${row.drill_down_filter.account}&type=${row.drill_down_filter.type}&from=${startDate}&to=${endDate}`
                                             }
                                         ]}

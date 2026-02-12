@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -45,9 +46,10 @@ export function LiveSettlementPanel({
     operation = 'ACCRUAL',
     currencyCode = 'USD'
 }: LiveSettlementPanelProps) {
+    const tls = useTranslations('documents.liveSettlement');
 
     // Fetch current settlement info
-    const { data: settleData, isLoading } = useQuery({
+    const { data: settleData, isLoading } = useQuery<SettlementInfo | null>({
         queryKey: ['operational-settlement', counterpartyId, contractId, currencyId],
         queryFn: async () => {
             if (!counterpartyId) return null;
@@ -58,14 +60,15 @@ export function LiveSettlementPanel({
                     ...(currencyId && { currency: currencyId })
                 }
             });
-            return response.data as SettlementInfo;
+            if (!response) return null;
+            return response as SettlementInfo;
         },
         enabled: !!counterpartyId,
         refetchInterval: 10000,
     });
 
     // Fetch prediction (after posting)
-    const { data: predictionData } = useQuery({
+    const { data: predictionData } = useQuery<SettlementPrediction | null>({
         queryKey: ['operational-settlement-predict', counterpartyId, contractId, currencyId, amount, operation],
         queryFn: async () => {
             if (!counterpartyId || !amount) return null;
@@ -76,7 +79,8 @@ export function LiveSettlementPanel({
                 amount,
                 operation
             });
-            return response.data as SettlementPrediction;
+            if (!response) return null;
+            return response as SettlementPrediction;
         },
         enabled: !!counterpartyId && amount > 0,
     });
@@ -103,11 +107,11 @@ export function LiveSettlementPanel({
             <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-sm font-medium">
                     <PiMoneyBold className="h-4 w-4" />
-                    Settlement Status
+                    {tls('title')}
                     {isOverLimit && (
                         <Badge variant="destructive" className="ml-auto">
                             <PiWarningCircleBold className="h-3 w-3 mr-1" />
-                            Over Credit Limit
+                            {tls('overCreditLimit')}
                         </Badge>
                     )}
                 </CardTitle>
@@ -128,7 +132,7 @@ export function LiveSettlementPanel({
                         {/* Current Debt */}
                         <div className="grid grid-cols-3 gap-4 text-sm">
                             <div>
-                                <div className="text-muted-foreground text-xs uppercase tracking-wide">Debt Now</div>
+                                <div className="text-muted-foreground text-xs uppercase tracking-wide">{tls('debtNow')}</div>
                                 <div className="font-mono font-medium text-lg">
                                     {formatAmount(debtNow)} {currencyCode}
                                 </div>
@@ -136,7 +140,7 @@ export function LiveSettlementPanel({
 
                             {creditLimit > 0 && (
                                 <div>
-                                    <div className="text-muted-foreground text-xs uppercase tracking-wide">Credit Limit</div>
+                                    <div className="text-muted-foreground text-xs uppercase tracking-wide">{tls('creditLimit')}</div>
                                     <div className="font-mono font-medium text-lg">
                                         {formatAmount(creditLimit)} {currencyCode}
                                     </div>
@@ -145,7 +149,7 @@ export function LiveSettlementPanel({
 
                             {creditLimit > 0 && (
                                 <div>
-                                    <div className="text-muted-foreground text-xs uppercase tracking-wide">Available</div>
+                                    <div className="text-muted-foreground text-xs uppercase tracking-wide">{tls('available')}</div>
                                     <div className={cn(
                                         "font-mono font-medium text-lg",
                                         (settleData?.credit_remaining || 0) < 0 ? "text-red-600" : "text-green-600"
@@ -160,7 +164,7 @@ export function LiveSettlementPanel({
                         {creditLimit > 0 && (
                             <div className="space-y-1">
                                 <div className="flex justify-between text-xs">
-                                    <span className="text-muted-foreground">Credit Usage</span>
+                                    <span className="text-muted-foreground">{tls('creditUsage')}</span>
                                     <span className="font-mono">{creditUsageNow.toFixed(0)}%</span>
                                 </div>
                                 <Progress
@@ -179,12 +183,12 @@ export function LiveSettlementPanel({
                             <div className="pt-2 border-t">
                                 <div className="flex items-center gap-2 mb-2">
                                     <PiArrowRightBold className="h-4 w-4 text-muted-foreground" />
-                                    <span className="text-xs uppercase tracking-wide text-muted-foreground">After Posting</span>
+                                    <span className="text-xs uppercase tracking-wide text-muted-foreground">{tls('afterPosting')}</span>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                     <div>
-                                        <div className="text-muted-foreground text-xs">Change</div>
+                                        <div className="text-muted-foreground text-xs">{tls('change')}</div>
                                         <div className={cn(
                                             "font-mono font-medium",
                                             predictionData.change > 0 ? "text-red-600" : "text-green-600"
@@ -194,7 +198,7 @@ export function LiveSettlementPanel({
                                     </div>
 
                                     <div>
-                                        <div className="text-muted-foreground text-xs">Debt After</div>
+                                        <div className="text-muted-foreground text-xs">{tls('debtAfter')}</div>
                                         <div className={cn(
                                             "font-mono font-bold text-lg",
                                             isOverLimit ? "text-red-600" : "text-green-600"
@@ -210,7 +214,7 @@ export function LiveSettlementPanel({
                                 {creditLimit > 0 && (
                                     <div className="space-y-1 mt-2">
                                         <div className="flex justify-between text-xs">
-                                            <span className="text-muted-foreground">Credit After</span>
+                                            <span className="text-muted-foreground">{tls('creditAfter')}</span>
                                             <span className={cn("font-mono", isOverLimit ? "text-red-600" : "")}>
                                                 {creditUsageAfter.toFixed(0)}%
                                             </span>

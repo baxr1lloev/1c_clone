@@ -73,6 +73,9 @@
         "saveAndClose": "Saqlash va yopish",
         "savedSuccessfully": "Muvaffaqiyatli saqlandi",
         "updatedSuccessfully": "Muvaffaqiyatli yangilandi"
+        ,
+        "copyLink": "Havolani nusxalash",
+        "copied": "Nusxalandi!"
     },
     "auth": {
         "login": "Kirish",
@@ -174,6 +177,106 @@
                 "deleteTitle": "Kontragentni o'chirish",
                 "deleteConfirmation": "\"{name}\"ni o'chirishni xohlaysizmi? Bu amalni bekor qilib bo'lmaydi."
             }
+        },
+        "counterpartyDetail": {
+            "counterpartyFallback": "Kontragent #{id}",
+            "settlementBalance": "Hisob-kitoblar balansi",
+            "counterpartyInformation": "Kontragent ma'lumotlari",
+            "balanceByContract": "Shartnomalar bo'yicha balans",
+            "relatedDocuments": "Bog'liq hujjatlar",
+            "auditTrail": "O'zgarishlar tarixi",
+            "columns": {
+                "balance": "Balans"
+            },
+            "status": {
+                "active": "Faol",
+                "inactive": "Nofaol"
+            },
+            "tabs": {
+                "details": "Batafsil",
+                "balance": "Balans",
+                "documents": "Hujjatlar",
+                "audit": "Audit"
+            },
+            "balanceState": {
+                "customerOwesUs": "Kontragent bizdan qarzdor",
+                "weOweCustomer": "Biz kontragentdan qarzdormiz",
+                "noDebt": "Qarz yo'q"
+            },
+            "audit": {
+                "created": "Yaratilgan",
+                "lastModified": "So'nggi o'zgarish"
+            }
+        },
+        "contractsPage": {
+            "subtitle": "Kontragent shartnomalarini boshqarish",
+            "searchPlaceholder": "Shartnomalarni qidirish...",
+            "openEnded": "Muddatsiz",
+            "active": "Faol",
+            "inactive": "Nofaol",
+            "createDescription": "Yangi shartnoma qo'shish",
+            "updateDescription": "Shartnoma ma'lumotlarini yangilash",
+            "numberPlaceholder": "SHRT-2024-001",
+            "termsPlaceholder": "To'lov shartlari",
+            "saving": "Saqlanmoqda...",
+            "deleteTitle": "Shartnomani o'chirish",
+            "deleteDescription": "{number} ni o'chirishni xohlaysizmi?",
+            "deleting": "O'chirilmoqda..."
+        },
+        "currenciesPage": {
+            "subtitle": "Operatsion valyutalar va ayirboshlash kurslarini boshqarish.",
+            "searchPlaceholder": "Valyutalarni qidirish...",
+            "rateSource": "Kurs manbai",
+            "rateSourceOptions": {
+                "manual": "Qo'lda",
+                "internet": "Internet (CBR/CBU)",
+                "markup": "Ustama"
+            },
+            "openMenu": "Menyuni ochish",
+            "ratesHistory": "Kurslar tarixi",
+            "deleteConfirm": "{code} valyutasini o'chirilsinmi?",
+            "addFromClassifier": "Klassifikatordan qo'shish",
+            "downloadRates": "Kurslarni yuklash",
+            "backendConnectivityIssue": "Backend ulanish muammosi: {message}",
+            "connectionErrorFallback": "Backend ulanish xatosi",
+            "updateDescription": "Valyuta ma'lumotlarini yangilash",
+            "createDescription": "Yangi valyutani qo'lda qo'shish",
+            "namePlaceholder": "AQSh dollari",
+            "saving": "Saqlanmoqda...",
+            "classifierTitle": "Klassifikatordan valyuta qo'shish",
+            "addSelected": "Tanlanganlarni qo'shish",
+            "exchangeRatesFor": "Valyuta kurslari: {code}",
+            "ratePlaceholder": "Kurs",
+            "noRatesHistory": "Kurslar tarixi topilmadi",
+            "ratesUpdated": "Kurslar internetdan yangilandi (yangilangan valyutalar: {count})",
+            "ratesUpdateFailed": "Kurslarni yangilab bo'lmadi",
+            "manualRateHint": "Qo'lda manba tanlanganda, tanlangan sana uchun kursni yaratish yoki yangilash uchun kurs kiriting.",
+            "manualRateRequired": "Qo'lda manba uchun kurs majburiy.",
+            "invalidManualRate": "Kurs 0 dan katta bo'lishi kerak.",
+            "rateSaveFailed": "Valyuta kursini saqlab bo'lmadi.",
+            "saveFailed": "Valyutani saqlab bo'lmadi."
+        },
+        "contractDetail": {
+            "fallback": "Shartnoma #{id}",
+            "notFound": "Shartnoma topilmadi",
+            "contractInformation": "Shartnoma ma'lumotlari",
+            "relatedDocuments": "Bog'liq hujjatlar",
+            "auditTrail": "O'zgarishlar tarixi",
+            "openEnded": "Muddatsiz",
+            "na": "Mavjud emas",
+            "tabs": {
+                "details": "Batafsil",
+                "documents": "Bog'liq hujjatlar",
+                "audit": "Audit"
+            },
+            "status": {
+                "active": "Faol",
+                "inactive": "Nofaol"
+            },
+            "audit": {
+                "created": "Yaratilgan",
+                "lastModified": "So'nggi o'zgarish"
+            }
         }
     },
     "documents": {
@@ -241,6 +344,145 @@
             "alerts": {
                 "markForDeletion": "O'chirishga belgilash?",
                 "deleteConfirmation": "{number} ni o'chirishni xohlaysizmi?"
+            }
+        },
+        "transferForm": {
+            "created": "O'tkazma yaratildi",
+            "updated": "O'tkazma yangilandi",
+            "items": "Mahsulotlar",
+            "selectWarehouse": "Omborni tanlang...",
+            "selectItem": "Mahsulotni tanlang..."
+        },
+        "salesForm": {
+            "tabs": {
+                "main": "Asosiy",
+                "history": "Tarix",
+                "postings": "O'tkazmalar"
+            },
+            "operation": "Operatsiya:",
+            "operationTypes": {
+                "goods": "Tovarlar (Hisob-faktura, UPD)",
+                "services": "Xizmatlar (Dalolatnoma, UPD)",
+                "goodsServices": "Tovarlar, xizmatlar, komissiya"
+            },
+            "invoiceStatusLabel": "Hisob-faktura:",
+            "invoiceNotIssued": "Berilmagan",
+            "invoiceTodo": "Hisob-faktura yaratish logikasi keyin qo'shiladi",
+            "organization": "Tashkilot",
+            "organizationDefault": "Mening kompaniyam",
+            "project": "Loyiha",
+            "department": "Bo'lim",
+            "manager": "Menejer",
+            "placeholders": {
+                "counterparty": "Mijozni tanlang...",
+                "warehouse": "Asosiy ombor",
+                "contract": "Asosiy shartnoma",
+                "project": "Loyihani tanlang...",
+                "department": "Bo'limni tanlang...",
+                "manager": "Mas'ul menejer",
+                "currency": "Valyutani tanlang..."
+            },
+            "baseCurrencyUsd": "Bazaviy valyuta: USD",
+            "baseValue": "Bazaviy summa (USD)",
+            "saveToViewHistory": "Tarixni ko'rish uchun hujjatni saqlang.",
+            "saveToViewPostings": "O'tkazmalarni ko'rish uchun hujjatni saqlang.",
+            "saving": "Saqlanmoqda...",
+            "vatPercent": "% QQS",
+            "vatSum": "QQS summasi",
+            "ratePrompt": "{date} sanasida {currency} kursi topilmadi. Bugungi kursni kiriting (1 USD uchun valyuta):",
+            "rateRequiredToday": "Tanlangan valyuta uchun bugungi kursni kiriting.",
+            "currencyRequired": "Saqlashdan oldin valyutani tanlang."
+        },
+        "liveSettlement": {
+            "title": "Hisob-kitob holati",
+            "overCreditLimit": "Kredit limitidan oshgan",
+            "debtNow": "Joriy qarz",
+            "creditLimit": "Kredit limiti",
+            "available": "Mavjud",
+            "creditUsage": "Limit ishlatilishi",
+            "afterPosting": "O'tkazilgandan keyin",
+            "change": "O'zgarish",
+            "debtAfter": "Keyingi qarz",
+            "creditAfter": "Keyingi limit"
+        },
+        "detail": {
+            "loading": "Yuklanmoqda...",
+            "notFound": "Hujjat topilmadi",
+            "backToList": "Ro'yxatga qaytish",
+            "salesDocument": "Sotuv hujjati",
+            "lineItems": "Satrlar",
+            "addLine": "Satr qo'shish (Ins)",
+            "noLineItems": "Hali satrlar yo'q. \"Satr qo'shish\"ni bosing yoki Ins tugmasini bosing",
+            "na": "Mavjud emas",
+            "table": {
+                "discount": "Chegirma",
+                "vat": "QQS"
+            },
+            "shortcuts": {
+                "post": "O'tkazish",
+                "addLine": "Satr qo'shish",
+                "deleteLine": "Satrni o'chirish",
+                "save": "Saqlash"
+            },
+            "toasts": {
+                "postSuccessTitle": "Hujjat o'tkazildi",
+                "postSuccessDescription": "Harakatlar va buxgalteriya yozuvlari yaratildi",
+                "postErrorTitle": "O'tkazishda xatolik",
+                "postErrorDescription": "Hujjatni o'tkazib bo'lmadi",
+                "unpostSuccess": "Hujjat o'tkazilishi bekor qilindi",
+                "lineDeleted": "Satr o'chirildi",
+                "documentSaved": "Hujjat saqlandi",
+                "addLineFailed": "Satrni qo'shib bo'lmadi"
+            },
+            "toolbar": {
+                "postTitle": "Hujjatni o'tkazish (F9)",
+                "postAndClose": "O'tkazish va yopish",
+                "unpostTitle": "Hujjat o'tkazilishini bekor qilish",
+                "showPostingsTitle": "Buxgalteriya o'tkazmalarini ko'rsatish (Dt/Kt)",
+                "showPostings": "O'tkazmalar",
+                "printStandard": "Standart shakl",
+                "printDetailed": "Batafsil shakl",
+                "printPacking": "Qadoqlash varaqasi",
+                "printSettings": "Chop etish sozlamalari",
+                "createBasedOn": "Asosida yaratish",
+                "more": "Yana",
+                "copyDocument": "Hujjatdan nusxa olish",
+                "changeHistory": "O'zgarishlar tarixi",
+                "deleteDocument": "Hujjatni o'chirish"
+            },
+            "tabs": {
+                "details": "Batafsil",
+                "movements": "Harakatlar",
+                "journal": "Buxgalteriya yozuvlari",
+                "audit": "Audit",
+                "detailsInfo": "Hujjat tafsilotlari yuqoridagi asosiy ko'rinishda ko'rsatiladi.",
+                "noMovements": "Hali harakatlar yo'q. Harakatlar yaratish uchun hujjatni o'tkazing.",
+                "noAudit": "Audit tarixi mavjud emas."
+            },
+            "context": {
+                "title": "Kontekst",
+                "customerDebt": "Mijoz qarzi",
+                "creditLimit": "Kredit limiti",
+                "overLimit": "Limitdan oshgan!",
+                "lastPayment": "Oxirgi to'lov",
+                "recentDocuments": "So'nggi hujjatlar",
+                "stockBalance": "Ombor qoldig'i",
+                "onHand": "Mavjud",
+                "days": "kun",
+                "daysOverdue": "kun kechikkan",
+                "risk": {
+                    "blocked": "BLOKLANGAN!",
+                    "limitExceeded": "LIMIT OSHGAN",
+                    "attention": "DIQQAT",
+                    "overdue": "Kechikish",
+                    "debtExceededBy": "Qarz limitdan quyidagi miqdorga oshgan"
+                }
+            },
+            "priceBreakdown": {
+                "title": "Narx hisobi",
+                "discount": "Chegirma",
+                "afterDiscount": "Chegirmadan so'ng",
+                "vat": "QQS"
             }
         }
     },
@@ -455,6 +697,39 @@
     "reports": {
         "title": "Hisobotlar",
         "description": "Moliyaviy va operatsion hisobotlar",
+        "trialBalance": "Aylanma balans",
+        "profitLoss": "Foyda va zarar",
+        "trialBalancePage": {
+            "subtitle": "Aylanma balans vedomosti",
+            "excel": "Excel",
+            "reportParameters": "Hisobot parametrlari",
+            "generate": "Shakllantirish",
+            "openingBalance": "Boshlang'ich qoldiq",
+            "turnover": "Aylanma",
+            "closingBalance": "Yakuniy qoldiq",
+            "debit": "Debet",
+            "credit": "Kredit",
+            "loading": "Yuklanmoqda..."
+        },
+        "profitLossPage": {
+            "subtitle": "Foyda va zarar hisoboti (P&L)",
+            "styleBadge": "1C uslubi",
+            "excel": "Excel",
+            "reportParameters": "Hisobot parametrlari",
+            "compareWith": "Quyidagi davr bilan solishtirish",
+            "incomeLegend": "Daromad (kredit aylanmalari)",
+            "expenseLegend": "Xarajat (debet aylanmalari)",
+            "builtFrom": "O'tkazilgan hujjatlar asosida, hisoblash usuli bo'yicha",
+            "loading": "Yuklanmoqda...",
+            "table": {
+                "indicator": "Ko'rsatkich",
+                "currentPeriod": "Joriy davr",
+                "previousPeriod": "Oldingi davr",
+                "change": "O'zgarish",
+                "report": "Hisobot",
+                "journalEntries": "Provodkalar"
+            }
+        },
         "accountingReports": "Buxgalteriya hisobotlari",
         "accountingReportsDesc": "Batafsil moliyaviy hisobotlar va tahlillar",
         "chartOfAccountsDesc": "Hisoblar rejasi tuzilmasi",

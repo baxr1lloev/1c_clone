@@ -24,6 +24,8 @@
         "postedSuccessfully": "Posted successfully",
         "print": "Print",
         "refresh": "Refresh",
+        "import": "Import",
+        "export": "Export",
         "save": "Save",
         "saveAndClose": "Save and Close",
         "savedSuccessfully": "Saved successfully",
@@ -41,9 +43,14 @@
         "searchCounterparties": "Search counterparties...",
         "searchOrders": "Search orders...",
         "searchNumber": "Search number...",
+        "clearAll": "Clear all",
         "groupBy": "Group by",
         "columns": "Columns",
-        "views": "Views"
+        "views": "Views",
+        "yes": "Yes",
+        "no": "No",
+        "copyLink": "Copy Link",
+        "copied": "Copied!"
     },
     "auth": {
         "login": "Login",
@@ -145,6 +152,106 @@
                 "deleteTitle": "Delete Counterparty",
                 "deleteConfirmation": "Are you sure you want to delete \"{name}\"? This action cannot be undone."
             }
+        },
+        "counterpartyDetail": {
+            "counterpartyFallback": "Counterparty #{id}",
+            "settlementBalance": "Settlement Balance",
+            "counterpartyInformation": "Counterparty Information",
+            "balanceByContract": "Balance by Contract",
+            "relatedDocuments": "Related Documents",
+            "auditTrail": "Audit Trail",
+            "columns": {
+                "balance": "Balance"
+            },
+            "status": {
+                "active": "Active",
+                "inactive": "Inactive"
+            },
+            "tabs": {
+                "details": "Details",
+                "balance": "Balance Details",
+                "documents": "Documents",
+                "audit": "Audit"
+            },
+            "balanceState": {
+                "customerOwesUs": "Customer owes us",
+                "weOweCustomer": "We owe customer",
+                "noDebt": "No debt"
+            },
+            "audit": {
+                "created": "Created",
+                "lastModified": "Last Modified"
+            }
+        },
+        "contractsPage": {
+            "subtitle": "Manage counterparty contracts",
+            "searchPlaceholder": "Search contracts...",
+            "openEnded": "Open-ended",
+            "active": "Active",
+            "inactive": "Inactive",
+            "createDescription": "Add a new contract",
+            "updateDescription": "Update contract details",
+            "numberPlaceholder": "CNT-2024-001",
+            "termsPlaceholder": "Payment terms",
+            "saving": "Saving...",
+            "deleteTitle": "Delete Contract",
+            "deleteDescription": "Are you sure you want to delete {number}?",
+            "deleting": "Deleting..."
+        },
+        "currenciesPage": {
+            "subtitle": "Manage transaction currencies and exchange rates.",
+            "searchPlaceholder": "Search currencies...",
+            "rateSource": "Rate Source",
+            "rateSourceOptions": {
+                "manual": "Manual",
+                "internet": "Internet (CBR/CBU)",
+                "markup": "Markup"
+            },
+            "openMenu": "Open menu",
+            "ratesHistory": "Rates history",
+            "deleteConfirm": "Delete currency {code}?",
+            "addFromClassifier": "Add from classifier",
+            "downloadRates": "Download rates",
+            "backendConnectivityIssue": "Backend connectivity issue: {message}",
+            "connectionErrorFallback": "Backend connection error",
+            "updateDescription": "Update currency details",
+            "createDescription": "Add a new currency manually",
+            "namePlaceholder": "US Dollar",
+            "saving": "Saving...",
+            "classifierTitle": "Add Currency from Classifier",
+            "addSelected": "Add Selected",
+            "exchangeRatesFor": "Exchange Rates: {code}",
+            "ratePlaceholder": "Rate",
+            "noRatesHistory": "No rates history found",
+            "ratesUpdated": "Rates updated from internet ({count} currencies updated)",
+            "ratesUpdateFailed": "Failed to update rates",
+            "manualRateHint": "For Manual source, enter a rate to create or update the exchange rate for the selected date.",
+            "manualRateRequired": "For Manual source, rate is required.",
+            "invalidManualRate": "Rate must be greater than 0.",
+            "rateSaveFailed": "Failed to save exchange rate.",
+            "saveFailed": "Failed to save currency."
+        },
+        "contractDetail": {
+            "fallback": "Contract #{id}",
+            "notFound": "Contract not found",
+            "contractInformation": "Contract Information",
+            "relatedDocuments": "Related Documents",
+            "auditTrail": "Audit Trail",
+            "openEnded": "Open-ended",
+            "na": "N/A",
+            "tabs": {
+                "details": "Details",
+                "documents": "Related Documents",
+                "audit": "Audit"
+            },
+            "status": {
+                "active": "Active",
+                "inactive": "Inactive"
+            },
+            "audit": {
+                "created": "Created",
+                "lastModified": "Last Modified"
+            }
         }
     },
     "documents": {
@@ -212,6 +319,145 @@
             "alerts": {
                 "markForDeletion": "Mark for deletion?",
                 "deleteConfirmation": "Are you sure you want to delete {number}?"
+            }
+        },
+        "transferForm": {
+            "created": "Transfer created",
+            "updated": "Transfer updated",
+            "items": "Items",
+            "selectWarehouse": "Select warehouse...",
+            "selectItem": "Select item..."
+        },
+        "salesForm": {
+            "tabs": {
+                "main": "Main",
+                "history": "History",
+                "postings": "Postings"
+            },
+            "operation": "Operation:",
+            "operationTypes": {
+                "goods": "Goods (Invoice, UPD)",
+                "services": "Services (Act, UPD)",
+                "goodsServices": "Goods, Services, Commission"
+            },
+            "invoiceStatusLabel": "Invoice (Schet-Factura):",
+            "invoiceNotIssued": "Not Issued",
+            "invoiceTodo": "Invoice creation logic to be implemented",
+            "organization": "Organization",
+            "organizationDefault": "My Company",
+            "project": "Project",
+            "department": "Department",
+            "manager": "Manager",
+            "placeholders": {
+                "counterparty": "Select Customer...",
+                "warehouse": "Main Warehouse",
+                "contract": "Main Contract",
+                "project": "Select Project...",
+                "department": "Select Department...",
+                "manager": "Responsible Manager",
+                "currency": "Select Currency..."
+            },
+            "baseCurrencyUsd": "Base currency: USD",
+            "baseValue": "Base Value (USD)",
+            "saveToViewHistory": "Save the document to view history.",
+            "saveToViewPostings": "Save the document to view postings.",
+            "saving": "Saving...",
+            "vatPercent": "% VAT",
+            "vatSum": "VAT Sum",
+            "ratePrompt": "No rate found for {currency} on {date}. Enter today's rate (currency per 1 USD):",
+            "rateRequiredToday": "Enter today's exchange rate for selected currency.",
+            "currencyRequired": "Select currency before saving."
+        },
+        "liveSettlement": {
+            "title": "Settlement Status",
+            "overCreditLimit": "Over Credit Limit",
+            "debtNow": "Debt Now",
+            "creditLimit": "Credit Limit",
+            "available": "Available",
+            "creditUsage": "Credit Usage",
+            "afterPosting": "After Posting",
+            "change": "Change",
+            "debtAfter": "Debt After",
+            "creditAfter": "Credit After"
+        },
+        "detail": {
+            "loading": "Loading...",
+            "notFound": "Document not found",
+            "backToList": "Back to List",
+            "salesDocument": "Sales Document",
+            "lineItems": "Line Items",
+            "addLine": "Add Line (Ins)",
+            "noLineItems": "No line items yet. Click \"Add Line\" or press Ins",
+            "na": "N/A",
+            "table": {
+                "discount": "Discount",
+                "vat": "VAT"
+            },
+            "shortcuts": {
+                "post": "Post",
+                "addLine": "Add Line",
+                "deleteLine": "Delete Line",
+                "save": "Save"
+            },
+            "toasts": {
+                "postSuccessTitle": "Document posted",
+                "postSuccessDescription": "Movements and journal entries created",
+                "postErrorTitle": "Posting failed",
+                "postErrorDescription": "Failed to post document",
+                "unpostSuccess": "Document unposted successfully",
+                "lineDeleted": "Line deleted",
+                "documentSaved": "Document saved",
+                "addLineFailed": "Failed to add line"
+            },
+            "toolbar": {
+                "postTitle": "Post document (F9)",
+                "postAndClose": "Post and Close",
+                "unpostTitle": "Unpost document",
+                "showPostingsTitle": "View accounting entries (Dt/Kt)",
+                "showPostings": "Show Postings",
+                "printStandard": "Standard Form",
+                "printDetailed": "Detailed List",
+                "printPacking": "Packing List",
+                "printSettings": "Print Settings",
+                "createBasedOn": "Create Based On",
+                "more": "More",
+                "copyDocument": "Copy Document",
+                "changeHistory": "Change History",
+                "deleteDocument": "Delete Document"
+            },
+            "tabs": {
+                "details": "Details",
+                "movements": "Movements",
+                "journal": "Journal Entries",
+                "audit": "Audit Trail",
+                "detailsInfo": "Document details are shown in the main view above.",
+                "noMovements": "No movements yet. Post the document to create movements.",
+                "noAudit": "No audit trail available."
+            },
+            "context": {
+                "title": "Context",
+                "customerDebt": "Customer Debt",
+                "creditLimit": "Credit Limit",
+                "overLimit": "Over Limit!",
+                "lastPayment": "Last Payment",
+                "recentDocuments": "Recent Documents",
+                "stockBalance": "Stock Balance",
+                "onHand": "On Hand",
+                "days": "days",
+                "daysOverdue": "days overdue",
+                "risk": {
+                    "blocked": "BLOCKED!",
+                    "limitExceeded": "LIMIT EXCEEDED",
+                    "attention": "ATTENTION",
+                    "overdue": "Overdue",
+                    "debtExceededBy": "Debt exceeds limit by"
+                }
+            },
+            "priceBreakdown": {
+                "title": "Price Calculation",
+                "discount": "Discount",
+                "afterDiscount": "After Discount",
+                "vat": "VAT"
             }
         }
     },
@@ -426,6 +672,39 @@
     "reports": {
         "title": "Reports",
         "description": "Financial and operational reports",
+        "trialBalance": "Trial Balance",
+        "profitLoss": "Profit & Loss",
+        "trialBalancePage": {
+            "subtitle": "Turnover Balance Sheet (OSV)",
+            "excel": "Excel",
+            "reportParameters": "Report Parameters",
+            "generate": "Generate",
+            "openingBalance": "Opening Balance",
+            "turnover": "Turnover",
+            "closingBalance": "Closing Balance",
+            "debit": "Debit",
+            "credit": "Credit",
+            "loading": "Loading..."
+        },
+        "profitLossPage": {
+            "subtitle": "Profit & Loss (P&L)",
+            "styleBadge": "1C-Style",
+            "excel": "Excel",
+            "reportParameters": "Report Parameters",
+            "compareWith": "Compare With",
+            "incomeLegend": "Income (Credit Turnovers)",
+            "expenseLegend": "Expense (Debit Turnovers)",
+            "builtFrom": "Built from: Posted documents only, accrual method",
+            "loading": "Loading...",
+            "table": {
+                "indicator": "Indicator",
+                "currentPeriod": "Current Period",
+                "previousPeriod": "Previous Period",
+                "change": "Change",
+                "report": "Report",
+                "journalEntries": "Journal Entries"
+            }
+        },
         "accountingReports": "Accounting Reports",
         "accountingReportsDesc": "Access detailed financial statements and analysis",
         "chartOfAccountsDesc": "Chart of accounts structure",

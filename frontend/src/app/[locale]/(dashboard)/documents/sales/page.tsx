@@ -10,7 +10,7 @@ import { ColumnCustomization } from "@/components/data-table/column-customizatio
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ColumnDef } from "@tanstack/react-table";
+import { ColumnDef, SortingState } from "@tanstack/react-table";
 import api from "@/lib/api";
 import { DataTable } from "@/components/data-table/data-table";
 import { ReferenceLink } from "@/components/ui/reference-link";
@@ -39,6 +39,24 @@ import {
 import type { SalesDocument, PaginatedResponse, DocumentStatus } from "@/types";
 import { CommandBar, CommandBarAction } from "@/components/ui/command-bar";
 import { useRouter } from "next/navigation";
+
+type SalesListRow = SalesDocument & {
+  total_amount?: number | string | null;
+  currency_code?: string | null;
+};
+
+function getDocTotal(doc: SalesListRow): number {
+  const raw = doc.total_amount ?? doc.total;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function formatMoney(amount: number, currency = "UZS"): string {
+  return `${amount.toLocaleString("ru-RU", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} ${currency}`;
+}
 
 const decorationSales: SalesDocument[] = [
   {
@@ -156,7 +174,7 @@ export default function SalesDocumentsPage() {
   const [columnVisibility, setColumnVisibility] = useState<
     Record<string, boolean>
   >({});
-  const [sorting, setSorting] = useState<any>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["sales-documents"],
@@ -262,7 +280,7 @@ export default function SalesDocumentsPage() {
   // Calculate totals
   const totalSum = useMemo(() => {
     if (!data) return 0;
-    return data.reduce((sum, doc) => sum + Number(doc.total || 0), 0);
+    return data.reduce((sum, doc) => sum + getDocTotal(doc), 0);
   }, [data]);
 
   // Filter data based on status filter and search
@@ -308,7 +326,7 @@ export default function SalesDocumentsPage() {
     // BULK OPERATIONS: Checkbox column
     {
       id: "select",
-      header: ({ table }) => (
+      header: () => (
         <Checkbox
           checked={
             selectedIds.length === filteredData.length &&
@@ -404,14 +422,19 @@ export default function SalesDocumentsPage() {
       },
     },
     {
-      accessorKey: "total",
+      id: "total",
+      accessorFn: (row) => getDocTotal(row as SalesListRow),
       header: tc("total"),
       cell: ({ row }) => {
-        const total = parseFloat(row.getValue("total"));
-        return <span className="font-mono font-bold">${total.toFixed(2)}</span>;
+        const doc = row.original as SalesListRow;
+        const total = getDocTotal(doc);
+        const currency = doc.currency_code || "UZS";
+        return (
+          <span className="font-mono font-bold">{formatMoney(total, currency)}</span>
+        );
       },
       footer: () => (
-        <span className="font-mono text-primary">${totalSum.toFixed(2)}</span>
+        <span className="font-mono text-primary">{formatMoney(totalSum)}</span>
       ),
     },
     {
@@ -420,7 +443,7 @@ export default function SalesDocumentsPage() {
       cell: ({ row }) => {
         const status = row.getValue("status") as DocumentStatus;
         // Use new Badge component with 1C-style variants
-        const variantMap: Record<DocumentStatus, any> = {
+        const variantMap: Record<DocumentStatus, "posted" | "draft" | "deleted"> = {
           posted: "posted",
           draft: "draft",
           cancelled: "deleted",
@@ -555,7 +578,7 @@ export default function SalesDocumentsPage() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t.rich("sales.alerts.deleteConfirmation", {
-                number: selectedItem?.name,
+                number: selectedItem?.number,
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>

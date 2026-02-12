@@ -81,7 +81,7 @@ class SalesDocumentDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'number', 'date', 'status', 'status_display', 'comment',
             'counterparty', 'contract', 'warehouse', 'warehouse_name',
-            'currency', 'currency_code', 'rate',
+            'currency', 'currency_code',
             'project', 'department', 'manager',
             'subtotal', 'tax_amount', 'total_amount', 'total_amount_base',
             'lines', 'created_at', 'updated_at', 'posted_at',
@@ -100,7 +100,7 @@ class SalesDocumentCreateUpdateSerializer(serializers.ModelSerializer):
         model = SalesDocument
         fields = [
             'number', 'date', 'comment',
-            'counterparty', 'contract', 'warehouse', 'currency', 'rate',
+            'counterparty', 'contract', 'warehouse', 'currency',
             'project', 'department', 'manager',
             'lines'
         ]
@@ -983,4 +983,3 @@ class ProductionDocumentCreateUpdateSerializer(serializers.ModelSerializer):
                 ProductionMaterialLine.objects.create(document=instance, **line_data)
             
         return instance
-

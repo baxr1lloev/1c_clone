@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { PiCheckBold, PiXBold, PiPrinterBold, PiCaretDownBold, PiCopyBold, PiClockCounterClockwiseBold, PiTrashBold, PiDotsThreeBold } from 'react-icons/pi';
 
 interface DocumentActionToolbarProps {
@@ -34,8 +34,6 @@ interface DocumentActionToolbarProps {
 }
 
 export function DocumentActionToolbar({
-    documentId,
-    documentType,
     status,
     canPost,
     canUnpost,
@@ -51,6 +49,9 @@ export function DocumentActionToolbar({
     createBasedOnOptions,
     moreOptions,
 }: DocumentActionToolbarProps) {
+    const tCommon = useTranslations('common');
+    const tDocuments = useTranslations('documents');
+    const tToolbar = useTranslations('documents.detail.toolbar');
     const isPosted = status === 'posted';
     const isDraft = status === 'draft';
     const isCancelled = status === 'cancelled';
@@ -60,21 +61,21 @@ export function DocumentActionToolbar({
         if (isDraft) {
             return (
                 <Badge variant="outline" className="text-base px-4 py-1.5 bg-gray-100 text-gray-700 border-gray-300">
-                    ⚪ Draft
+                    ⚪ {tDocuments('draft')}
                 </Badge>
             );
         }
         if (isPosted) {
             return (
                 <Badge variant="posted" className="text-base px-4 py-1.5 bg-green-100 text-green-700 border-green-300">
-                    🟢 Posted
+                    🟢 {tDocuments('posted')}
                 </Badge>
             );
         }
         if (isCancelled) {
             return (
                 <Badge variant="cancelled" className="text-base px-4 py-1.5 bg-red-100 text-red-700 border-red-300">
-                    🔴 Cancelled
+                    🔴 {tDocuments('cancelled')}
                 </Badge>
             );
         }
@@ -91,21 +92,21 @@ export function DocumentActionToolbar({
                                 disabled={!canPost || isPosted || isCancelled}
                                 variant="default"
                                 className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300"
-                                title="Post document (F9)"
+                                title={tToolbar('postTitle')}
                             >
                                 <PiCheckBold className="mr-2 h-4 w-4" />
-                                Post
+                                {tCommon('post')}
                                 <PiCaretDownBold className="ml-2 h-3 w-3" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start">
                             <DropdownMenuItem onClick={onPost}>
                                 <PiCheckBold className="mr-2 h-4 w-4" />
-                                Post
+                                {tCommon('post')}
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={onPostAndClose}>
                                 <PiCheckBold className="mr-2 h-4 w-4" />
-                                Post and Close
+                                {tToolbar('postAndClose')}
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -115,10 +116,10 @@ export function DocumentActionToolbar({
                         disabled={!canPost || isPosted || isCancelled}
                         variant="default"
                         className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300"
-                        title="Post document (F9)"
+                        title={tToolbar('postTitle')}
                     >
                         <PiCheckBold className="mr-2 h-4 w-4" />
-                        Post
+                        {tCommon('post')}
                     </Button>
                 )}
 
@@ -127,10 +128,10 @@ export function DocumentActionToolbar({
                     onClick={onUnpost}
                     disabled={!canUnpost || !isPosted}
                     variant="outline"
-                    title="Unpost document"
+                    title={tToolbar('unpostTitle')}
                 >
                     <PiXBold className="mr-2 h-4 w-4" />
-                    Unpost
+                    {tDocuments('unpost')}
                 </Button>
 
                 {/* Show Postings Button - Only for posted documents */}
@@ -138,9 +139,9 @@ export function DocumentActionToolbar({
                     <Button
                         onClick={onShowPostings}
                         variant="outline"
-                        title="View accounting entries (Dt/Kt)"
+                        title={tToolbar('showPostingsTitle')}
                     >
-                        📊 Show Postings
+                        📊 {tToolbar('showPostings')}
                     </Button>
                 )}
 
@@ -151,23 +152,23 @@ export function DocumentActionToolbar({
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline">
                             <PiPrinterBold className="mr-2 h-4 w-4" />
-                            Print
+                            {tCommon('print')}
                             <PiCaretDownBold className="ml-2 h-3 w-3" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
                         <DropdownMenuItem onClick={onPrint}>
-                            📄 Standard Form
+                            📄 {tToolbar('printStandard')}
                         </DropdownMenuItem>
                         <DropdownMenuItem>
-                            📋 Detailed List
+                            📋 {tToolbar('printDetailed')}
                         </DropdownMenuItem>
                         <DropdownMenuItem>
-                            📦 Packing List
+                            📦 {tToolbar('printPacking')}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem>
-                            ⚙️ Print Settings
+                            ⚙️ {tToolbar('printSettings')}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -179,7 +180,7 @@ export function DocumentActionToolbar({
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="outline">
-                                    Create Based On
+                                    {tToolbar('createBasedOn')}
                                     <PiCaretDownBold className="ml-2 h-3 w-3" />
                                 </Button>
                             </DropdownMenuTrigger>
@@ -199,21 +200,21 @@ export function DocumentActionToolbar({
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline">
                             <PiDotsThreeBold className="h-4 w-4" />
-                            More
+                            {tToolbar('more')}
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
                         {onCopy && (
                             <DropdownMenuItem onClick={onCopy}>
                                 <PiCopyBold className="mr-2 h-4 w-4" />
-                                Copy Document
+                                {tToolbar('copyDocument')}
                             </DropdownMenuItem>
                         )}
 
                         {onShowHistory && (
                             <DropdownMenuItem onClick={onShowHistory}>
                                 <PiClockCounterClockwiseBold className="mr-2 h-4 w-4" />
-                                Change History
+                                {tToolbar('changeHistory')}
                             </DropdownMenuItem>
                         )}
 
@@ -237,7 +238,7 @@ export function DocumentActionToolbar({
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={onDelete} className="text-destructive">
                                     <PiTrashBold className="mr-2 h-4 w-4" />
-                                    Delete Document
+                                    {tToolbar('deleteDocument')}
                                 </DropdownMenuItem>
                             </>
                         )}

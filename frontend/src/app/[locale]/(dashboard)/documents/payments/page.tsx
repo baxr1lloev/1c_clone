@@ -158,10 +158,11 @@ export default function PaymentsPage() {
       header: tf('paymentType'),
       cell: ({ row }) => {
         const type = row.getValue('payment_type') as PaymentType;
+        const typeKey: 'incoming' | 'outgoing' = type === 'OUTGOING' ? 'outgoing' : 'incoming';
         return (
           <Badge variant="outline" className={cn("text-[10px] h-5 px-1", type === 'INCOMING' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200' : 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200')}>
             {type === 'INCOMING' ? <PiArrowCircleDownBold className="mr-1 h-3 w-3 inline" /> : <PiArrowCircleUpBold className="mr-1 h-3 w-3 inline" />}
-            {tf(type)}
+            {tf(typeKey)}
           </Badge>
         );
       },
@@ -241,4 +242,3 @@ export default function PaymentsPage() {
     </div>
   );
 }
-

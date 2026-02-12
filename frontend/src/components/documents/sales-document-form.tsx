@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useHotkeys } from "react-hotkeys-hook"
@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { DataTable } from "@/components/data-table/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { toast } from "sonner"
 import api from "@/lib/api"
-import { SalesDocument, SalesDocumentLine } from "@/types"
+import { PaginatedResponse, SalesDocument, SalesDocumentLine } from "@/types"
 import {
     PiFloppyDiskBold,
     PiCheckCircleBold,
@@ -43,6 +44,42 @@ interface SalesDocumentFormProps {
     initialData?: SalesDocument
 }
 
+interface CurrencyOption {
+    id: number
+    code: string
+    name: string
+}
+
+interface ExchangeRateOption {
+    id: number
+    currency: number
+    date: string
+    rate: string | number
+}
+
+type CurrencyListResponse = PaginatedResponse<CurrencyOption> | CurrencyOption[]
+type ExchangeRateListResponse = PaginatedResponse<ExchangeRateOption> | ExchangeRateOption[]
+
+function normalizeCurrenciesResponse(response: CurrencyListResponse): CurrencyOption[] {
+    if (Array.isArray(response)) return response
+    return response?.results || []
+}
+
+function normalizeExchangeRatesResponse(response: ExchangeRateListResponse): ExchangeRateOption[] {
+    if (Array.isArray(response)) return response
+    return response?.results || []
+}
+
+function toDateOnly(value: unknown): string {
+    const raw = String(value || '').trim()
+    if (!raw) return new Date().toISOString().slice(0, 10)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+
+    const parsed = new Date(raw)
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10)
+    return new Date().toISOString().slice(0, 10)
+}
+
 // Helper: Transform DB Line (Base) to UI Line (Package)
 const toUiLine = (line: SalesDocumentLine): SalesDocumentLine => {
     const coef = Number(line.coefficient) || 1;
@@ -67,19 +104,30 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
     const t = useTranslations('documents')
     const tc = useTranslations('common')
     const tf = useTranslations('fields')
+    const tsf = useTranslations('documents.salesForm')
     const router = useRouter()
     const queryClient = useQueryClient()
     const [printOpen, setPrintOpen] = useState(false)
+    const promptedRateKeysRef = useRef<Set<string>>(new Set())
+    const initializedCurrencyRef = useRef(false)
+    const [rateDialogState, setRateDialogState] = useState<{ currencyCode: string; date: string } | null>(null)
+    const [rateDialogInput, setRateDialogInput] = useState('')
+    const [rateDialogError, setRateDialogError] = useState<string | null>(null)
 
     // Form State
     const [formData, setFormData] = useState<Partial<SalesDocument>>(initialData || {
         date: new Date().toISOString(),
         status: 'draft',
         lines: [],
-        currency: 1, // Default ID for USD
-        exchange_rate: 12500,
+        currency: undefined,
+        exchange_rate: 1,
         contract: 1
     })
+    const latestExchangeRateRef = useRef(formData.exchange_rate)
+
+    useEffect(() => {
+        latestExchangeRateRef.current = formData.exchange_rate
+    }, [formData.exchange_rate])
 
     const { currentTenant } = useAppStore();
     const isPosted = initialData?.is_posted ?? (initialData?.status === 'posted');
@@ -90,6 +138,107 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
     const [lines, setLines] = useState<SalesDocumentLine[]>(
         initialData?.lines?.map(toUiLine) || []
     )
+
+    const { data: currencies = [] } = useQuery<CurrencyOption[]>({
+        queryKey: ['sales-form-currencies'],
+        queryFn: async () => {
+            const response = await api.get<CurrencyListResponse>('/directories/currencies/')
+            return normalizeCurrenciesResponse(response)
+        },
+        initialData: [],
+    })
+
+    const currenciesById = useMemo(
+        () => new Map(currencies.map((item) => [item.id, item])),
+        [currencies]
+    )
+    const usdCurrency = useMemo(
+        () => currencies.find((item) => String(item.code || '').toUpperCase() === 'USD') || null,
+        [currencies]
+    )
+    const usdCurrencyId = usdCurrency?.id || null
+    const selectedCurrency = formData.currency ? currenciesById.get(Number(formData.currency)) : null
+    const selectedCurrencyCode = selectedCurrency?.code || 'USD'
+    const documentDate = useMemo(() => toDateOnly(formData.date), [formData.date])
+
+    useEffect(() => {
+        if (initializedCurrencyRef.current || !usdCurrencyId) return
+        setFormData((prev) => {
+            if (mode === 'create') {
+                return {
+                    ...prev,
+                    currency: usdCurrencyId,
+                    exchange_rate: 1,
+                }
+            }
+
+            if (!prev.currency) {
+                return {
+                    ...prev,
+                    currency: usdCurrencyId,
+                    exchange_rate: 1,
+                }
+            }
+
+            return prev
+        })
+        initializedCurrencyRef.current = true
+    }, [mode, usdCurrencyId])
+
+    useEffect(() => {
+        const currencyId = Number(formData.currency || 0)
+        if (!currencyId || !usdCurrencyId || !canEdit) return
+
+        if (currencyId === usdCurrencyId) {
+            setRateDialogState(null)
+            setRateDialogError(null)
+            if (Number(latestExchangeRateRef.current || 0) !== 1) {
+                setFormData((prev) => ({ ...prev, exchange_rate: 1 }))
+            }
+            return
+        }
+
+        const promptKey = `${currencyId}:${documentDate}`
+        let isCancelled = false
+
+        const resolveRateForDate = async () => {
+            const openRateDialog = () => {
+                if (promptedRateKeysRef.current.has(promptKey)) return
+                promptedRateKeysRef.current.add(promptKey)
+                setRateDialogInput(String(latestExchangeRateRef.current || ''))
+                setRateDialogError(null)
+                setRateDialogState({
+                    currencyCode: selectedCurrencyCode,
+                    date: documentDate,
+                })
+            }
+
+            try {
+                const response = await api.get<ExchangeRateListResponse>('/directories/exchange-rates/', {
+                    params: {
+                        currency: currencyId,
+                        date: documentDate,
+                    },
+                })
+                if (isCancelled) return
+
+                const rates = normalizeExchangeRatesResponse(response)
+                const rateValue = Number(rates[0]?.rate || 0)
+                if (Number.isFinite(rateValue) && rateValue > 0) {
+                    setFormData((prev) => ({ ...prev, exchange_rate: rateValue }))
+                    return
+                }
+
+                openRateDialog()
+            } catch {
+                if (isCancelled) return
+                openRateDialog()
+            }
+        }
+
+        resolveRateForDate()
+        return () => { isCancelled = true }
+    }, [canEdit, documentDate, formData.currency, selectedCurrencyCode, usdCurrencyId])
 
     // Dynamic Item Fetcher Hook
     const useItemDetails = (itemId: number) => {
@@ -112,6 +261,43 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
             rate: formData.exchange_rate,
             lines: dbLines
         };
+    }
+
+    const validateExchangeRateBeforeSave = (): boolean => {
+        const currencyId = Number(formData.currency || 0)
+        if (!currencyId) {
+            toast.error(tsf('currencyRequired'))
+            return false
+        }
+
+        if (usdCurrencyId && currencyId === usdCurrencyId) {
+            return true
+        }
+
+        const rate = Number(formData.exchange_rate || 0)
+        if (!Number.isFinite(rate) || rate <= 0) {
+            toast.error(tsf('rateRequiredToday'))
+            return false
+        }
+
+        return true
+    }
+
+    const handleSave = () => {
+        if (!validateExchangeRateBeforeSave()) return
+        saveMutation.mutate(preparePayload())
+    }
+
+    const handleRateDialogSave = () => {
+        const parsedRate = Number(String(rateDialogInput).replace(',', '.'))
+        if (!Number.isFinite(parsedRate) || parsedRate <= 0) {
+            setRateDialogError(tsf('rateRequiredToday'))
+            return
+        }
+
+        setFormData((prev) => ({ ...prev, exchange_rate: parsedRate }))
+        setRateDialogState(null)
+        setRateDialogError(null)
     }
 
     // Actions
@@ -160,7 +346,7 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
         },
         onError: () => {
             setFormData({ ...formData, status: 'posted' });
-            toast.error("Failed to unpost");
+            toast.error(t('unpost_failed'));
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['sales-documents'] });
@@ -172,10 +358,10 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
     useHotkeys('ctrl+s', (e) => {
         e.preventDefault();
         if (!isPosted) {
-            saveMutation.mutate(preparePayload());
-            toast.info("Saving...");
+            handleSave();
+            toast.info(tsf('saving'));
         }
-    }, { enableOnFormTags: true }, [formData, lines, isPosted]);
+    }, { enableOnFormTags: true }, [formData, lines, isPosted, usdCurrencyId]);
 
     useHotkeys('ctrl+enter, f9', (e) => {
         e.preventDefault();
@@ -199,7 +385,7 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
         ...(canEdit ? [{
             label: tc('save'),
             icon: <PiFloppyDiskBold />,
-            onClick: () => saveMutation.mutate(preparePayload()),
+            onClick: () => handleSave(),
             shortcut: 'Ctrl+S',
             variant: 'secondary' as const
         }] : []),
@@ -221,16 +407,18 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
     const totals = useMemo(() => {
         const totalAmount = lines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
         const tax = lines.reduce((sum, line) => sum + (Number(line.vat_amount) || 0), 0);
-        const exchangeRate = formData.exchange_rate || 12500;
+        const exchangeRate = Number(formData.exchange_rate) || 1;
         const grandTotal = totalAmount + tax;
+        const isUsdCurrency = usdCurrencyId ? Number(formData.currency) === usdCurrencyId : true;
+        const grandTotalUsd = isUsdCurrency ? grandTotal : grandTotal / exchangeRate;
 
         return {
             total: totalAmount,
             tax: tax,
             grandTotal: grandTotal,
-            grandTotalBase: grandTotal * exchangeRate
+            grandTotalUsd: Number.isFinite(grandTotalUsd) ? grandTotalUsd : 0
         }
-    }, [lines, formData.exchange_rate]);
+    }, [formData.currency, formData.exchange_rate, lines, usdCurrencyId]);
 
     const [activeCell, setActiveCell] = useState<{ row: number, col: string } | null>(null);
 
@@ -260,6 +448,7 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
             cell: ({ row }) => (
                 <div className={cn("h-full w-full p-1", activeCell?.row === row.index && activeCell?.col === 'item' && "ring-2 ring-primary inset-0")}>
                     <ReferenceSelector
+                        label=""
                         value={row.original.item}
                         onSelect={(val) => {
                             const newLines = [...lines];
@@ -277,7 +466,7 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
         },
         {
             accessorKey: 'package',
-            header: "Unit",
+            header: tf('unit'),
             cell: ({ row }) => {
                 const { data: item } = useItemDetails(row.original.item);
                 const units = useMemo(() => {
@@ -378,7 +567,7 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
         },
         {
             id: 'vat_rate',
-            header: '% VAT',
+            header: tsf('vatPercent'),
             cell: ({ row }) => (
                 <select
                     className="h-8 w-full bg-transparent border-none text-right px-2 text-xs"
@@ -399,14 +588,14 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
         },
         {
             id: 'vat_amount',
-            header: 'VAT Sum',
+            header: tsf('vatSum'),
             cell: ({ row }) => <span className="font-mono text-muted-foreground block text-right px-2 text-xs">
                 {(Number(row.original.vat_amount) || 0).toFixed(2)}
             </span>
         },
         {
             id: 'total_line',
-            header: 'Total',
+            header: tc('total'),
             cell: ({ row }) => <span className="font-mono font-bold block text-right px-2">
                 {(Number(row.original.total_with_vat) || 0).toFixed(2)}
             </span>
@@ -431,9 +620,9 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
             {/* Header / Tabs List */}
             <div className="border-b px-4 flex items-center justify-between shrink-0 bg-muted/10">
                 <TabsList className="bg-transparent p-0">
-                    <TabsTrigger value="main" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">Main</TabsTrigger>
-                    <TabsTrigger value="history" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">History</TabsTrigger>
-                    <TabsTrigger value="postings" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none" disabled={!isPosted}>Postings</TabsTrigger>
+                    <TabsTrigger value="main" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">{tsf('tabs.main')}</TabsTrigger>
+                    <TabsTrigger value="history" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">{tsf('tabs.history')}</TabsTrigger>
+                    <TabsTrigger value="postings" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none" disabled={!isPosted}>{tsf('tabs.postings')}</TabsTrigger>
                 </TabsList>
                 <InterfaceModeToggle />
             </div>
@@ -441,28 +630,93 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
             <TabsContent value="main" className="flex-1 flex flex-col h-full m-0 p-0 outline-none">
                 <CommandBar mainActions={actions} className="border-b shrink-0" />
                 <PrintPreviewDialog document={{ ...formData, lines }} tenant={currentTenant} open={printOpen} onOpenChange={setPrintOpen} />
+                <Dialog
+                    open={Boolean(rateDialogState)}
+                    onOpenChange={(open) => {
+                        if (!open) {
+                            setRateDialogState(null)
+                            setRateDialogError(null)
+                        }
+                    }}
+                >
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>{tsf('rateRequiredToday')}</DialogTitle>
+                            <DialogDescription>
+                                {rateDialogState
+                                    ? tsf('ratePrompt', {
+                                        currency: rateDialogState.currencyCode,
+                                        date: rateDialogState.date,
+                                    })
+                                    : ''}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-2">
+                            <Label className="text-xs text-muted-foreground">
+                                {rateDialogState?.currencyCode || selectedCurrencyCode} @ 1 USD
+                            </Label>
+                            <Input
+                                autoFocus
+                                type="number"
+                                min="0"
+                                step="0.000001"
+                                value={rateDialogInput}
+                                onChange={(e) => {
+                                    setRateDialogInput(e.target.value)
+                                    if (rateDialogError) setRateDialogError(null)
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        handleRateDialogSave()
+                                    }
+                                }}
+                            />
+                            {rateDialogError ? (
+                                <p className="text-xs text-destructive">{rateDialogError}</p>
+                            ) : null}
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setRateDialogState(null)
+                                    setRateDialogError(null)
+                                }}
+                            >
+                                {tc('cancel')}
+                            </Button>
+                            <Button onClick={handleRateDialogSave}>
+                                {tc('save')}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Fixed Header Fields */}
                 <div className="flex flex-col gap-4 border-b bg-muted/10 shrink-0">
                     {/* Top Bar for Operation and Invoice Status */}
                     <div className="flex items-center justify-between px-4 pt-2">
                         <div className="flex items-center gap-2">
-                            <Label className="text-xs text-muted-foreground whitespace-nowrap">Operation:</Label>
+                            <Label className="text-xs text-muted-foreground whitespace-nowrap">{tsf('operation')}</Label>
                             <select
                                 className="h-7 text-xs bg-transparent border-none font-medium focus:ring-0 cursor-pointer hover:bg-muted/50 rounded px-1"
                                 value={formData.operation_type || 'goods'}
                                 disabled={!canEdit}
-                                onChange={(e) => setFormData({ ...formData, operation_type: e.target.value as any })}
+                                onChange={(e) => setFormData({
+                                    ...formData,
+                                    operation_type: e.target.value as SalesDocument['operation_type']
+                                })}
                             >
-                                <option value="goods">Goods (Invoice, UPD)</option>
-                                <option value="services">Services (Act, UPD)</option>
-                                <option value="goods_services">Goods, Services, Commission</option>
+                                <option value="goods">{tsf('operationTypes.goods')}</option>
+                                <option value="services">{tsf('operationTypes.services')}</option>
+                                <option value="goods_services">{tsf('operationTypes.goodsServices')}</option>
                             </select>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">Invoice (Schet-Factura):</span>
-                            <button className="text-xs text-blue-600 hover:underline font-medium" onClick={() => toast.info("Invoice creation logic to be implemented")}>
-                                Not Issued
+                            <span className="text-xs text-muted-foreground">{tsf('invoiceStatusLabel')}</span>
+                            <button className="text-xs text-blue-600 hover:underline font-medium" onClick={() => toast.info(tsf('invoiceTodo'))}>
+                                {tsf('invoiceNotIssued')}
                             </button>
                         </div>
                     </div>
@@ -477,79 +731,114 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
                             <Input type="datetime-local" disabled={!canEdit} value={formData.date ? new Date(formData.date).toISOString().slice(0, 16) : ''} onChange={e => setFormData({ ...formData, date: e.target.value })} className="h-8 bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent" />
                         </div>
                         <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Organization</Label>
-                            <Input disabled value="My Company" className="h-8 bg-muted/50 border-transparent text-muted-foreground" />
+                            <Label className="text-xs text-muted-foreground">{tsf('organization')}</Label>
+                            <Input
+                                disabled
+                                value={currentTenant?.name || tsf('organizationDefault')}
+                                className="h-8 bg-muted/50 border-transparent text-muted-foreground"
+                            />
                         </div>
                         <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground">{tf('counterparty')}</Label>
-                            <ReferenceSelector className="bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent" value={formData.counterparty as number} onSelect={(val) => setFormData({ ...formData, counterparty: val as number })} apiEndpoint="/directories/counterparties/" placeholder="Select Customer..." />
+                            <ReferenceSelector
+                                label=""
+                                className="bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent"
+                                value={formData.counterparty as number}
+                                onSelect={(val) => setFormData({ ...formData, counterparty: val as number })}
+                                apiEndpoint="/directories/counterparties/"
+                                placeholder={tsf('placeholders.counterparty')}
+                            />
                         </div>
                         <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground">{tf('warehouse')}</Label>
-                            <ReferenceSelector className="bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent" value={formData.warehouse as number} onSelect={(val) => setFormData({ ...formData, warehouse: val as number })} apiEndpoint="/directories/warehouses/" placeholder="Main Warehouse" />
+                            <ReferenceSelector
+                                label=""
+                                className="bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent"
+                                value={formData.warehouse as number}
+                                onSelect={(val) => setFormData({ ...formData, warehouse: val as number })}
+                                apiEndpoint="/directories/warehouses/"
+                                placeholder={tsf('placeholders.warehouse')}
+                            />
                         </div>
                         <div className="space-y-1">
                             <ReferenceSelector
+                                label=""
                                 className="bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent"
                                 value={formData.contract as number}
                                 onSelect={(val) => setFormData({ ...formData, contract: val as number })}
                                 apiEndpoint="/directories/contracts/"
-                                placeholder="Main Contract"
+                                placeholder={tsf('placeholders.contract')}
                                 displayField="number"
                             />
                         </div>
 
                         {/* Analytics Fields */}
                         <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Project</Label>
+                            <Label className="text-xs text-muted-foreground">{tsf('project')}</Label>
                             <ReferenceSelector
+                                label=""
                                 className="bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent"
                                 value={formData.project as number}
                                 onSelect={(val) => setFormData({ ...formData, project: val as number })}
                                 apiEndpoint="/directories/projects/"
-                                placeholder="Select Project..."
+                                placeholder={tsf('placeholders.project')}
                             />
                         </div>
                         <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Department</Label>
+                            <Label className="text-xs text-muted-foreground">{tsf('department')}</Label>
                             <ReferenceSelector
+                                label=""
                                 className="bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent"
                                 value={formData.department as number}
                                 onSelect={(val) => setFormData({ ...formData, department: val as number })}
                                 apiEndpoint="/directories/departments/"
-                                placeholder="Select Department..."
+                                placeholder={tsf('placeholders.department')}
                             />
                         </div>
                         <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Manager</Label>
+                            <Label className="text-xs text-muted-foreground">{tsf('manager')}</Label>
                             <ReferenceSelector
+                                label=""
                                 className="bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent"
                                 value={formData.manager as number}
                                 onSelect={(val) => setFormData({ ...formData, manager: val as number })}
                                 apiEndpoint="/directories/employees/"
-                                placeholder="Responsible Manager"
+                                placeholder={tsf('placeholders.manager')}
                                 displayField="last_name"
                             />
                         </div>
                         <div className="space-y-1">
-                            <Label className="text-xs text-muted-foreground">Currency</Label>
+                            <Label className="text-xs text-muted-foreground">{tf('currency')}</Label>
                             <div className="flex gap-2">
-                                <Input
+                                <ReferenceSelector
+                                    label=""
+                                    className="bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent w-[170px]"
+                                    value={formData.currency as number}
+                                    onSelect={(val) => setFormData({ ...formData, currency: val as number })}
+                                    apiEndpoint="/directories/currencies/"
+                                    placeholder={tsf('placeholders.currency')}
+                                    displayField="code"
                                     disabled={!canEdit}
-                                    value={formData.currency || 1}
-                                    onChange={e => setFormData({ ...formData, currency: parseInt(e.target.value) || 1 })}
-                                    className="h-8 w-20 font-bold disabled:opacity-100 disabled:bg-muted/50 bg-yellow-50/50 dark:bg-yellow-900/10 border-transparent"
                                 />
                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                     @
                                     <Input
                                         className="h-8 w-24 bg-muted/50"
                                         type="number"
-                                        value={formData.exchange_rate}
-                                        readOnly
+                                        min="0"
+                                        step="0.000001"
+                                        value={formData.exchange_rate || ''}
+                                        readOnly={Number(formData.currency || 0) === Number(usdCurrencyId || 0)}
+                                        onChange={(e) => setFormData({
+                                            ...formData,
+                                            exchange_rate: Number(e.target.value) || 0
+                                        })}
                                     />
                                 </div>
                             </div>
+                            <p className="text-[10px] text-muted-foreground">
+                                {tsf('baseCurrencyUsd')}
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -594,11 +883,13 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
                     <div className="flex items-center justify-end gap-6 text-sm">
                         <div className="flex flex-col items-end">
                             <span className="text-muted-foreground text-xs font-bold">{tc('total')}</span>
-                            <span className="font-mono font-bold text-lg text-primary">${totals.grandTotal.toFixed(2)}</span>
+                            <span className="font-mono font-bold text-lg text-primary">
+                                {totals.grandTotal.toFixed(2)} {selectedCurrencyCode}
+                            </span>
                         </div>
                         <div className="flex flex-col items-end border-l pl-4 ml-4">
-                            <span className="text-muted-foreground text-xs font-bold">Base Value</span>
-                            <span className="font-mono font-bold text-lg">{totals.grandTotalBase.toLocaleString()} UZS</span>
+                            <span className="text-muted-foreground text-xs font-bold">{tsf('baseValue')}</span>
+                            <span className="font-mono font-bold text-lg">{totals.grandTotalUsd.toFixed(2)} USD</span>
                         </div>
                     </div>
                 </div>
@@ -608,7 +899,7 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
                 {initialData?.id ? (
                     <DocumentHistoryPanel documentId={initialData.id} documentType="sales" />
                 ) : (
-                    <div className="p-8 text-center text-muted-foreground">Save the document to view history.</div>
+                    <div className="p-8 text-center text-muted-foreground">{tsf('saveToViewHistory')}</div>
                 )}
             </TabsContent>
 
@@ -616,7 +907,7 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
                 {initialData?.id ? (
                     <DocumentPostings documentId={initialData.id} endpoint="sales" />
                 ) : (
-                    <div className="p-8 text-center text-muted-foreground">Save the document to view postings.</div>
+                    <div className="p-8 text-center text-muted-foreground">{tsf('saveToViewPostings')}</div>
                 )}
             </TabsContent>
         </Tabs>

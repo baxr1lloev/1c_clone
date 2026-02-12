@@ -65,8 +65,8 @@ export function AccountCardDialog({
                 // TODO: Make this dynamic based on Account Type (Warehouse/Item etc)
             }
 
-            const res = await api.get(`/reports/account-card/?${params.toString()}`);
-            return res.data as AccountCardEntry[];
+            const entries = await api.get<AccountCardEntry[] | null>(`/reports/account-card/?${params.toString()}`);
+            return entries ?? [];
         },
         enabled: open && !!accountId
     });

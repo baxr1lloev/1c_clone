@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Link2, Check } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface CopyLinkButtonProps {
     entityType: string;
@@ -12,9 +13,11 @@ interface CopyLinkButtonProps {
 
 export function CopyLinkButton({ entityType, entityId, className }: CopyLinkButtonProps) {
     const [copied, setCopied] = useState(false);
+    const tCommon = useTranslations('common');
 
     const handleCopy = () => {
-        const url = `${window.location.origin}/${entityType}s/${entityId}`;
+        const fallbackUrl = `${window.location.origin}/${entityType}/${entityId}`;
+        const url = window.location.href || fallbackUrl;
         navigator.clipboard.writeText(url).then(() => {
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
@@ -29,7 +32,7 @@ export function CopyLinkButton({ entityType, entityId, className }: CopyLinkButt
             className={className}
         >
             {copied ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-            <span className="ml-2">{copied ? 'Copied!' : 'Copy Link'}</span>
+            <span className="ml-2">{copied ? tCommon('copied') : tCommon('copyLink')}</span>
         </Button>
     );
 }

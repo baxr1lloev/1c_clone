@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, RefreshCw, Filter } from 'lucide-react';
@@ -26,19 +27,30 @@ interface TrialBalanceItem {
 
 export default function TrialBalancePage() {
     const router = useRouter();
+    const tReports = useTranslations('reports');
+    const tFields = useTranslations('fields');
+    const tCommon = useTranslations('common');
     const [startDate, setStartDate] = useState(
         new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
     );
     const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
 
-    const { data: reportData, isLoading, refetch } = useQuery({
+    const { data: reportData = [], isLoading, refetch } = useQuery<TrialBalanceItem[]>({
         queryKey: ['trial-balance', startDate, endDate],
         queryFn: async () => {
-            const res = await api.get('/reports/trial-balance/', {
-                params: { start_date: startDate, end_date: endDate }
-            });
-            return res.data as TrialBalanceItem[];
-        }
+            try {
+                const res = await api.get<TrialBalanceItem[] | { results?: TrialBalanceItem[] }>(
+                    '/reports/trial-balance/',
+                    { params: { start_date: startDate, end_date: endDate } }
+                );
+                if (Array.isArray(res)) return res;
+                if (Array.isArray(res?.results)) return res.results;
+                return [];
+            } catch {
+                return [];
+            }
+        },
+        initialData: [],
     });
 
     const goToAccountCard = (accountId: number) => {
@@ -54,15 +66,15 @@ export default function TrialBalancePage() {
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold">Оборотно-сальдовая ведомость</h1>
-                    <p className="text-muted-foreground">Turnover Balance Sheet (OSV)</p>
+                    <h1 className="text-3xl font-bold">{tReports('trialBalance')}</h1>
+                    <p className="text-muted-foreground">{tReports('trialBalancePage.subtitle')}</p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => refetch()}>
-                        <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+                        <RefreshCw className="mr-2 h-4 w-4" /> {tCommon('refresh')}
                     </Button>
                     <Button variant="outline">
-                        <Download className="mr-2 h-4 w-4" /> Excel
+                        <Download className="mr-2 h-4 w-4" /> {tReports('trialBalancePage.excel')}
                     </Button>
                 </div>
             </div>
@@ -70,12 +82,12 @@ export default function TrialBalancePage() {
             <Card>
                 <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
-                        <Filter className="h-4 w-4" /> Report Parameters
+                        <Filter className="h-4 w-4" /> {tReports('trialBalancePage.reportParameters')}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex gap-4 items-end">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Period</label>
+                        <label className="text-sm font-medium">{tFields('period')}</label>
                         <div className="flex items-center gap-2">
                             <input
                                 type="date"
@@ -92,7 +104,7 @@ export default function TrialBalancePage() {
                             />
                         </div>
                     </div>
-                    <Button onClick={() => refetch()}>Generate</Button>
+                    <Button onClick={() => refetch()}>{tReports('trialBalancePage.generate')}</Button>
                 </CardContent>
             </Card>
 
@@ -102,25 +114,29 @@ export default function TrialBalancePage() {
                         <Table className="border-collapse">
                             <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
                                 <TableRow>
-                                    <TableHead className="w-[300px] border-r">Account</TableHead>
-                                    <TableHead className="text-center border-r bg-blue-50/30" colSpan={2}>Opening Balance</TableHead>
-                                    <TableHead className="text-center border-r bg-emerald-50/30" colSpan={2}>Turnover</TableHead>
-                                    <TableHead className="text-center bg-purple-50/30" colSpan={2}>Closing Balance</TableHead>
+                                    <TableHead className="w-[300px] border-r">{tFields('account')}</TableHead>
+                                    <TableHead className="text-center border-r bg-blue-50/30" colSpan={2}>{tReports('trialBalancePage.openingBalance')}</TableHead>
+                                    <TableHead className="text-center border-r bg-emerald-50/30" colSpan={2}>{tReports('trialBalancePage.turnover')}</TableHead>
+                                    <TableHead className="text-center bg-purple-50/30" colSpan={2}>{tReports('trialBalancePage.closingBalance')}</TableHead>
                                 </TableRow>
                                 <TableRow>
                                     <TableHead className="border-r"></TableHead>
-                                    <TableHead className="text-right w-[120px] bg-blue-50/30 text-xs">Debit</TableHead>
-                                    <TableHead className="text-right w-[120px] border-r bg-blue-50/30 text-xs">Credit</TableHead>
-                                    <TableHead className="text-right w-[120px] bg-emerald-50/30 text-xs">Debit</TableHead>
-                                    <TableHead className="text-right w-[120px] border-r bg-emerald-50/30 text-xs">Credit</TableHead>
-                                    <TableHead className="text-right w-[120px] bg-purple-50/30 text-xs">Debit</TableHead>
-                                    <TableHead className="text-right w-[120px] bg-purple-50/30 text-xs">Credit</TableHead>
+                                    <TableHead className="text-right w-[120px] bg-blue-50/30 text-xs">{tReports('trialBalancePage.debit')}</TableHead>
+                                    <TableHead className="text-right w-[120px] border-r bg-blue-50/30 text-xs">{tReports('trialBalancePage.credit')}</TableHead>
+                                    <TableHead className="text-right w-[120px] bg-emerald-50/30 text-xs">{tReports('trialBalancePage.debit')}</TableHead>
+                                    <TableHead className="text-right w-[120px] border-r bg-emerald-50/30 text-xs">{tReports('trialBalancePage.credit')}</TableHead>
+                                    <TableHead className="text-right w-[120px] bg-purple-50/30 text-xs">{tReports('trialBalancePage.debit')}</TableHead>
+                                    <TableHead className="text-right w-[120px] bg-purple-50/30 text-xs">{tReports('trialBalancePage.credit')}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
                                     <TableRow>
-                                        <TableCell colSpan={7} className="text-center py-20">Loading...</TableCell>
+                                        <TableCell colSpan={7} className="text-center py-20">{tReports('trialBalancePage.loading')}</TableCell>
+                                    </TableRow>
+                                ) : reportData.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="text-center py-20">{tCommon('noData')}</TableCell>
                                     </TableRow>
                                 ) : (
                                     reportData?.map((row) => (

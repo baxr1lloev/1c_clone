@@ -106,7 +106,7 @@ export function CommandBar({
                         <Input
                             data-search-input
                             className="h-7 w-[200px] pl-8 text-xs bg-muted/50 border-none shadow-none focus-visible:ring-1"
-                            placeholder={searchPlaceholder || t('search')}
+                            placeholder={searchPlaceholder || t('searchPlaceholder')}
                             value={searchValue}
                             onChange={(e) => onSearch(e.target.value)}
                         />

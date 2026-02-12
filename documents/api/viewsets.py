@@ -6,6 +6,7 @@ from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 from django_filters.rest_framework import DjangoFilterBackend
 
 
@@ -66,6 +67,8 @@ class TenantFilterMixin:
     def get_queryset(self):
         qs = super().get_queryset()
         if hasattr(qs.model, 'tenant'):
+            if not getattr(self.request.user, 'tenant_id', None):
+                raise PermissionDenied('Current user is not assigned to a tenant.')
             return qs.filter(tenant=self.request.user.tenant)
         return qs
 

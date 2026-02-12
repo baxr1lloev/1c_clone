@@ -5,20 +5,17 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { useTranslations } from 'next-intl';
 
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 
 // PHASE A-D: Enhanced intelligence components
 import { DetailedValidationPanel } from '@/components/documents/detailed-validation-panel';
 import { DocumentContextPanel } from '@/components/documents/document-context-panel';
 import { SmartLineItemForm } from '@/components/documents/smart-line-item-form';
 import { PriceBreakdown } from '@/components/documents/price-breakdown';
-import { EnhancedJournalEntriesTable } from '@/components/documents/enhanced-journal-entries-table';
 import { useDocumentValidation } from '@/hooks/use-document-validation';
 import { useDocumentKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts';
 
@@ -46,6 +43,10 @@ export default function LiveSalesDocumentPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const documentId = parseInt(params.id as string);
+    const tNav = useTranslations('nav');
+    const tCommon = useTranslations('common');
+    const tFields = useTranslations('fields');
+    const tDetail = useTranslations('documents.detail');
 
     const [showLineForm, setShowLineForm] = useState(false);
     const [selectedLineId, setSelectedLineId] = useState<number | null>(null);
@@ -68,15 +69,15 @@ export default function LiveSalesDocumentPage() {
     });
 
     // PHASE A: Post document mutation with visual effects!
-    const { mutate: postDocument, isPending: isPosting } = useMutation({
+    const { mutate: postDocument } = useMutation({
         mutationFn: async () => {
             const response = await api.post(`/documents/sales/${documentId}/post/`);
             return response;
         },
         onSuccess: () => {
             // PHASE A: Enhanced success toast with icon and duration
-            toast.success('✅ Document Posted!', {
-                description: 'Movements and journal entries created',
+            toast.success(`✅ ${tDetail('toasts.postSuccessTitle')}`, {
+                description: tDetail('toasts.postSuccessDescription'),
                 duration: 3000,
             });
             queryClient.invalidateQueries({ queryKey: ['sales-document', documentId] });
@@ -86,9 +87,10 @@ export default function LiveSalesDocumentPage() {
                 setActiveTab('movements');
             }, 500);
         },
-        onError: (error: any) => {
-            toast.error('❌ Posting Failed', {
-                description: error.response?.data?.error || 'Failed to post document',
+        onError: (error: unknown) => {
+            const apiError = error as { response?: { data?: { error?: string } } };
+            toast.error(`❌ ${tDetail('toasts.postErrorTitle')}`, {
+                description: apiError.response?.data?.error || tDetail('toasts.postErrorDescription'),
                 duration: 5000,
             });
         }
@@ -101,7 +103,7 @@ export default function LiveSalesDocumentPage() {
             return response;
         },
         onSuccess: () => {
-            toast.success('Document unposted successfully!');
+            toast.success(tDetail('toasts.unpostSuccess'));
             queryClient.invalidateQueries({ queryKey: ['sales-document', documentId] });
         },
     });
@@ -112,7 +114,7 @@ export default function LiveSalesDocumentPage() {
             await api.delete(`/documents/sales/${documentId}/lines/${lineId}`);
         },
         onSuccess: () => {
-            toast.success('Line deleted');
+            toast.success(tDetail('toasts.lineDeleted'));
             queryClient.invalidateQueries({ queryKey: ['sales-document', documentId] });
             refetchValidation();
         },
@@ -120,12 +122,12 @@ export default function LiveSalesDocumentPage() {
 
     // Save mutation
     const { mutate: saveDocument } = useMutation({
-        mutationFn: async (data: any) => {
+        mutationFn: async (data: Record<string, unknown>) => {
             const response = await api.patch(`/documents/sales/${documentId}/`, data);
             return response;
         },
         onSuccess: () => {
-            toast.success('Document saved');
+            toast.success(tDetail('toasts.documentSaved'));
             queryClient.invalidateQueries({ queryKey: ['sales-document', documentId] });
         },
     });
@@ -148,18 +150,18 @@ export default function LiveSalesDocumentPage() {
     });
 
     const breadcrumbs = [
-        { label: 'Home', href: '/' },
-        { label: 'Documents', href: '/documents' },
-        { label: 'Sales', href: '/documents/sales' },
+        { label: tNav('main'), href: '/' },
+        { label: tNav('documents'), href: '/documents' },
+        { label: tNav('sales'), href: '/documents/sales' },
         { label: document?.number || `#${documentId}` },
     ];
 
     if (isLoading) {
-        return <div className="container mx-auto py-6">Loading...</div>;
+        return <div className="container mx-auto py-6">{tDetail('loading')}</div>;
     }
 
     if (!document) {
-        return <div className="container mx-auto py-6">Document not found</div>;
+        return <div className="container mx-auto py-6">{tDetail('notFound')}</div>;
     }
 
     const isDraft = document.status === 'draft';
@@ -174,7 +176,7 @@ export default function LiveSalesDocumentPage() {
                 <PeriodStatusBanner date={document.date} className="mb-4" />
             )}
 
-            <BackToListButton href="/documents/sales" />
+            <BackToListButton href="/documents/sales" label={tDetail('backToList')} />
 
             {/* Action Toolbar */}
             <DocumentActionToolbar
@@ -210,7 +212,7 @@ export default function LiveSalesDocumentPage() {
                     {/* Document Header */}
                     <Card>
                         <CardHeader>
-                            <CardTitle>Sales Document</CardTitle>
+                            <CardTitle>{tDetail('salesDocument')}</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <StandardDocumentHeader
@@ -219,15 +221,15 @@ export default function LiveSalesDocumentPage() {
                                 status={document.status}
                                 fields={[
                                     {
-                                        label: 'Customer',
-                                        value: document.counterparty?.name || 'N/A',
+                                        label: tFields('customer'),
+                                        value: document.counterparty?.name || tDetail('na'),
                                     },
                                     {
-                                        label: 'Warehouse',
-                                        value: document.warehouse?.name || 'N/A'
+                                        label: tFields('warehouse'),
+                                        value: document.warehouse?.name || tDetail('na')
                                     },
                                     {
-                                        label: 'Total',
+                                        label: tCommon('total'),
                                         value: `${Number(document.total_amount || 0).toFixed(2)} UZS`,
                                     }
                                 ]}
@@ -248,13 +250,13 @@ export default function LiveSalesDocumentPage() {
                         <Card>
                             <CardHeader>
                                 <div className="flex items-center justify-between">
-                                    <CardTitle>Line Items</CardTitle>
+                                    <CardTitle>{tDetail('lineItems')}</CardTitle>
                                     {isDraft && (
                                         <Button
                                             onClick={() => setShowLineForm(!showLineForm)}
                                             size="sm"
                                         >
-                                            {showLineForm ? 'Cancel' : 'Add Line (Ins)'}
+                                            {showLineForm ? tCommon('cancel') : tDetail('addLine')}
                                         </Button>
                                     )}
                                 </div>
@@ -278,7 +280,7 @@ export default function LiveSalesDocumentPage() {
                                                         refetchValidation();
                                                     })
                                                     .catch((error) => {
-                                                        toast.error('Failed to add line: ' + error.message);
+                                                        toast.error(`${tDetail('toasts.addLineFailed')}: ${error.message}`);
                                                     });
                                             }}
                                             onCancel={() => setShowLineForm(false)}
@@ -290,17 +292,25 @@ export default function LiveSalesDocumentPage() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
-                                            <TableHead>Item</TableHead>
-                                            <TableHead>Quantity</TableHead>
-                                            <TableHead>Price</TableHead>
-                                            <TableHead>Discount</TableHead>
-                                            <TableHead>VAT</TableHead>
-                                            <TableHead>Total</TableHead>
-                                            {isDraft && <TableHead>Actions</TableHead>}
+                                            <TableHead>{tFields('item')}</TableHead>
+                                            <TableHead>{tFields('quantity')}</TableHead>
+                                            <TableHead>{tFields('price')}</TableHead>
+                                            <TableHead>{tDetail('table.discount')}</TableHead>
+                                            <TableHead>{tDetail('table.vat')}</TableHead>
+                                            <TableHead>{tCommon('total')}</TableHead>
+                                            {isDraft && <TableHead>{tCommon('actions')}</TableHead>}
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {lines.map((line: any) => (
+                                        {lines.map((line: {
+                                            id: number;
+                                            item?: { name?: string };
+                                            quantity?: number;
+                                            unit?: string;
+                                            price?: number;
+                                            discount?: number;
+                                            vat_rate?: number;
+                                        }) => (
                                             <TableRow
                                                 key={line.id}
                                                 onClick={() => setSelectedLineId(line.id)}
@@ -349,7 +359,7 @@ export default function LiveSalesDocumentPage() {
 
                                 {lines.length === 0 && (
                                     <div className="text-center py-8 text-muted-foreground">
-                                        No line items yet. Click "Add Line" or press <kbd>Ins</kbd>
+                                        {tDetail('noLineItems')}
                                     </div>
                                 )}
                             </CardContent>
@@ -370,10 +380,10 @@ export default function LiveSalesDocumentPage() {
             <Card className="bg-gray-50">
                 <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground grid grid-cols-4 gap-2">
-                        <div><kbd className="px-2 py-1 bg-white border rounded">F9</kbd> Post</div>
-                        <div><kbd className="px-2 py-1 bg-white border rounded">Ins</kbd> Add Line</div>
-                        <div><kbd className="px-2 py-1 bg-white border rounded">Del</kbd> Delete Line</div>
-                        <div><kbd className="px-2 py-1 bg-white border rounded">Ctrl+S</kbd> Save</div>
+                        <div><kbd className="px-2 py-1 bg-white border rounded">F9</kbd> {tDetail('shortcuts.post')}</div>
+                        <div><kbd className="px-2 py-1 bg-white border rounded">Ins</kbd> {tDetail('shortcuts.addLine')}</div>
+                        <div><kbd className="px-2 py-1 bg-white border rounded">Del</kbd> {tDetail('shortcuts.deleteLine')}</div>
+                        <div><kbd className="px-2 py-1 bg-white border rounded">Ctrl+S</kbd> {tDetail('shortcuts.save')}</div>
                     </div>
                 </CardContent>
             </Card>

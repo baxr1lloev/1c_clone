@@ -24,6 +24,8 @@
         "postedSuccessfully": "Успешно проведено",
         "print": "Печать",
         "refresh": "Обновить",
+        "import": "Импорт",
+        "export": "Экспорт",
         "save": "Сохранить",
         "saveAndClose": "Сохранить и закрыть",
         "savedSuccessfully": "Успешно сохранено",
@@ -41,9 +43,14 @@
         "searchCounterparties": "Поиск контрагентов...",
         "searchOrders": "Поиск заказов...",
         "searchNumber": "Поиск по номеру...",
+        "clearAll": "Сбросить все",
         "groupBy": "Группировать по",
         "columns": "Колонки",
-        "views": "Виды"
+        "views": "Виды",
+        "yes": "Да",
+        "no": "Нет",
+        "copyLink": "Скопировать ссылку",
+        "copied": "Скопировано!"
     },
     "auth": {
         "login": "Войти",
@@ -145,6 +152,106 @@
                 "deleteTitle": "Удалить контрагента",
                 "deleteConfirmation": "Вы уверены, что хотите удалить \"{name}\"? Это действие нельзя отменить."
             }
+        },
+        "counterpartyDetail": {
+            "counterpartyFallback": "Контрагент №{id}",
+            "settlementBalance": "Баланс взаиморасчетов",
+            "counterpartyInformation": "Информация о контрагенте",
+            "balanceByContract": "Баланс по договорам",
+            "relatedDocuments": "Связанные документы",
+            "auditTrail": "История изменений",
+            "columns": {
+                "balance": "Сальдо"
+            },
+            "status": {
+                "active": "Активен",
+                "inactive": "Неактивен"
+            },
+            "tabs": {
+                "details": "Детали",
+                "balance": "Баланс",
+                "documents": "Документы",
+                "audit": "Аудит"
+            },
+            "balanceState": {
+                "customerOwesUs": "Контрагент нам должен",
+                "weOweCustomer": "Мы должны контрагенту",
+                "noDebt": "Задолженности нет"
+            },
+            "audit": {
+                "created": "Создан",
+                "lastModified": "Последнее изменение"
+            }
+        },
+        "contractsPage": {
+            "subtitle": "Управление договорами контрагентов",
+            "searchPlaceholder": "Поиск договоров...",
+            "openEnded": "Бессрочно",
+            "active": "Активен",
+            "inactive": "Неактивен",
+            "createDescription": "Добавление нового договора",
+            "updateDescription": "Обновление данных договора",
+            "numberPlaceholder": "ДОГ-2024-001",
+            "termsPlaceholder": "Условия оплаты",
+            "saving": "Сохранение...",
+            "deleteTitle": "Удалить договор",
+            "deleteDescription": "Вы уверены, что хотите удалить {number}?",
+            "deleting": "Удаление..."
+        },
+        "currenciesPage": {
+            "subtitle": "Управление валютами и курсами обмена.",
+            "searchPlaceholder": "Поиск валют...",
+            "rateSource": "Источник курса",
+            "rateSourceOptions": {
+                "manual": "Ручной",
+                "internet": "Интернет (ЦБР/ЦБУ)",
+                "markup": "Наценка"
+            },
+            "openMenu": "Открыть меню",
+            "ratesHistory": "История курсов",
+            "deleteConfirm": "Удалить валюту {code}?",
+            "addFromClassifier": "Добавить из классификатора",
+            "downloadRates": "Загрузить курсы",
+            "backendConnectivityIssue": "Проблема подключения к backend: {message}",
+            "connectionErrorFallback": "Ошибка подключения к backend",
+            "updateDescription": "Обновление данных валюты",
+            "createDescription": "Добавление новой валюты вручную",
+            "namePlaceholder": "Доллар США",
+            "saving": "Сохранение...",
+            "classifierTitle": "Добавить валюту из классификатора",
+            "addSelected": "Добавить выбранные",
+            "exchangeRatesFor": "Курсы валют: {code}",
+            "ratePlaceholder": "Курс",
+            "noRatesHistory": "История курсов не найдена",
+            "ratesUpdated": "Курсы обновлены из интернета (обновлено валют: {count})",
+            "ratesUpdateFailed": "Не удалось обновить курсы",
+            "manualRateHint": "Для ручного источника укажите курс, чтобы создать или обновить курс валюты на выбранную дату.",
+            "manualRateRequired": "Для ручного источника курс обязателен.",
+            "invalidManualRate": "Курс должен быть больше 0.",
+            "rateSaveFailed": "Не удалось сохранить курс валюты.",
+            "saveFailed": "Не удалось сохранить валюту."
+        },
+        "contractDetail": {
+            "fallback": "Договор №{id}",
+            "notFound": "Договор не найден",
+            "contractInformation": "Информация о договоре",
+            "relatedDocuments": "Связанные документы",
+            "auditTrail": "История изменений",
+            "openEnded": "Бессрочно",
+            "na": "Н/Д",
+            "tabs": {
+                "details": "Детали",
+                "documents": "Связанные документы",
+                "audit": "Аудит"
+            },
+            "status": {
+                "active": "Активен",
+                "inactive": "Неактивен"
+            },
+            "audit": {
+                "created": "Создан",
+                "lastModified": "Последнее изменение"
+            }
         }
     },
     "documents": {
@@ -212,6 +319,145 @@
             "alerts": {
                 "markForDeletion": "Пометить на удаление?",
                 "deleteConfirmation": "Вы уверены, что хотите удалить {number}?"
+            }
+        },
+        "transferForm": {
+            "created": "Перемещение создано",
+            "updated": "Перемещение обновлено",
+            "items": "Номенклатура",
+            "selectWarehouse": "Выберите склад...",
+            "selectItem": "Выберите номенклатуру..."
+        },
+        "salesForm": {
+            "tabs": {
+                "main": "Основное",
+                "history": "История",
+                "postings": "Проводки"
+            },
+            "operation": "Операция:",
+            "operationTypes": {
+                "goods": "Товары (Счет, УПД)",
+                "services": "Услуги (Акт, УПД)",
+                "goodsServices": "Товары, услуги, комиссия"
+            },
+            "invoiceStatusLabel": "Счет-фактура:",
+            "invoiceNotIssued": "Не выписан",
+            "invoiceTodo": "Логика создания счета-фактуры будет добавлена",
+            "organization": "Организация",
+            "organizationDefault": "Моя компания",
+            "project": "Проект",
+            "department": "Подразделение",
+            "manager": "Менеджер",
+            "placeholders": {
+                "counterparty": "Выберите покупателя...",
+                "warehouse": "Основной склад",
+                "contract": "Основной договор",
+                "project": "Выберите проект...",
+                "department": "Выберите подразделение...",
+                "manager": "Ответственный менеджер",
+                "currency": "Выберите валюту..."
+            },
+            "baseCurrencyUsd": "Базовая валюта: USD",
+            "baseValue": "Базовая сумма (USD)",
+            "saveToViewHistory": "Сохраните документ, чтобы увидеть историю.",
+            "saveToViewPostings": "Сохраните документ, чтобы увидеть проводки.",
+            "saving": "Сохранение...",
+            "vatPercent": "% НДС",
+            "vatSum": "Сумма НДС",
+            "ratePrompt": "Курс для {currency} на {date} не найден. Введите курс на сегодня (валюта за 1 USD):",
+            "rateRequiredToday": "Укажите курс на сегодня для выбранной валюты.",
+            "currencyRequired": "Перед сохранением выберите валюту."
+        },
+        "liveSettlement": {
+            "title": "Статус взаиморасчетов",
+            "overCreditLimit": "Превышен кредитный лимит",
+            "debtNow": "Долг сейчас",
+            "creditLimit": "Кредитный лимит",
+            "available": "Доступно",
+            "creditUsage": "Использование лимита",
+            "afterPosting": "После проведения",
+            "change": "Изменение",
+            "debtAfter": "Долг после",
+            "creditAfter": "Лимит после"
+        },
+        "detail": {
+            "loading": "Загрузка...",
+            "notFound": "Документ не найден",
+            "backToList": "Назад к списку",
+            "salesDocument": "Документ продажи",
+            "lineItems": "Строки",
+            "addLine": "Добавить строку (Ins)",
+            "noLineItems": "Строк пока нет. Нажмите \"Добавить строку\" или Ins",
+            "na": "Н/Д",
+            "table": {
+                "discount": "Скидка",
+                "vat": "НДС"
+            },
+            "shortcuts": {
+                "post": "Провести",
+                "addLine": "Добавить строку",
+                "deleteLine": "Удалить строку",
+                "save": "Сохранить"
+            },
+            "toasts": {
+                "postSuccessTitle": "Документ проведен",
+                "postSuccessDescription": "Сформированы движения и проводки",
+                "postErrorTitle": "Ошибка проведения",
+                "postErrorDescription": "Не удалось провести документ",
+                "unpostSuccess": "Проведение документа отменено",
+                "lineDeleted": "Строка удалена",
+                "documentSaved": "Документ сохранен",
+                "addLineFailed": "Не удалось добавить строку"
+            },
+            "toolbar": {
+                "postTitle": "Провести документ (F9)",
+                "postAndClose": "Провести и закрыть",
+                "unpostTitle": "Отменить проведение документа",
+                "showPostingsTitle": "Показать бухгалтерские проводки (Дт/Кт)",
+                "showPostings": "Показать проводки",
+                "printStandard": "Стандартная форма",
+                "printDetailed": "Подробная форма",
+                "printPacking": "Упаковочный лист",
+                "printSettings": "Настройки печати",
+                "createBasedOn": "Создать на основании",
+                "more": "Еще",
+                "copyDocument": "Скопировать документ",
+                "changeHistory": "История изменений",
+                "deleteDocument": "Удалить документ"
+            },
+            "tabs": {
+                "details": "Детали",
+                "movements": "Движения",
+                "journal": "Проводки",
+                "audit": "Аудит",
+                "detailsInfo": "Детали документа отображаются в основном блоке выше.",
+                "noMovements": "Движений пока нет. Проведите документ, чтобы сформировать движения.",
+                "noAudit": "Аудит изменений отсутствует."
+            },
+            "context": {
+                "title": "Контекст",
+                "customerDebt": "Долг покупателя",
+                "creditLimit": "Кредитный лимит",
+                "overLimit": "Лимит превышен!",
+                "lastPayment": "Последний платеж",
+                "recentDocuments": "Последние документы",
+                "stockBalance": "Остатки на складе",
+                "onHand": "В наличии",
+                "days": "дней",
+                "daysOverdue": "дн. просрочки",
+                "risk": {
+                    "blocked": "БЛОКИРОВКА!",
+                    "limitExceeded": "ПРЕВЫШЕН ЛИМИТ",
+                    "attention": "ВНИМАНИЕ",
+                    "overdue": "Просрочка",
+                    "debtExceededBy": "Долг превышает лимит на"
+                }
+            },
+            "priceBreakdown": {
+                "title": "Расчет цены",
+                "discount": "Скидка",
+                "afterDiscount": "После скидки",
+                "vat": "НДС"
             }
         }
     },
@@ -426,6 +672,39 @@
     "reports": {
         "title": "Отчеты",
         "description": "Финансовые и операционные отчеты",
+        "trialBalance": "Оборотно-сальдовая ведомость",
+        "profitLoss": "Прибыли и убытки",
+        "trialBalancePage": {
+            "subtitle": "Оборотно-сальдовая ведомость (ОСВ)",
+            "excel": "Excel",
+            "reportParameters": "Параметры отчета",
+            "generate": "Сформировать",
+            "openingBalance": "Сальдо на начало",
+            "turnover": "Обороты",
+            "closingBalance": "Сальдо на конец",
+            "debit": "Дебет",
+            "credit": "Кредит",
+            "loading": "Загрузка..."
+        },
+        "profitLossPage": {
+            "subtitle": "Отчет о прибылях и убытках (P&L)",
+            "styleBadge": "В стиле 1С",
+            "excel": "Excel",
+            "reportParameters": "Параметры отчета",
+            "compareWith": "Сравнить с",
+            "incomeLegend": "Доходы (кредитовые обороты)",
+            "expenseLegend": "Расходы (дебетовые обороты)",
+            "builtFrom": "Сформировано по проведенным документам, метод начисления",
+            "loading": "Загрузка...",
+            "table": {
+                "indicator": "Показатель",
+                "currentPeriod": "Текущий период",
+                "previousPeriod": "Предыдущий период",
+                "change": "Изменение",
+                "report": "Отчет",
+                "journalEntries": "Проводки"
+            }
+        },
         "accountingReports": "Бухгалтерские отчеты",
         "accountingReportsDesc": "Доступ к подробным финансовым отчетам и анализу",
         "chartOfAccountsDesc": "Структура плана счетов",

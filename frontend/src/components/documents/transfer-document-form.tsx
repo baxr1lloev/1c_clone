@@ -42,7 +42,8 @@ interface TransferDocumentFormProps {
 }
 
 export function TransferDocumentForm({ initialData, mode }: TransferDocumentFormProps) {
-    const t = useTranslations('documents')
+    const tDetail = useTranslations('documents.detail')
+    const tTransferForm = useTranslations('documents.transferForm')
     const tc = useTranslations('common')
     const tf = useTranslations('fields')
     const router = useRouter()
@@ -72,11 +73,11 @@ export function TransferDocumentForm({ initialData, mode }: TransferDocumentForm
             }
         },
         onSuccess: (data) => {
-            toast.success(mode === 'create' ? 'Transfer created' : 'Transfer updated')
+            toast.success(mode === 'create' ? tTransferForm('created') : tTransferForm('updated'))
             queryClient.invalidateQueries({ queryKey: ['transfers'] })
             router.push(`/documents/transfers/${data.id}`)
         },
-        onError: (error: any) => {
+        onError: (error: unknown) => {
             const { title, description } = mapApiError(error)
             toast.error(title, { description })
         },
@@ -98,7 +99,7 @@ export function TransferDocumentForm({ initialData, mode }: TransferDocumentForm
         setLines(lines.filter((_, i) => i !== index))
     }
 
-    const updateLine = (index: number, field: keyof TransferDocumentLine, value: any) => {
+    const updateLine = (index: number, field: 'item' | 'quantity', value: number) => {
         const newLines = [...lines]
         newLines[index] = { ...newLines[index], [field]: value }
         setLines(newLines)
@@ -111,19 +112,21 @@ export function TransferDocumentForm({ initialData, mode }: TransferDocumentForm
     const columns: ColumnDef<TransferDocumentLine>[] = [
         {
             accessorKey: 'item',
-            header: 'Item',
+            header: tf('item'),
             cell: ({ row }) => (
                 <ReferenceSelector
                     apiEndpoint="/directories/items/"
                     value={row.original.item}
-                    onSelect={(val) => updateLine(row.index, 'item', val)}
+                    onSelect={(val) => updateLine(row.index, 'item', Number(val || 0))}
+                    placeholder={tTransferForm('selectItem')}
+                    label=""
                     disabled={!canEdit}
                 />
             ),
         },
         {
             accessorKey: 'quantity',
-            header: 'Quantity',
+            header: tf('quantity'),
             cell: ({ row }) => (
                 <Input
                     type="number"
@@ -152,14 +155,14 @@ export function TransferDocumentForm({ initialData, mode }: TransferDocumentForm
     const actions: CommandBarAction[] = [
         {
             icon: <PiFloppyDiskBold />,
-            label: 'Save',
+            label: tc('save'),
             shortcut: 'Ctrl+S',
             onClick: handleSave,
             disabled: !canEdit,
         },
         {
             icon: <PiXBold />,
-            label: 'Cancel',
+            label: tc('cancel'),
             shortcut: 'Esc',
             onClick: () => router.back(),
             variant: 'ghost',
@@ -192,20 +195,24 @@ export function TransferDocumentForm({ initialData, mode }: TransferDocumentForm
                             />
                         </div>
                         <div>
-                            <Label>From Warehouse</Label>
+                            <Label>{tf('sourceWarehouse')}</Label>
                             <ReferenceSelector
                                 apiEndpoint="/directories/warehouses/"
                                 value={formData.from_warehouse}
                                 onSelect={(val) => setFormData({ ...formData, from_warehouse: val as number })}
+                                placeholder={tTransferForm('selectWarehouse')}
+                                label=""
                                 disabled={!canEdit}
                             />
                         </div>
                         <div>
-                            <Label>To Warehouse</Label>
+                            <Label>{tf('targetWarehouse')}</Label>
                             <ReferenceSelector
                                 apiEndpoint="/directories/warehouses/"
                                 value={formData.to_warehouse}
                                 onSelect={(val) => setFormData({ ...formData, to_warehouse: val as number })}
+                                placeholder={tTransferForm('selectWarehouse')}
+                                label=""
                                 disabled={!canEdit}
                             />
                         </div>
@@ -222,11 +229,11 @@ export function TransferDocumentForm({ initialData, mode }: TransferDocumentForm
                     {/* Lines */}
                     <div>
                         <div className="flex justify-between items-center mb-2">
-                            <h3 className="text-lg font-semibold">Items</h3>
+                            <h3 className="text-lg font-semibold">{tTransferForm('items')}</h3>
                             {canEdit && (
                                 <Button onClick={addLine} size="sm">
                                     <PiPlusBold className="mr-2 h-4 w-4" />
-                                    Add Line
+                                    {tDetail('shortcuts.addLine')}
                                 </Button>
                             )}
                         </div>

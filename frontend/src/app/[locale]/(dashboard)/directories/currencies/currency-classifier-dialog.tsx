@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { useState, useEffect, useCallback } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { api } from "@/lib/api"
 import { useQueryClient } from "@tanstack/react-query"
 import { Loader2 } from "lucide-react"
+import { useTranslations } from "next-intl"
 
 interface ClassifierCurrency {
     code: string
@@ -26,14 +27,11 @@ export function CurrencyClassifierDialog({ open, onOpenChange }: CurrencyClassif
     const [loading, setLoading] = useState(false)
     const [adding, setAdding] = useState(false)
     const queryClient = useQueryClient()
+    const td = useTranslations("directories")
+    const tc = useTranslations("common")
+    const tf = useTranslations("fields")
 
-    useEffect(() => {
-        if (open) {
-            loadClassifier()
-        }
-    }, [open])
-
-    const loadClassifier = async () => {
+    const loadClassifier = useCallback(async () => {
         setLoading(true)
         try {
             const res = await api.get<ClassifierCurrency[]>('/directories/currencies/load_from_classifier/')
@@ -43,7 +41,13 @@ export function CurrencyClassifierDialog({ open, onOpenChange }: CurrencyClassif
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        if (open) {
+            loadClassifier()
+        }
+    }, [open, loadClassifier])
 
     const handleToggle = (code: string) => {
         setSelected(prev =>
@@ -70,7 +74,7 @@ export function CurrencyClassifierDialog({ open, onOpenChange }: CurrencyClassif
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>Add Currency from Classifier</DialogTitle>
+                    <DialogTitle>{td("currenciesPage.classifierTitle")}</DialogTitle>
                 </DialogHeader>
 
                 {loading ? (
@@ -83,9 +87,9 @@ export function CurrencyClassifierDialog({ open, onOpenChange }: CurrencyClassif
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="w-[50px]"></TableHead>
-                                    <TableHead>Code</TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Symbol</TableHead>
+                                    <TableHead>{tc("code")}</TableHead>
+                                    <TableHead>{tc("name")}</TableHead>
+                                    <TableHead>{tf("symbol")}</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -102,16 +106,23 @@ export function CurrencyClassifierDialog({ open, onOpenChange }: CurrencyClassif
                                         <TableCell>{currency.symbol}</TableCell>
                                     </TableRow>
                                 ))}
+                                {currencies.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
+                                            {tc("noData")}
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
                     </div>
                 )}
 
                 <div className="flex justify-end gap-2 mt-4">
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>{tc("cancel")}</Button>
                     <Button onClick={handleAdd} disabled={adding || selected.length === 0}>
                         {adding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Add Selected
+                        {td("currenciesPage.addSelected")}
                     </Button>
                 </div>
             </DialogContent>

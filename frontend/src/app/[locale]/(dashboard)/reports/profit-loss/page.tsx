@@ -2,19 +2,35 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, Filter, RefreshCw, Calendar as CalendarIcon } from 'lucide-react';
+import { Download, Filter, RefreshCw } from 'lucide-react';
 import api from '@/lib/api';
 import { ProfitLossTable } from '@/components/reports/profit-loss-table';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format, subMonths } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { Calendar } from '@/components/ui/calendar';
+import { subMonths } from 'date-fns';
+
+interface ProfitLossRow {
+    id: string;
+    name: string;
+    level: number;
+    type: 'income' | 'expense' | 'total' | 'group_header' | 'final_total';
+    amount: number;
+    amount_prev: number;
+    change_percent: number;
+    formula?: string;
+    is_calculated?: boolean;
+    is_group?: boolean;
+    drill_down_filter?: {
+        account: string;
+        type: 'debit' | 'credit';
+    };
+}
 
 export default function ProfitLossPage() {
-    const router = useRouter();
+    const tReports = useTranslations('reports');
+    const tCommon = useTranslations('common');
+    const tFields = useTranslations('fields');
 
     // Dates
     const [startDate, setStartDate] = useState(
@@ -30,39 +46,49 @@ export default function ProfitLossPage() {
         subMonths(new Date(), 1).toISOString().slice(0, 10)
     );
 
-    const { data: reportData, isLoading, refetch } = useQuery({
+    const { data: reportData = [], isLoading, refetch } = useQuery<ProfitLossRow[]>({
         queryKey: ['profit-loss', startDate, endDate, compareStart, compareEnd],
         queryFn: async () => {
-            const response = await api.get('/reports/profit-loss/', {
-                params: {
-                    start_date: startDate,
-                    end_date: endDate,
-                    compare_start_date: compareStart,
-                    compare_end_date: compareEnd
-                }
-            });
-            return response.data;
-        }
+            try {
+                const response = await api.get<
+                    ProfitLossRow[] | { rows?: ProfitLossRow[]; data?: ProfitLossRow[] }
+                >('/reports/profit-loss/', {
+                    params: {
+                        start_date: startDate,
+                        end_date: endDate,
+                        compare_start_date: compareStart,
+                        compare_end_date: compareEnd
+                    }
+                });
+                if (Array.isArray(response)) return response;
+                if (Array.isArray(response?.rows)) return response.rows;
+                if (Array.isArray(response?.data)) return response.data;
+                return [];
+            } catch {
+                return [];
+            }
+        },
+        initialData: [],
     });
 
     return (
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold">Отчет о прибылях и убытках</h1>
+                    <h1 className="text-3xl font-bold">{tReports('profitLoss')}</h1>
                     <p className="text-muted-foreground flex items-center gap-2">
-                        Profit & Loss (P&L)
+                        {tReports('profitLossPage.subtitle')}
                         <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                            1C-Style
+                            {tReports('profitLossPage.styleBadge')}
                         </span>
                     </p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => refetch()}>
-                        <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+                        <RefreshCw className="mr-2 h-4 w-4" /> {tCommon('refresh')}
                     </Button>
                     <Button variant="outline">
-                        <Download className="mr-2 h-4 w-4" /> Excel
+                        <Download className="mr-2 h-4 w-4" /> {tReports('profitLossPage.excel')}
                     </Button>
                 </div>
             </div>
@@ -71,14 +97,14 @@ export default function ProfitLossPage() {
             <Card>
                 <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
-                        <Filter className="h-4 w-4" /> Report Parameters
+                        <Filter className="h-4 w-4" /> {tReports('profitLossPage.reportParameters')}
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="flex flex-wrap gap-6 items-end">
                         {/* Current Period */}
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Period</label>
+                            <label className="text-sm font-medium">{tFields('period')}</label>
                             <div className="flex items-center gap-2">
                                 <input
                                     type="date"
@@ -98,7 +124,7 @@ export default function ProfitLossPage() {
 
                         {/* Comparison Period */}
                         <div className="space-y-2 border-l pl-6">
-                            <label className="text-sm font-medium text-muted-foreground">Compare With</label>
+                            <label className="text-sm font-medium text-muted-foreground">{tReports('profitLossPage.compareWith')}</label>
                             <div className="flex items-center gap-2">
                                 <input
                                     type="date"
@@ -121,14 +147,14 @@ export default function ProfitLossPage() {
                     <div className="mt-4 pt-4 border-t text-xs text-muted-foreground flex gap-6">
                         <div className="flex items-center gap-1">
                             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            <span>Income (Credit Turnovers)</span>
+                            <span>{tReports('profitLossPage.incomeLegend')}</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <span className="w-2 h-2 rounded-full bg-slate-500"></span>
-                            <span>Expense (Debit Turnovers)</span>
+                            <span>{tReports('profitLossPage.expenseLegend')}</span>
                         </div>
                         <div className="ml-auto italic">
-                            Built from: ✔ Posted documents only • ✔ Accrual method
+                            {tReports('profitLossPage.builtFrom')}
                         </div>
                     </div>
                 </CardContent>
@@ -138,10 +164,10 @@ export default function ProfitLossPage() {
             <Card className="min-h-[400px]">
                 <CardContent className="p-0">
                     {isLoading ? (
-                        <div className="flex items-center justify-center py-20">Loading...</div>
+                        <div className="flex items-center justify-center py-20">{tReports('profitLossPage.loading')}</div>
                     ) : (
                         <ProfitLossTable
-                            data={reportData || []}
+                            data={reportData}
                             startDate={startDate}
                             endDate={endDate}
                         />
