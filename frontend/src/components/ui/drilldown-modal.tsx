@@ -94,7 +94,7 @@ export function DrillDownModal({ title, description, endpoint, isOpen, onClose }
         queryKey: ['drilldown', endpoint],
         queryFn: async () => {
             const response = await api.get(endpoint);
-            return response.data;
+            return response;
         },
         enabled: isOpen
     });

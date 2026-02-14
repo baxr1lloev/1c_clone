@@ -178,7 +178,6 @@ export default function CashOrdersPage() {
           type="cash-order"
           label={row.getValue("number")}
           className="font-mono text-primary font-bold"
-          onClick={() => handleView(row.original)}
         />
       ),
     },
@@ -368,7 +367,7 @@ export default function CashOrdersPage() {
                     onColumnVisibilityChange={setColumnVisibility}
                     tableName="cash_orders"
                   />
-                  <HelpPanel context="cash-orders" />
+                  <HelpPanel context="document-form" />
                 </div>
               </div>
             }
@@ -390,7 +389,7 @@ export default function CashOrdersPage() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t.rich("cashOrders.alerts.deleteConfirmation", {
-                number: selectedItem?.number,
+                number: selectedItem?.number ?? '',
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>

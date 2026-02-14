@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
@@ -47,14 +47,14 @@ export default function FixedAssetsPage() {
     const { data, isLoading } = useQuery({
         queryKey: ['fixed-assets'],
         queryFn: async () => {
-            const response = await api.get<PaginatedResponse<FixedAsset>>('/fixed_assets/assets/');
+            const response = await api.get<PaginatedResponse<FixedAsset>>('/fixed-assets/assets/');
             return response.results;
         },
     });
 
     // Delete Mutation
     const deleteMutation = useMutation({
-        mutationFn: async (id: number) => api.delete(`/fixed_assets/assets/${id}/`),
+        mutationFn: async (id: number) => api.delete(`/fixed-assets/assets/${id}/`),
         onSuccess: () => {
             toast.success(tc('deletedSuccessfully'));
             queryClient.invalidateQueries({ queryKey: ['fixed-assets'] });
@@ -186,7 +186,7 @@ export default function FixedAssetsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>{tc('confirmDelete')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            {tc('deleteWarning', { item: selectedItem?.name })}
+                            {tc('deleteWarning', { item: selectedItem?.name ?? '' })}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

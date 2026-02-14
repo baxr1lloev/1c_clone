@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
@@ -47,14 +47,14 @@ export default function FAReceiptsPage() {
     const { data, isLoading } = useQuery({
         queryKey: ['fa-receipts'],
         queryFn: async () => {
-            const response = await api.get<PaginatedResponse<FAReceiptDocument>>('/fixed_assets/receipts/');
+            const response = await api.get<PaginatedResponse<FAReceiptDocument>>('/fixed-assets/receipts/');
             return response.results;
         },
     });
 
     // Delete Mutation
     const deleteMutation = useMutation({
-        mutationFn: async (id: number) => api.delete(`/fixed_assets/receipts/${id}/`),
+        mutationFn: async (id: number) => api.delete(`/fixed-assets/receipts/${id}/`),
         onSuccess: () => {
             toast.success(tc('deletedSuccessfully'));
             queryClient.invalidateQueries({ queryKey: ['fa-receipts'] });
@@ -174,7 +174,7 @@ export default function FAReceiptsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>{tc('confirmDelete')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            {tc('deleteWarning', { item: selectedItem?.number })}
+                            {tc('deleteWarning', { item: selectedItem?.number ?? '' })}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

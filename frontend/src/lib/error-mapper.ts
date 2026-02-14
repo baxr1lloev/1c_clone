@@ -26,8 +26,17 @@ export function mapApiError(error: any): ErrorResponse {
     // 1. Status Code Mapping (The "Why")
     switch (status) {
         case 500:
-            result.title = "Document Not Posted";
-            result.description = "Internal inconsistency detected. Please check stock levels and account balances.";
+            result.title = "Server Error";
+            // Prefer the actual error from the API so users see the real cause
+            const errMsg =
+                (typeof data === "object" && data !== null && typeof (data as any).error === "string")
+                    ? (data as any).error
+                    : (typeof data === "object" && data !== null && (data as any).detail)
+                        ? String((data as any).detail)
+                        : null;
+            result.description =
+                errMsg ||
+                "Internal inconsistency detected. Please check stock levels and account balances. You can run Reconciliation (Operations → Reconciliation) or rebuild stock balances if needed.";
             return result;
         case 403:
             result.title = "Access Denied";

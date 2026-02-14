@@ -88,12 +88,18 @@ export function ProductionForm({ initialData, mode }: ProductionFormProps) {
     // Fetch Data
     const { data: warehouses } = useQuery<Warehouse[]>({
         queryKey: ["warehouses"],
-        queryFn: async () => (await api.get("/directories/warehouses/")).data.results,
+        queryFn: async () => {
+            const res = await api.get("/directories/warehouses/") as { results?: Warehouse[] } | Warehouse[];
+            return Array.isArray(res) ? res : (res?.results ?? []);
+        },
     });
 
     const { data: items } = useQuery<Item[]>({
         queryKey: ["items"],
-        queryFn: async () => (await api.get("/directories/items/")).data.results,
+        queryFn: async () => {
+            const res = await api.get("/directories/items/") as { results?: Item[] } | Item[];
+            return Array.isArray(res) ? res : (res?.results ?? []);
+        },
     });
 
     const form = useForm<FormValues>({

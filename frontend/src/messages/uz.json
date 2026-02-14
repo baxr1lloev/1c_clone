@@ -75,7 +75,8 @@
         "updatedSuccessfully": "Muvaffaqiyatli yangilandi"
         ,
         "copyLink": "Havolani nusxalash",
-        "copied": "Nusxalandi!"
+        "copied": "Nusxalandi!",
+        "deleteWarning": "\"{item}\" ni o'chirishni xohlaysizmi? Bu amalni bekor qilib bo'lmaydi."
     },
     "auth": {
         "login": "Kirish",
@@ -154,6 +155,30 @@
         "contracts": "Shartnomalar",
         "warehouses": "Omborlar",
         "items": "Mahsulotlar",
+        "fixedAssets": "Asosiy vositalar",
+        "intangibleAssets": {
+            "title": "Nomoddiy aktivlar",
+            "name": "Nomi",
+            "category": "Kategoriya",
+            "initialCost": "Bosh qiymat",
+            "currentValue": "Joriy qiymat",
+            "searchPlaceholder": "Qidirish...",
+            "inventoryNumber": "Inventar raqami",
+            "newIntangibleAsset": "Yangi nomoddiy aktiv",
+            "editIntangibleAsset": "NMA ni tahrirlash",
+            "generalInfo": "Umumiy ma'lumot",
+            "financials": "Moliya",
+            "dates": "Sanalar",
+            "additionalInfo": "Qo'shimcha",
+            "selectCategory": "Kategoriyani tanlang",
+            "statusInUse": "Foydalanilmoqda",
+            "statusWrittenOff": "Hisobdan chiqarilgan",
+            "usefulLifeMonths": "Foydalanish muddati (oy)",
+            "acquisitionDate": "Sotib olish sanasi",
+            "commissioningDate": "Ishga tushirish sanasi",
+            "description": "Tavsif"
+        },
+        "noCategory": "Kategoriyasiz",
         "addCurrency": "Valyuta qo'shish",
         "addCounterparty": "Kontragent qo'shish",
         "addContract": "Shartnoma qo'shish",
@@ -491,6 +516,7 @@
         "stockMovements": "Tovar harakatlari",
         "stockBalance": "Tovar qoldiqlari",
         "settlements": "Hisob-kitoblar",
+        "settlementBalances": "Hisob-kitob qoldiqlari",
         "reservations": "Zaxiralar",
         "batches": "Tovar partiyalari",
         "counterpartyStock": "Kontragentlardagi tovarlar",
@@ -622,6 +648,8 @@
         "counterparty": "Kontragent"
     },
     "fields": {
+        "name": "Nomi",
+        "code": "Kod",
         "account": "Hisob",
         "counterparty": "Kontragent",
         "supplier": "Yetkazib beruvchi",

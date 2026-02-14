@@ -66,7 +66,10 @@ export function UserForm({ initialData, open, onOpenChange, onSuccess }: UserFor
     // Fetch Roles
     const { data: roles } = useQuery<Role[]>({
         queryKey: ["roles"],
-        queryFn: async () => (await api.get("/accounts/roles/")).data.results,
+        queryFn: async () => {
+            const res = await api.get("/accounts/roles/") as { results?: Role[] } | Role[];
+            return Array.isArray(res) ? res : (res?.results ?? []);
+        },
     });
 
     const form = useForm<FormValues>({

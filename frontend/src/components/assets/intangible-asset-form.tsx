@@ -61,12 +61,17 @@ export function IntangibleAssetForm({ initialData, onSuccess }: IntangibleAssetF
     const queryClient = useQueryClient();
     const isEdit = !!initialData;
 
-    // Fetch Categories
+    // Fetch Categories (api.get returns response body; handle both shapes and failures)
     const { data: categories } = useQuery({
         queryKey: ['intangible-asset-categories'],
         queryFn: async () => {
-            const res = await api.get('/fixed_assets/ia/categories/');
-            return res.data.results as IntangibleAssetCategory[];
+            try {
+                const res = await api.get('/fixed-assets/ia/categories/');
+                const list = Array.isArray(res) ? res : (res?.results ?? res?.data?.results);
+                return (list || []) as IntangibleAssetCategory[];
+            } catch {
+                return [];
+            }
         }
     });
 
@@ -88,9 +93,9 @@ export function IntangibleAssetForm({ initialData, onSuccess }: IntangibleAssetF
     const mutation = useMutation({
         mutationFn: async (values: FormValues) => {
             if (isEdit) {
-                return api.patch(`/fixed_assets/ia/assets/${initialData.id}/`, values);
+                return api.patch(`/fixed-assets/ia/assets/${initialData.id}/`, values);
             } else {
-                return api.post('/fixed_assets/ia/assets/', values);
+                return api.post('/fixed-assets/ia/assets/', values);
             }
         },
         onSuccess: () => {

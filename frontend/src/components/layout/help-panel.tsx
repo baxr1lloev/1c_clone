@@ -82,7 +82,7 @@ export function HelpPanel({ context = 'sales-list' }: HelpPanelProps) {
                         </AccordionContent>
                     </AccordionItem>
 
-                    {helpContent.features && (
+                    {'features' in helpContent && helpContent.features && (
                         <AccordionItem value="features">
                             <AccordionTrigger>Features</AccordionTrigger>
                             <AccordionContent>

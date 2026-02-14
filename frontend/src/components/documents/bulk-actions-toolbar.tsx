@@ -34,11 +34,11 @@ export function BulkActionsToolbar({
     // Bulk post mutation
     const { mutate: bulkPost, isPending: isPosting } = useMutation({
         mutationFn: async (ids: number[]) => {
-            const response = await api.post('/documents/bulk-post', {
+            const response = await api.post('/documents/bulk-post/', {
                 document_type: documentType,
                 document_ids: ids
-            });
-            return response.data;
+            }) as { success: { id: number }[]; failed: { id: number; error: string }[] };
+            return response;
         },
         onSuccess: (data) => {
             toast.success(`Posted ${data.success.length} documents`);
@@ -58,11 +58,11 @@ export function BulkActionsToolbar({
     // Bulk unpost mutation
     const { mutate: bulkUnpost } = useMutation({
         mutationFn: async (ids: number[]) => {
-            const response = await api.post('/documents/bulk-unpost', {
+            const response = await api.post('/documents/bulk-unpost/', {
                 document_type: documentType,
                 document_ids: ids
-            });
-            return response.data;
+            }) as { success: { id: number }[]; failed: { id: number; error: string }[] };
+            return response;
         },
         onSuccess: (data) => {
             toast.success(`Unposted ${data.success.length} documents`);
@@ -79,11 +79,11 @@ export function BulkActionsToolbar({
     // Bulk delete mutation
     const { mutate: bulkDelete } = useMutation({
         mutationFn: async (ids: number[]) => {
-            const response = await api.post('/documents/bulk-delete', {
+            const response = await api.post('/documents/bulk-delete/', {
                 document_type: documentType,
                 document_ids: ids
-            });
-            return response.data;
+            }) as { success: { id: number }[]; failed: { id: number; error: string }[] };
+            return response;
         },
         onSuccess: (data) => {
             toast.success(`Marked ${data.success.length} documents for deletion`);

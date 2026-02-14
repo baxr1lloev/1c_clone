@@ -9,7 +9,7 @@ type ReferenceType =
     | 'sales-document' | 'purchase-document' | 'payment-document'
     | 'salesdocument' | 'purchasedocument' | 'paymentdocument'
     | 'transferdocument' | 'inventorydocument' | 'stockmovement' | 'accountingentry'
-    | 'account' | 'bank-account';
+    | 'account' | 'bank-account' | 'cash-order';
 
 
 interface ReferenceLinkProps {
@@ -43,7 +43,8 @@ const URL_MAP: Record<ReferenceType, string> = {
     'stockmovement': '/registers/stock-movements', // Fallback
     'accountingentry': '/registers/journal-entries', // Fallback
     'account': '/accounting/general-ledger',
-    'bank-account': '/directories/bank-accounts'
+    'bank-account': '/directories/bank-accounts',
+    'cash-order': '/documents/cash-orders',
 };
 
 

@@ -10,7 +10,6 @@ import api from '@/lib/api';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { AccountSelect } from '@/components/directories/account-select'; // Assuming this exists or will use a simple select
 
 interface AccountEntry {
     id: number;

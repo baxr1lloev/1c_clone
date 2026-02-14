@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { LinkableCell } from "@/components/ui/linkable-cell";
 import { StatusBar } from "@/components/ui/status-bar";
 import { getDocumentRowClassName } from "@/components/data-table/row-styles";
@@ -578,7 +578,7 @@ export default function SalesDocumentsPage() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t.rich("sales.alerts.deleteConfirmation", {
-                number: selectedItem?.number,
+                number: selectedItem?.number ?? '',
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>

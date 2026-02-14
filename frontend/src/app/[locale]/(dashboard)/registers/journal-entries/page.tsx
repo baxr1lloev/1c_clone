@@ -31,11 +31,15 @@ export default function JournalEntriesPage() {
     const { data: entriesData, isLoading } = useQuery({
         queryKey: ['journal-entries', startDate, endDate],
         queryFn: async () => {
-            const params = new URLSearchParams();
-            if (startDate) params.append('period_after', startDate);
-            if (endDate) params.append('period_before', endDate);
-            const response = await api.get(`/api/accounting/journal-entries/?${params.toString()}`);
-            return response.data;
+            try {
+                const params = new URLSearchParams();
+                if (startDate) params.append('period_after', startDate);
+                if (endDate) params.append('period_before', endDate);
+                const response = await api.get(`/api/accounting/journal-entries/?${params.toString()}`);
+                return response?.data ?? response ?? [];
+            } catch {
+                return [];
+            }
         },
     });
 

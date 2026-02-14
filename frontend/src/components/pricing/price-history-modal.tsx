@@ -13,7 +13,7 @@ interface PriceHistoryModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     itemId: number;
-    item Name ?: string;
+    itemName?: string;
 }
 
 interface PriceHistoryEntry {

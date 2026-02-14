@@ -23,7 +23,7 @@ export default function DepreciationSchedulePage() {
     const { data, isLoading } = useQuery({
         queryKey: ['depreciation-schedule'],
         queryFn: async () => {
-            const res = await api.get('/fixed-assets/depreciation-schedule/')
+            const res = await api.get('/fixed-assets/depreciation/')
             return res.data
         }
     })

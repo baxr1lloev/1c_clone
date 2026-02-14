@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { CommandBar } from '@/components/ui/command-bar';
@@ -24,7 +25,7 @@ interface LedgerEntry {
   balance: number;
 }
 
-export default function GeneralLedgerPage() {
+function GeneralLedgerContent() {
   const t = useTranslations('accounting'); // Ensure this namespace exists or use 'common'
   const tc = useTranslations('common');
   const searchParams = useSearchParams();
@@ -128,5 +129,13 @@ export default function GeneralLedgerPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function GeneralLedgerPage() {
+  return (
+    <Suspense fallback={<div className="p-6 animate-pulse bg-muted/30 rounded-lg h-64" />}>
+      <GeneralLedgerContent />
+    </Suspense>
   );
 }

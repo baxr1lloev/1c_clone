@@ -24,7 +24,7 @@ export function RepostPeriodDialog({ open, onOpenChange }: RepostPeriodDialogPro
 
     const repostMutation = useMutation({
         mutationFn: async () => {
-            const response = await api.post('/documents/api/repost-period/', {
+            const response = await api.post('/documents/repost-period/', {
                 period_start: startDate,
                 period_end: endDate
             });

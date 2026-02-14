@@ -11,10 +11,11 @@ from .viewsets import (
     ContractViewSet,
     WarehouseViewSet,
     ItemViewSet,
-    ItemViewSet,
     ItemCategoryViewSet,
     BankAccountViewSet,
     EmployeeViewSet,
+    DepartmentViewSet,
+    ProjectViewSet,
 )
 from documents.api.item_context import get_item_context
 from .counterparty_context import get_counterparty_context
@@ -29,6 +30,8 @@ router.register(r'items', ItemViewSet, basename='item')
 router.register(r'categories', ItemCategoryViewSet, basename='category')
 router.register(r'bank-accounts', BankAccountViewSet, basename='bank-account')
 router.register(r'employees', EmployeeViewSet, basename='employee')
+router.register(r'departments', DepartmentViewSet, basename='department')
+router.register(r'projects', ProjectViewSet, basename='project')
 
 urlpatterns = [
     path('', include(router.urls)),

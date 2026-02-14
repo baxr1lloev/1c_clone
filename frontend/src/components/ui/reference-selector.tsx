@@ -28,6 +28,8 @@ interface ReferenceSelectorProps {
     placeholder?: string;
     label?: string;
     displayField?: string; // Field to show (default: name)
+    /** Secondary field for subtitle (e.g. 'sku' for items, 'code' for others) */
+    secondaryField?: string;
     className?: string;
     disabled?: boolean;
 }
@@ -39,6 +41,7 @@ export function ReferenceSelector({
     placeholder = "Select...",
     label = "Select",
     displayField = "name",
+    secondaryField,
     className,
     disabled = false
 }: ReferenceSelectorProps) {
@@ -46,19 +49,26 @@ export function ReferenceSelector({
     const [search, setSearch] = React.useState('');
     const debouncedSearch = useDebounce(search, 300);
 
-    // Fetch Logic
+    const isItemsEndpoint = apiEndpoint.includes("/items");
+    // Prefetch items when form loads so Sales/Purchases dropdown has stock to choose from
+    const fetchWhenOpenOrItems = open || isItemsEndpoint;
+
+    // Fetch Logic (tolerate 404/missing endpoints so form still works)
     const { data: items, isLoading } = useQuery({
         queryKey: [apiEndpoint, debouncedSearch],
         queryFn: async () => {
-            // 1C Logic: Search by code OR name
-            const params = new URLSearchParams();
-            if (debouncedSearch) params.append('search', debouncedSearch);
-
-            const res: any = await api.get(`${apiEndpoint}?${params.toString()}`);
-            // Handle pagination result { count, results } or flat list [ ... ]
-            return Array.isArray(res) ? res : res.results || [];
+            try {
+                const params = new URLSearchParams();
+                if (debouncedSearch) params.append("search", debouncedSearch);
+                const qs = params.toString();
+                const url = qs ? `${apiEndpoint.replace(/\?$/, "")}?${qs}` : apiEndpoint.replace(/\?$/, "");
+                const res: any = await api.get(url);
+                return Array.isArray(res) ? res : res.results || [];
+            } catch {
+                return [];
+            }
         },
-        enabled: open // Only fetch when open
+        enabled: fetchWhenOpenOrItems,
     });
 
     // Fetch Selected Item (if value exists but we don't have the object)
@@ -106,29 +116,38 @@ export function ReferenceSelector({
                         <CommandList>
                             {isLoading && <div className="p-2 text-xs text-muted-foreground">Loading...</div>}
                             {!isLoading && items?.length === 0 && (
-                                <CommandEmpty>No results found.</CommandEmpty>
+                                <CommandEmpty>
+                                    {isItemsEndpoint
+                                        ? "No items in stock. Add products in Nomenclature (Warehouse → Nomenclature)."
+                                        : "No results found."}
+                                </CommandEmpty>
                             )}
-                            {items?.map((item: any) => (
-                                <CommandItem
-                                    key={item.id}
-                                    value={String(item.id)}
-                                    onSelect={() => {
-                                        onSelect(item.id, item);
-                                        setOpen(false);
-                                    }}
-                                >
-                                    <PiCheckBold
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            value === item.id ? "opacity-100" : "opacity-0"
-                                        )}
-                                    />
-                                    <div className="flex flex-col">
-                                        <span>{item[displayField]}</span>
-                                        {item.code && <span className="text-[10px] text-muted-foreground">Code: {item.code}</span>}
-                                    </div>
-                                </CommandItem>
-                            ))}
+                            {items?.map((item: any) => {
+                                const code = secondaryField ? item[secondaryField] : (item.code ?? item.sku);
+                                return (
+                                    <CommandItem
+                                        key={item.id}
+                                        value={String(item.id)}
+                                        onSelect={() => {
+                                            onSelect(item.id, item);
+                                            setOpen(false);
+                                        }}
+                                    >
+                                        <PiCheckBold
+                                            className={cn(
+                                                "mr-2 h-4 w-4",
+                                                value === item.id ? "opacity-100" : "opacity-0"
+                                            )}
+                                        />
+                                        <div className="flex flex-col">
+                                            <span>{item[displayField]}</span>
+                                            {code != null && String(code).trim() !== "" && (
+                                                <span className="text-[10px] text-muted-foreground">SKU: {code}</span>
+                                            )}
+                                        </div>
+                                    </CommandItem>
+                                );
+                            })}
                         </CommandList>
                     </Command>
                 </PopoverContent>

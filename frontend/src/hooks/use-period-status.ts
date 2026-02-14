@@ -22,10 +22,10 @@ export function usePeriodStatus(date: string | Date) {
         queryKey: ['period-status', date],
         queryFn: async () => {
             const dateStr = date instanceof Date ? date.toISOString().split('T')[0] : date;
-            const response = await api.get('/accounting/api/period-status/', {
+            const response = await api.get('/accounting/period-status/', {
                 params: { date: dateStr }
             });
-            return response;
+            return response as PeriodStatus;
         },
         // Refetch periodically because period status can change
         refetchInterval: 60000, // 1 minute

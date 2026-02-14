@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
@@ -19,9 +19,9 @@ import type { PaymentDocument, PaginatedResponse, DocumentStatus, PaymentType } 
 import { CommandBar, CommandBarAction } from '@/components/ui/command-bar';
 
 const decorationPayments: PaymentDocument[] = [
-  { id: 1, tenant: 1, number: 'PAY-2024-0001', date: '2024-01-20', status: 'posted', is_posted: true, comment: '', payment_type: 'INCOMING', payment_method: 'bank_transfer', counterparty: 1, contract: 1, currency: 1, rate: 1, amount: 1650, purpose: 'Payment for SL-2024-0001', created_by: 1, posted_by: 1, posted_at: '2024-01-20', created_at: '2024-01-20', updated_at: '2024-01-20' },
-  { id: 2, tenant: 1, number: 'PAY-2024-0002', date: '2024-01-21', status: 'posted', is_posted: true, comment: '', payment_type: 'OUTGOING', payment_method: 'bank_transfer', counterparty: 2, contract: null, currency: 1, rate: 1, amount: 5500, purpose: 'Payment for PR-2024-0001', created_by: 1, posted_by: 1, posted_at: '2024-01-21', created_at: '2024-01-21', updated_at: '2024-01-21' },
-  { id: 3, tenant: 1, number: 'PAY-2024-0003', date: '2024-01-22', status: 'draft', is_posted: false, comment: '', payment_type: 'INCOMING', payment_method: 'cash', counterparty: 3, contract: null, currency: 1, rate: 1, amount: 2000, purpose: 'Advance payment', created_by: 1, posted_by: null, posted_at: null, created_at: '2024-01-22', updated_at: '2024-01-22' },
+  { id: 1, tenant: 1, number: 'PAY-2024-0001', date: '2024-01-20', status: 'posted', is_posted: true, comment: '', payment_type: 'INCOMING', payment_method: 'bank_transfer', counterparty: 1, contract: 1, currency: 1, rate: 1, amount: 1650, purpose: 'Payment for SL-2024-0001', bank_account: 1, created_by: 1, posted_by: 1, posted_at: '2024-01-20', created_at: '2024-01-20', updated_at: '2024-01-20' },
+  { id: 2, tenant: 1, number: 'PAY-2024-0002', date: '2024-01-21', status: 'posted', is_posted: true, comment: '', payment_type: 'OUTGOING', payment_method: 'bank_transfer', counterparty: 2, contract: null, currency: 1, rate: 1, amount: 5500, purpose: 'Payment for PR-2024-0001', bank_account: 1, created_by: 1, posted_by: 1, posted_at: '2024-01-21', created_at: '2024-01-21', updated_at: '2024-01-21' },
+  { id: 3, tenant: 1, number: 'PAY-2024-0003', date: '2024-01-22', status: 'draft', is_posted: false, comment: '', payment_type: 'INCOMING', payment_method: 'cash', counterparty: 3, contract: null, currency: 1, rate: 1, amount: 2000, purpose: 'Advance payment', bank_account: null, created_by: 1, posted_by: null, posted_at: null, created_at: '2024-01-22', updated_at: '2024-01-22' },
 ];
 
 const statusColors: Record<DocumentStatus, string> = {

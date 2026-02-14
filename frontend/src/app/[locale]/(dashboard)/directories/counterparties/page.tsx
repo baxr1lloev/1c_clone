@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -339,7 +339,7 @@ export default function CounterpartiesPage() {
                     onColumnVisibilityChange={setColumnVisibility}
                     tableName="counterparties"
                   />
-                  <HelpPanel context="counterparties" />
+                  <HelpPanel context="counterparty-list" />
                 </div>
               </div>
             }
@@ -361,7 +361,7 @@ export default function CounterpartiesPage() {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {t.rich("counterpartiesPage.alerts.deleteConfirmation", {
-                name: selectedItem?.name,
+                name: selectedItem?.name ?? '',
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>

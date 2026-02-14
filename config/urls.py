@@ -8,6 +8,7 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 from accounts.api.views import RegisterView, CurrentUserView
+from accounting.api_views import period_status as accounting_period_status
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -53,9 +54,9 @@ urlpatterns = [
         # Admin / Audit
         path('admin/', include('audit_log.urls')),
         
-        # Existing VAT API
-        # Existing VAT API
+        # VAT & accounting (period closing, operations, period status)
         path('vat/', include('accounting.api.urls')),
+        path('accounting/period-status/', accounting_period_status),
         
         # Reports API (consolidated)
         path('reports/', include('reports.api.urls')),

@@ -67,7 +67,7 @@ export function IAReceiptDocumentForm({ initialData, onSuccess, mode = 'create' 
     const { data: assets } = useQuery({
         queryKey: ['intangible-assets-generic'],
         queryFn: async () => {
-            const res = await api.get('/fixed_assets/ia/assets/');
+            const res = await api.get('/fixed-assets/ia/assets/');
             return res.data.results as IntangibleAsset[];
         }
     });
@@ -85,9 +85,9 @@ export function IAReceiptDocumentForm({ initialData, onSuccess, mode = 'create' 
     const mutation = useMutation({
         mutationFn: async (values: FormValues) => {
             if (initialData) {
-                return api.patch(`/fixed_assets/ia/receipts/${initialData.id}/`, values);
+                return api.patch(`/fixed-assets/ia/receipts/${initialData.id}/`, values);
             } else {
-                return api.post('/fixed_assets/ia/receipts/', values);
+                return api.post('/fixed-assets/ia/receipts/', values);
             }
         },
         onSuccess: (data) => {
@@ -105,7 +105,7 @@ export function IAReceiptDocumentForm({ initialData, onSuccess, mode = 'create' 
     });
 
     const postMutation = useMutation({
-        mutationFn: async () => api.post(`/fixed_assets/ia/receipts/${initialData?.id}/post/`),
+        mutationFn: async () => api.post(`/fixed-assets/ia/receipts/${initialData?.id}/post/`),
         onSuccess: () => {
             toast.success(tc('postedSuccessfully'));
             queryClient.invalidateQueries({ queryKey: ['ia-receipts'] });

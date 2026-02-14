@@ -4,13 +4,15 @@ API endpoint for period status checking.
 Returns whether a period is closed and related metadata for enterprise reliability.
 """
 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from accounting.models import PeriodClosing
 from datetime import datetime
 
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def period_status(request):
     """
     Check if period is closed for a given date.

@@ -9,7 +9,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Sum
 
 from directories.models import (
-    Currency, ExchangeRate, Counterparty, Contract, Warehouse, Item, BankAccount, Employee
+    Currency, ExchangeRate, Counterparty, Contract, Warehouse, Item, BankAccount, Employee,
+    Department, Project,
 )
 from .serializers import (
     CurrencySerializer,
@@ -26,18 +27,23 @@ from .serializers import (
     BankAccountCreateUpdateSerializer,
     EmployeeSerializer,
     ItemCategorySerializer,
+    DepartmentSerializer,
+    ProjectSerializer,
 )
 from directories.models import ItemCategory
 
 class ItemCategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     serializer_class = ItemCategorySerializer
-    
+
     def get_queryset(self):
         qs = ItemCategory.objects.filter(tenant=self.request.user.tenant)
         if self.request.query_params.get('root_only'):
             return qs.filter(parent__isnull=True)
         return qs
+
+    def perform_create(self, serializer):
+        serializer.save(tenant=self.request.user.tenant)
 
 
 class TenantFilterMixin:
@@ -396,6 +402,18 @@ class ItemViewSet(TenantFilterMixin, viewsets.ModelViewSet):
             return ItemCreateUpdateSerializer
         return ItemSerializer
     
+    def create(self, request, *args, **kwargs):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Item create request data: {request.data}")
+        try:
+            return super().create(request, *args, **kwargs)
+        except Exception as e:
+            logger.error(f"Item create error: {e}, type: {type(e)}")
+            if hasattr(e, 'detail'):
+                logger.error(f"Error detail: {e.detail}")
+            raise
+    
     @action(detail=True, methods=['get'])
     def balances(self, request, pk=None):
         """Get current stock balances by warehouse (1C-style drill-down)."""
@@ -416,6 +434,44 @@ class ItemViewSet(TenantFilterMixin, viewsets.ModelViewSet):
         } for b in balances]
         
         return Response({'balances': balances_data})
+
+    @action(detail=False, methods=['post'])
+    def create_sample(self, request):
+        """Create sample items for current tenant so you can see them in Sales/Purchases."""
+        tenant = getattr(request.user, 'tenant', None)
+        if not tenant:
+            return Response(
+                {'error': 'User has no tenant.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        from directories.models import ItemCategory
+        created = []
+        cat, _ = ItemCategory.objects.get_or_create(
+            tenant=tenant, name='Goods', defaults={'code': 'GOODS', 'parent': None}
+        )
+        cat_svc, _ = ItemCategory.objects.get_or_create(
+            tenant=tenant, name='Services', defaults={'code': 'SRV', 'parent': None}
+        )
+        samples = [
+            ('ITEM-001', 'Sample Product A', 'GOODS', cat, 10, 15),
+            ('ITEM-002', 'Sample Product B', 'GOODS', cat, 25, 35),
+            ('ITEM-003', 'Office Supplies', 'GOODS', cat, 5, 8),
+            ('SVC-001', 'Delivery Service', 'SERVICE', cat_svc, 0, 20),
+        ]
+        for sku, name, item_type, category, purchase, selling in samples:
+            obj, is_new = Item.objects.get_or_create(
+                tenant=tenant, sku=sku,
+                defaults={
+                    'name': name, 'item_type': item_type, 'category': category,
+                    'unit': 'pcs', 'purchase_price': purchase, 'selling_price': selling,
+                }
+            )
+            if is_new:
+                created.append({'id': obj.id, 'name': obj.name, 'sku': obj.sku})
+        return Response({
+            'created': created,
+            'message': f'Created {len(created)} sample items. You can now select them in Sales and Purchases.',
+        })
     
     @action(detail=True, methods=['get'])
     def documents(self, request, pk=None):
@@ -529,6 +585,32 @@ class EmployeeViewSet(TenantFilterMixin, viewsets.ModelViewSet):
     search_fields = ['first_name', 'last_name', 'inn', 'email']
     ordering_fields = ['last_name', 'hiring_date']
     ordering = ['last_name', 'first_name']
+
+    def perform_create(self, serializer):
+        serializer.save(tenant=self.request.user.tenant)
+
+
+class DepartmentViewSet(TenantFilterMixin, viewsets.ModelViewSet):
+    """API endpoint for departments (cost centers)."""
+    queryset = Department.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = DepartmentSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['name', 'code']
+    ordering = ['name']
+
+    def perform_create(self, serializer):
+        serializer.save(tenant=self.request.user.tenant)
+
+
+class ProjectViewSet(TenantFilterMixin, viewsets.ModelViewSet):
+    """API endpoint for projects (P&L centers)."""
+    queryset = Project.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProjectSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['name', 'code']
+    ordering = ['-created_at']
 
     def perform_create(self, serializer):
         serializer.save(tenant=self.request.user.tenant)

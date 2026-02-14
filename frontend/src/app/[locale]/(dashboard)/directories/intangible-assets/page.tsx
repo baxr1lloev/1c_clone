@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
@@ -46,14 +46,14 @@ export default function IntangibleAssetsPage() {
     const { data, isLoading } = useQuery({
         queryKey: ['intangible-assets'],
         queryFn: async () => {
-            const response = await api.get<PaginatedResponse<IntangibleAsset>>('/fixed_assets/ia/assets/');
+            const response = await api.get<PaginatedResponse<IntangibleAsset>>('/fixed-assets/ia/assets/');
             return response.results;
         },
     });
 
     // Delete Mutation
     const deleteMutation = useMutation({
-        mutationFn: async (id: number) => api.delete(`/fixed_assets/ia/assets/${id}/`),
+        mutationFn: async (id: number) => api.delete(`/fixed-assets/ia/assets/${id}/`),
         onSuccess: () => {
             toast.success(tc('deletedSuccessfully'));
             queryClient.invalidateQueries({ queryKey: ['intangible-assets'] });
@@ -185,7 +185,7 @@ export default function IntangibleAssetsPage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>{tc('confirmDelete')}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            {tc('deleteWarning', { item: selectedItem?.name })}
+                            {tc('deleteWarning', { item: selectedItem?.name ?? '' })}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

@@ -178,8 +178,8 @@ function MovementsTable({ movements }: { movements: Movement[] }) {
             header: 'Batch',
             cell: ({ row }) => {
                 const batchId = row.getValue('batch_id');
-                return batchId ? (
-                    <span className="font-mono text-xs">#{batchId}</span>
+                return batchId != null ? (
+                    <span className="font-mono text-xs">#{String(batchId)}</span>
                 ) : (
                     <span className="text-muted-foreground">-</span>
                 );

@@ -711,7 +711,7 @@ class SalesOrderViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocumentPro
     ).prefetch_related('lines__item').all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
-    filterset_fields = ['status', 'counterparty', 'is_fully_shipped']
+    filterset_fields = ['status', 'counterparty']
     search_fields = ['number']
     ordering = ['-date']
     

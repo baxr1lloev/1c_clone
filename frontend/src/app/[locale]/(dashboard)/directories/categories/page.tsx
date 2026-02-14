@@ -1,11 +1,12 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { toast } from 'sonner';
 import { TreeView } from '@/components/ui/tree-view';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
     ResizableHandle,
     ResizablePanel,
@@ -14,8 +15,8 @@ import {
 import { DataTable } from '@/components/data-table/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { CommandBar, CommandBarAction } from '@/components/ui/command-bar';
-import { PiPlusBold, PiPencilBold, PiTrashBold, PiFolderPlusBold } from 'react-icons/pi';
-import { toast } from 'sonner';
+import { PiPlusBold, PiFolderPlusBold } from 'react-icons/pi';
+import { CategoryFormDialog } from '@/components/directories/category-form-dialog';
 
 interface Category {
     id: number;
@@ -33,21 +34,34 @@ interface Item {
 }
 
 export default function ItemCategoriesPage() {
+    const router = useRouter();
     const queryClient = useQueryClient();
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+    const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+    const [categoryDialogParent, setCategoryDialogParent] = useState<number | null>(null);
+    const [categoryDialogParentName, setCategoryDialogParentName] = useState<string | null>(null);
 
-    // Fetch Tree
+    // Fetch Tree - build hierarchy from flat list
     const { data: treeData } = useQuery({
         queryKey: ['categories-tree'],
         queryFn: async () => {
-            // Assuming endpoint returns hierarchical structure using 'root_only=true' logic
-            // OR entire list and we build tree here.
-            // For now assume API returns tree for root items.
-            const res = await api.get('/directories/categories/?root_only=true');
-            if (Array.isArray(res.data)) return res.data;
-            if (res.data && Array.isArray(res.results)) return res.results;
-            return [];
+            const res = await api.get('/directories/categories/');
+            const all = Array.isArray(res) ? res : (res.results || []);
+            const map = new Map<number, Category>();
+            const roots: Category[] = [];
+            all.forEach((c: { id: number; name: string; code?: string; parent?: number }) => {
+                map.set(c.id, { id: c.id, name: c.name, code: c.code || '', children: [] });
+            });
+            all.forEach((c: { id: number; parent?: number }) => {
+                const node = map.get(c.id)!;
+                if (c.parent != null && map.has(c.parent)) {
+                    map.get(c.parent)!.children.push(node);
+                } else {
+                    roots.push(node);
+                }
+            });
+            return roots;
         }
     });
 
@@ -56,16 +70,31 @@ export default function ItemCategoriesPage() {
         queryKey: ['items', selectedCategory?.id],
         queryFn: async () => {
             let url = '/directories/items/';
-            if (selectedCategory) {
-                // Filter by category
-                url += `?category=${selectedCategory.id}`;
-            }
+            if (selectedCategory) url += `?category=${selectedCategory.id}`;
             const res = await api.get(url);
-            if (Array.isArray(res.data)) return res.data;
-            if (res.data && Array.isArray(res.results)) return res.results;
-            return [];
+            return Array.isArray(res) ? res : (res.results || []);
         }
     });
+
+    const createSampleMutation = useMutation({
+        mutationFn: () => api.post('/directories/items/create_sample/'),
+        onSuccess: (data: { created?: { name: string }[]; message?: string }) => {
+            const count = data?.created?.length ?? 0;
+            toast.success(data?.message ?? `Created ${count} sample items. You can now use them in Sales and Purchases.`);
+            queryClient.invalidateQueries({ queryKey: ['items'] });
+            queryClient.invalidateQueries({ queryKey: ['categories-tree'] });
+        },
+        onError: (err: { response?: { data?: { error?: string } } }) => {
+            toast.error(err?.response?.data?.error ?? 'Failed to create sample items');
+        },
+    });
+
+    const handleNewItem = () => router.push('/directories/items/new');
+    const handleNewGroup = () => {
+        setCategoryDialogParent(selectedCategory?.id ?? null);
+        setCategoryDialogParentName(selectedCategory?.name ?? null);
+        setIsCategoryDialogOpen(true);
+    };
 
     const columns: ColumnDef<Item>[] = [
         { accessorKey: 'sku', header: 'Article' },
@@ -78,8 +107,8 @@ export default function ItemCategoriesPage() {
     ];
 
     const mainActions: CommandBarAction[] = [
-        { label: 'New Item', icon: <PiPlusBold />, onClick: () => { }, shortcut: 'Ins' },
-        { label: 'New Group', icon: <PiFolderPlusBold />, onClick: () => { }, variant: 'outline' },
+        { label: 'New Item', icon: <PiPlusBold />, onClick: handleNewItem, shortcut: 'Ins' },
+        { label: 'New Group', icon: <PiFolderPlusBold />, onClick: handleNewGroup, variant: 'outline' },
     ];
 
     return (
@@ -87,6 +116,14 @@ export default function ItemCategoriesPage() {
             <div className="border-b p-2 flex items-center justify-between bg-muted/20">
                 <h1 className="font-bold text-lg px-2">Nomenclature (Items)</h1>
                 <div className="flex gap-2">
+                    <Button
+                        size="sm"
+                        variant="default"
+                        onClick={() => createSampleMutation.mutate()}
+                        disabled={createSampleMutation.isPending}
+                    >
+                        {createSampleMutation.isPending ? 'Creating…' : 'Create sample items'}
+                    </Button>
                     <Button size="sm" variant="outline">Import</Button>
                     <Button size="sm" variant="outline">Export</Button>
                 </div>
@@ -95,8 +132,32 @@ export default function ItemCategoriesPage() {
             <ResizablePanelGroup direction="horizontal" id="categories-group">
                 {/* Left Panel: Tree */}
                 <ResizablePanel defaultSize={20} minSize={15} maxSize={40} className="bg-muted/5" id="categories-tree-panel">
-                    <div className="p-2 border-b text-xs font-semibold uppercase text-muted-foreground">
-                        Categories
+                    <div className="p-2 border-b flex items-center justify-between gap-2 flex-wrap">
+                        <span className="text-xs font-semibold uppercase text-muted-foreground">Categories</span>
+                        <div className="flex gap-1 shrink-0">
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                onClick={() => { setCategoryDialogParent(null); setCategoryDialogParentName(null); setIsCategoryDialogOpen(true); }}
+                                title="New root category"
+                            >
+                                <PiFolderPlusBold className="h-3.5 w-3 mr-1" />
+                                New
+                            </Button>
+                            {selectedCategory && (
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-xs"
+                                    onClick={() => { setCategoryDialogParent(selectedCategory.id); setCategoryDialogParentName(selectedCategory.name); setIsCategoryDialogOpen(true); }}
+                                    title={`New subcategory under "${selectedCategory.name}"`}
+                                >
+                                    <PiPlusBold className="h-3.5 w-3 mr-1" />
+                                    Subcategory
+                                </Button>
+                            )}
+                        </div>
                     </div>
                     <div className="p-2 h-full overflow-auto">
                         <TreeView
@@ -126,6 +187,13 @@ export default function ItemCategoriesPage() {
                     />
                 </ResizablePanel>
             </ResizablePanelGroup>
+
+            <CategoryFormDialog
+                open={isCategoryDialogOpen}
+                onOpenChange={setIsCategoryDialogOpen}
+                parentId={categoryDialogParent}
+                parentName={categoryDialogParentName}
+            />
         </div>
     );
 }

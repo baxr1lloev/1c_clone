@@ -86,10 +86,14 @@ python manage.py migrate
 Frontend:
 
 ```bash
-npm run dev
-npm run lint
-npm run build
+cd project_1c/frontend   # or: cd 1c_clone/frontend
+npm install
+npm run dev             # development
+npm run lint            # lint
+npm run build           # production build
 ```
+
+**Preparing for production build:** Ensure `.env.local` has `NEXT_PUBLIC_API_URL` set. From the `frontend` directory run `npm run build`. The first build may take 1–2 minutes. Resolve any TypeScript or missing i18n message errors if they appear.
 
 ## Internationalization
 

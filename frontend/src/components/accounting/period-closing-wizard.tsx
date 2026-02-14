@@ -83,19 +83,19 @@ export function PeriodClosingWizard() {
     const { data: wizardStatus, isLoading, refetch } = useQuery<WizardStatus>({
         queryKey: ['period-closing-wizard', selectedPeriod],
         queryFn: async () => {
-            const res = await api.get(`/api/accounting/periods/wizard_status/?period=${selectedPeriod}`)
-            return res.data
+            const res = await api.get(`/vat/period-closing/wizard_status/?period=${selectedPeriod}`)
+            return res as WizardStatus
         }
     })
 
     // Execute single task
     const executeTaskMutation = useMutation({
         mutationFn: async (taskCode: string) => {
-            const res = await api.post('/api/accounting/periods/execute_task/', {
+            const res = await api.post('/vat/period-closing/execute_task/', {
                 period: selectedPeriod,
                 task_code: taskCode
-            })
-            return res.data
+            }) as { message?: string }
+            return res
         },
         onMutate: (taskCode) => {
             setExecutingTask(taskCode)
@@ -115,10 +115,10 @@ export function PeriodClosingWizard() {
     // Execute all tasks
     const closeFullMutation = useMutation({
         mutationFn: async () => {
-            const res = await api.post('/api/accounting/periods/close_full/', {
+            const res = await api.post('/vat/period-closing/close_full/', {
                 period: selectedPeriod
-            })
-            return res.data
+            }) as { success?: boolean }
+            return res
         },
         onMutate: () => {
             setExecutingTask('ALL')

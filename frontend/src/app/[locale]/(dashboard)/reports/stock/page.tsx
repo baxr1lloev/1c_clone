@@ -32,15 +32,32 @@ export default function StockReportPage() {
     const { data: reportData, isLoading } = useQuery({
         queryKey: ['stock-report'],
         queryFn: async () => {
-            const response = await api.get('/reports/stock/');
-            return response.data;
+            const date = new Date().toISOString().split('T')[0];
+            const response = await api.get(`/reports/stock-as-of-date/?date=${date}`) as { items?: { item_id?: number; item_name?: string; item_sku?: string; warehouse_id?: number; warehouse_name?: string; quantity?: number }[] };
+            const items = response?.items ?? [];
+            return { rows: items.map((r: any) => ({
+                item_id: r.item_id,
+                item_name: r.item_name ?? '',
+                item_sku: r.item_sku ?? '',
+                warehouse_id: r.warehouse_id,
+                warehouse_name: r.warehouse_name ?? '',
+                opening_quantity: 0,
+                receipts: 0,
+                expenses: 0,
+                closing_quantity: Number(r.quantity ?? 0),
+            })) };
         },
     });
 
     const handleDrillDown = (itemId: number, warehouseId: number, type: string) => {
+        const start = new Date();
+        start.setMonth(start.getMonth() - 1);
+        const end = new Date();
+        const startStr = start.toISOString().split('T')[0];
+        const endStr = end.toISOString().split('T')[0];
         setDrillDownConfig({
             title: `${type} Movements`,
-            endpoint: `/reports/stock/drilldown/?item=${itemId}&warehouse=${warehouseId}&type=${type}`,
+            endpoint: `/reports/stock-history/?item=${itemId}&warehouse=${warehouseId}&start=${startStr}&end=${endStr}`,
         });
         setDrillDownOpen(true);
     };

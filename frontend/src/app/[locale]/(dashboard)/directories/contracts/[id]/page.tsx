@@ -116,7 +116,7 @@ async function findContractInPagedList(idValue: string): Promise<ContractApi | n
   let url: string | null = '/directories/contracts/';
 
   for (let page = 0; page < 20 && url; page += 1) {
-    const response = await api.get<PaginatedResponse<ContractApi> | ContractApi[]>(url);
+    const response: PaginatedResponse<ContractApi> | ContractApi[] = await api.get(url);
 
     if (Array.isArray(response)) {
       return response.find((item) => String(item.id) === idValue) || null;

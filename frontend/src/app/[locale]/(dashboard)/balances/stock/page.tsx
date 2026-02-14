@@ -10,6 +10,16 @@ import { DrillDownModal } from '@/components/ui/drilldown-modal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
+interface StockBalanceRow {
+    item: number;
+    item_name: string;
+    item_sku: string;
+    warehouse: number;
+    warehouse_name: string;
+    quantity: number;
+    amount?: number;
+}
+
 interface StockBalance {
     item_id: number;
     item_name: string;
@@ -27,8 +37,17 @@ export default function StockBalancePage() {
     const { data: balancesData, isLoading } = useQuery({
         queryKey: ['stock-balances'],
         queryFn: async () => {
-            const response = await api.get('/api/balances/stock/');
-            return response.data;
+            const response = await api.get('/registers/stock-balances/') as { results?: StockBalanceRow[] } | StockBalanceRow[];
+            const list = Array.isArray(response) ? response : (response.results ?? []);
+            return { balances: list.map((r: StockBalanceRow) => ({
+                item_id: r.item,
+                item_name: r.item_name,
+                item_sku: r.item_sku,
+                warehouse_id: r.warehouse,
+                warehouse_name: r.warehouse_name,
+                quantity: Number(r.quantity),
+                amount: Number(r.amount ?? 0),
+            })) };
         },
     });
 
@@ -109,7 +128,7 @@ export default function StockBalancePage() {
             {selectedBalance && (
                 <DrillDownModal
                     title={`Movements: ${selectedBalance.item_name} at ${selectedBalance.warehouse_name}`}
-                    endpoint={`/api/balances/stock/movements/?item=${selectedBalance.item_id}&warehouse=${selectedBalance.warehouse_id}`}
+                    endpoint={`/registers/stock-movements/?item=${selectedBalance.item_id}&warehouse=${selectedBalance.warehouse_id}`}
                     isOpen={drillDownOpen}
                     onClose={() => setDrillDownOpen(false)}
                 />

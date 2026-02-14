@@ -14,7 +14,7 @@ export default function EditFixedAssetPage() {
     const { data: asset, isLoading } = useQuery({
         queryKey: ['fixed-asset', id],
         queryFn: async () => {
-            const response = await api.get<FixedAsset>(`/directories/fixed-assets/${params.id}/`);
+            const response = await api.get<FixedAsset>(`/fixed-assets/assets/${params.id}/`);
             return response;
         },
     });

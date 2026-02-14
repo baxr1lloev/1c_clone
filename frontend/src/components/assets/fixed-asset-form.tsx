@@ -76,7 +76,7 @@ export function FixedAssetForm({ initialData, onSuccess }: FixedAssetFormProps) 
     const { data: categories } = useQuery({
         queryKey: ['fixed-asset-categories'],
         queryFn: async () => {
-            const res = await api.get('/fixed_assets/categories/');
+            const res = await api.get('/fixed-assets/categories/');
             return res.data.results as FixedAssetCategory[];
         }
     });
@@ -115,9 +115,9 @@ export function FixedAssetForm({ initialData, onSuccess }: FixedAssetFormProps) 
     const mutation = useMutation({
         mutationFn: async (values: FormValues) => {
             if (isEdit) {
-                return api.patch(`/fixed_assets/assets/${initialData.id}/`, values);
+                return api.patch(`/fixed-assets/assets/${initialData.id}/`, values);
             } else {
-                return api.post('/fixed_assets/assets/', values);
+                return api.post('/fixed-assets/assets/', values);
             }
         },
         onSuccess: () => {

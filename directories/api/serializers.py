@@ -4,7 +4,8 @@ API Serializers for directories app.
 from rest_framework import serializers
 from directories.models import (
     Currency, ExchangeRate, Counterparty, ContactPerson,
-    Contract, Warehouse, Item, ItemPackage, BankAccount, Employee, ItemCategory
+    Contract, Warehouse, Item, ItemPackage, BankAccount, Employee, ItemCategory,
+    Department, Project,
 )
 
 
@@ -156,10 +157,22 @@ class ItemSerializer(serializers.ModelSerializer):
 
 class ItemCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating items."""
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=ItemCategory.objects.none(),
+        allow_null=True,
+        required=False,
+    )
+
     class Meta:
         model = Item
-        fields = ['name', 'sku', 'item_type', 'unit', 'purchase_price', 'selling_price']
-    
+        fields = ['name', 'sku', 'item_type', 'unit', 'purchase_price', 'selling_price', 'category']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and getattr(request.user, 'tenant', None):
+            self.fields['category'].queryset = ItemCategory.objects.filter(tenant=request.user.tenant)
+
     def create(self, validated_data):
         tenant = self.context['request'].user.tenant
         if not tenant:
@@ -206,7 +219,34 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
 
 class ItemCategorySerializer(serializers.ModelSerializer):
-    """Serializer for ItemCategory."""
+    """Serializer for ItemCategory (create/update/list with parent support)."""
+    parent = serializers.PrimaryKeyRelatedField(
+        queryset=ItemCategory.objects.none(),
+        allow_null=True,
+        required=False,
+    )
+
     class Meta:
         model = ItemCategory
-        fields = ['id', 'name', 'code', 'parent', 'is_active']
+        fields = ['id', 'name', 'code', 'parent']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and getattr(request.user, 'tenant', None):
+            tenant = request.user.tenant
+            self.fields['parent'].queryset = ItemCategory.objects.filter(tenant=tenant)
+
+
+class DepartmentSerializer(serializers.ModelSerializer):
+    """Serializer for Department (cost centers)."""
+    class Meta:
+        model = Department
+        fields = ['id', 'name', 'code', 'parent', 'is_active', 'created_at']
+
+
+class ProjectSerializer(serializers.ModelSerializer):
+    """Serializer for Project (P&L centers)."""
+    class Meta:
+        model = Project
+        fields = ['id', 'name', 'code', 'start_date', 'end_date', 'is_active', 'status', 'created_at']

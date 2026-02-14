@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { CommandBar, CommandBarAction } from "@/components/ui/command-bar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,6 +31,8 @@ type ItemFormData = Omit<Item, 'id' | 'tenant' | 'created_at' | 'updated_at'> & 
     sale_price?: number;
 };
 
+const CATEGORY_NONE = '__none__';
+
 const defaultFormData: ItemFormData = {
     sku: '',
     name: '',
@@ -39,7 +41,7 @@ const defaultFormData: ItemFormData = {
     base_unit: 'pcs',
     purchase_price: 0,
     sale_price: 0,
-    category: '',
+    category: CATEGORY_NONE as unknown as string,
     is_active: true,
     units: []
 };
@@ -58,26 +60,58 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
         type: initialData.type,
         purchase_price: initialData.purchase_price ?? 0,
         sale_price: initialData.sale_price ?? 0,
-        category: initialData.category,
+        category: initialData.category != null ? String(initialData.category) : (CATEGORY_NONE as unknown as string),
         is_active: initialData.is_active,
         base_unit: initialData.base_unit ?? 'pcs',
         units: initialData.units ?? []
     } : defaultFormData)
 
+    const { data: categories = [] } = useQuery({
+        queryKey: ['categories'],
+        queryFn: async () => {
+            const res = await api.get('/directories/categories/');
+            return Array.isArray(res) ? res : (res?.results ?? []);
+        },
+    })
+
     const saveMutation = useMutation({
         mutationFn: async (data: ItemFormData) => {
-            if (mode === 'edit' && initialData) {
-                return api.put(`/directories/items/${initialData.id}/`, data);
+            // Client-side validation
+            if (!data.name || !data.name.trim()) {
+                throw new Error('Name is required');
             }
-            return api.post('/directories/items/', data);
+            if (!data.sku || !data.sku.trim()) {
+                throw new Error('SKU is required');
+            }
+            
+            const catVal = data.category;
+            const categoryId = (catVal === '' || catVal === CATEGORY_NONE || catVal == null) ? null : Number(catVal);
+            if (categoryId !== null && Number.isNaN(categoryId)) throw new Error('Invalid category');
+            const payload = {
+                name: data.name.trim(),
+                sku: data.sku.trim(),
+                item_type: data.type === 'goods' ? 'GOODS' : 'SERVICE',
+                unit: data.base_unit || 'pcs',
+                purchase_price: Number(data.purchase_price) || 0,
+                selling_price: Number(data.sale_price) || 0,
+                category: categoryId,
+            };
+            console.log('Sending payload:', payload);
+            if (mode === 'edit' && initialData) {
+                return api.put(`/directories/items/${initialData.id}/`, payload);
+            }
+            return api.post('/directories/items/', payload);
         },
         onSuccess: () => {
             toast.success(mode === 'edit' ? 'Item updated' : 'Item created');
             queryClient.invalidateQueries({ queryKey: ['items'] });
             router.push('/directories/items');
         },
-        onError: () => {
-            toast.error('Failed to save item');
+        onError: (error: any) => {
+            console.error('Item save error:', error);
+            const errorMessage = error?.response?.data?.details || error?.response?.data || error?.message || 'Failed to save item';
+            const errorText = typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage);
+            toast.error(`Failed to save item: ${errorText}`);
         }
     })
 
@@ -192,12 +226,20 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="category">{tf('category')}</Label>
-                            <Input
-                                id="category"
-                                value={formData.category}
-                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                placeholder="Electronics"
-                            />
+                            <Select
+                                value={formData.category === '' || formData.category == null ? CATEGORY_NONE : String(formData.category)}
+                                onValueChange={(v) => setFormData({ ...formData, category: v === CATEGORY_NONE ? (CATEGORY_NONE as unknown as string) : v })}
+                            >
+                                <SelectTrigger id="category">
+                                    <SelectValue placeholder={tf('category')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value={CATEGORY_NONE}>{t('noCategory') ?? '—'}</SelectItem>
+                                    {categories.map((c: { id: number; name: string }) => (
+                                        <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="unit">{tf('unit')}</Label>

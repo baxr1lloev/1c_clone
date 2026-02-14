@@ -10,6 +10,15 @@ import { DrillDownModal } from '@/components/ui/drilldown-modal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
+interface SettlementBalanceRow {
+    counterparty: number;
+    counterparty_name: string;
+    contract: number;
+    contract_number: string;
+    currency_code: string;
+    amount: number;
+}
+
 interface SettlementBalance {
     counterparty_id: number;
     counterparty_name: string;
@@ -26,8 +35,16 @@ export default function SettlementBalancePage() {
     const { data: balancesData, isLoading } = useQuery({
         queryKey: ['settlement-balances'],
         queryFn: async () => {
-            const response = await api.get('/api/balances/settlement/');
-            return response.data;
+            const response = await api.get('/registers/settlements/') as { results?: SettlementBalanceRow[] } | SettlementBalanceRow[];
+            const list = Array.isArray(response) ? response : (response.results ?? []);
+            return { balances: list.map((r: SettlementBalanceRow) => ({
+                counterparty_id: r.counterparty,
+                counterparty_name: r.counterparty_name,
+                contract_id: r.contract,
+                contract_number: r.contract_number,
+                currency: r.currency_code,
+                amount: Number(r.amount ?? 0),
+            })) };
         },
     });
 
@@ -103,7 +120,7 @@ export default function SettlementBalancePage() {
             {selectedBalance && (
                 <DrillDownModal
                     title={`Movements: ${selectedBalance.counterparty_name}`}
-                    endpoint={`/api/balances/settlement/movements/?counterparty=${selectedBalance.counterparty_id}&contract=${selectedBalance.contract_id}`}
+                    endpoint={`/reports/settlement-history/?counterparty=${selectedBalance.counterparty_id}&contract=${selectedBalance.contract_id}`}
                     isOpen={drillDownOpen}
                     onClose={() => setDrillDownOpen(false)}
                 />
