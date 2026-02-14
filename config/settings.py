@@ -10,7 +10,19 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+# ── Env-var helpers ──────────────────────────────────
+def env(key, default=""):
+    return os.environ.get(key, default)
+
+def env_bool(key, default=False):
+    return env(key, str(default)).lower() in ("1", "true", "yes")
+
+def env_list(key, default=""):
+    raw = env(key, default)
+    return [v.strip() for v in raw.split(",") if v.strip()]
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,12 +32,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-0b(wmb1$&7g%ji$wclb7)u*xi4n#(1albge&p6h7i^h!3+v5h-'
+SECRET_KEY = env("SECRET_KEY", 'django-insecure-0b(wmb1$&7g%ji$wclb7)u*xi4n#(1albge&p6h7i^h!3+v5h-')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env_bool("DEBUG", True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env_list(
+    "ALLOWED_HOSTS",
+    "127.0.0.1,localhost,testserver,onec-clone-sxmuves-5f246324.koyeb.app,*",
+)
 
 
 # Application definition
@@ -103,12 +118,35 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+_database_url = env("DATABASE_URL", "")
+
+if _database_url:
+    import urllib.parse
+    _parsed = urllib.parse.urlparse(_database_url)
+    # Strip channel_binding from query params (not supported by psycopg2)
+    _query = urllib.parse.parse_qs(_parsed.query)
+    _query.pop("channel_binding", None)
+    _clean_query = urllib.parse.urlencode(_query, doseq=True)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': _parsed.path.lstrip('/'),
+            'USER': _parsed.username,
+            'PASSWORD': _parsed.password,
+            'HOST': _parsed.hostname,
+            'PORT': _parsed.port or 5432,
+            'OPTIONS': {
+                'sslmode': urllib.parse.parse_qs(_parsed.query).get('sslmode', ['require'])[0],
+            },
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -197,12 +235,14 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 
-# CORS Configuration (Development)
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:8000",
-    "http://localhost:8000",
-]
+# CORS Configuration
+CORS_ALLOW_ALL_ORIGINS = env_bool("CORS_ALLOW_ALL", False)
+CORS_ALLOWED_ORIGINS = env_list(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000,http://127.0.0.1:8000,http://localhost:8000,"
+    "https://1c-clone-frontend.vercel.app,"
+    "https://1c-clone-frontend-baxr1lloevs-projects.vercel.app",
+)
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     'accept',
@@ -215,6 +255,15 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
+CSRF_TRUSTED_ORIGINS = env_list(
+    "CSRF_TRUSTED_ORIGINS",
+    "http://localhost:3000,http://127.0.0.1:3000,"
+    "https://1c-clone-frontend.vercel.app,"
+    "https://1c-clone-frontend-baxr1lloevs-projects.vercel.app",
+)
+
+# Security settings for production
+SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", False)
 
 # Authentication URLs
 LOGIN_URL = 'login'

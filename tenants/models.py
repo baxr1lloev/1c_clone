@@ -7,7 +7,7 @@ class Tenant(models.Model):
     Everything in the system belongs to a tenant.
     """
     company_name = models.CharField(_('Company Name'), max_length=255)
-    inn = models.CharField(_('INN'), max_length=20, unique=True)
+    inn = models.CharField(_('INN'), max_length=20, blank=True, default='')
     
     # Configuration
     base_currency = models.ForeignKey('directories.Currency', on_delete=models.SET_NULL, null=True, blank=True, related_name='tenants')

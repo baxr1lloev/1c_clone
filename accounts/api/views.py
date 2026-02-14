@@ -44,11 +44,11 @@ class RegisterView(APIView):
             company_name=data['company_name'],
         )
         
-        # Create admin role for this tenant
+        # Create owner role for this tenant
         admin_role = Role.objects.create(
             tenant=tenant,
-            name='Administrator',
-            code='admin',
+            name='Owner',
+            code='OWNER',
         )
         
         # Create user

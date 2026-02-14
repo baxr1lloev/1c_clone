@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path, include
+from django.http import JsonResponse
 from core.views import DashboardView, MonthlyReportView, custom_logout
 from core.api_views import DashboardStatsView, DashboardRevenueChartView
 from django.contrib.auth.views import LoginView, LogoutView
@@ -9,6 +10,10 @@ from rest_framework_simplejwt.views import (
 )
 from accounts.api.views import RegisterView, CurrentUserView
 from accounting.api_views import period_status as accounting_period_status
+
+
+def health_check(request):
+    return JsonResponse({"status": "ok"})
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -33,6 +38,9 @@ urlpatterns = [
     # REST API v1 - For Next.js Frontend
     # ─────────────────────────────────────────────────────────────────────
     path('api/v1/', include([
+        # Health check (used by Koyeb)
+        path('health/', health_check, name='health_check'),
+
         # Authentication
         path('auth/token/', TokenObtainPairView.as_view(), name='api_token_obtain'),
         path('auth/token/refresh/', TokenRefreshView.as_view(), name='api_token_refresh'),
