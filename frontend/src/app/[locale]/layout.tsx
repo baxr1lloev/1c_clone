@@ -3,7 +3,6 @@ import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing, type Locale } from '@/i18n/routing';
 import { Providers } from '@/components/providers';
-import { IntlFallbackProvider } from '@/components/providers/intl-fallback-provider';
 import { Inter } from 'next/font/google';
 import '../globals.css';
 
@@ -35,10 +34,8 @@ export default async function LocaleLayout({
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
-        <NextIntlClientProvider messages={messages}>
-          <IntlFallbackProvider>
-            <Providers>{children}</Providers>
-          </IntlFallbackProvider>
+        <NextIntlClientProvider messages={messages} locale={locale}>
+          <Providers>{children}</Providers>
         </NextIntlClientProvider>
       </body>
     </html>
