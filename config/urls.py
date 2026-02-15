@@ -15,11 +15,26 @@ from accounting.api_views import period_status as accounting_period_status
 def health_check(request):
     return JsonResponse({"status": "ok"})
 
+
+def api_root(request):
+    return JsonResponse({
+        "status": "ok",
+        "service": "1C Clone Backend API",
+        "api": "/api/v1/",
+        "admin": "/admin/",
+        "health": "/api/v1/health/",
+        "docs": "/api/v1/",
+    })
+
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     
+    # Root URL — show API info instead of crashing legacy dashboard
+    path('', api_root, name='api_root'),
+
     # Legacy template views (keep for now)
-    path('', DashboardView.as_view(), name='dashboard'),
+    path('dashboard/', DashboardView.as_view(), name='dashboard'),
     path('reports/monthly/', MonthlyReportView.as_view(), name='monthly_report'),
     path('login/', LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', custom_logout, name='logout'),
