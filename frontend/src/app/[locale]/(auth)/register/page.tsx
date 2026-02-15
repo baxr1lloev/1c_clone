@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { AxiosError } from 'axios';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,28 @@ const registerSchema = z.object({
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
+// Extract a user-friendly error message from the API error response
+function getRegisterErrorMessage(error: Error | null, fallback: string): string {
+  if (!error) return fallback;
+  if (error instanceof AxiosError && error.response?.data) {
+    const data = error.response.data;
+    // Backend returns e.g. { "email": ["A user with this email already exists."] }
+    if (typeof data === 'object' && data !== null) {
+      const messages: string[] = [];
+      for (const value of Object.values(data)) {
+        if (Array.isArray(value)) {
+          messages.push(...value.map(String));
+        } else if (typeof value === 'string') {
+          messages.push(value);
+        }
+      }
+      if (messages.length > 0) return messages.join(' ');
+    }
+    if (typeof data === 'string') return data;
+  }
+  return fallback;
+}
+
 export default function RegisterPage() {
   const t = useTranslations('auth');
   const te = useTranslations('errors');
@@ -46,6 +69,8 @@ export default function RegisterPage() {
     registerUser(registerData as RegisterData);
   };
 
+  const errorMessage = getRegisterErrorMessage(registerError, t('registerError'));
+
   return (
     <Card className="shadow-xl border-0">
       <CardHeader className="space-y-1 text-center">
@@ -62,7 +87,7 @@ export default function RegisterPage() {
           {registerError && (
             <Alert variant="destructive">
               <PiWarningCircleBold className="h-4 w-4" />
-              <AlertDescription>{t('registerError')}</AlertDescription>
+              <AlertDescription>{errorMessage}</AlertDescription>
             </Alert>
           )}
 
