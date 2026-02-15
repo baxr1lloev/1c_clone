@@ -257,19 +257,21 @@ CORS_ALLOW_HEADERS = [
     'x-csrftoken',
     'x-requested-with',
 ]
-# Build CSRF trusted origins: from env/secret first, then always add backend's own origin
-# so admin login from the same host works even when the secret omits it.
-_csrf_origins = env_list(
-    "CSRF_TRUSTED_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000,"
-    "https://1c-clone-frontend.vercel.app,"
-    "https://1c-clone-frontend-baxr1lloevs-projects.vercel.app,"
-    "https://onec-clone-sxmuves-5f246324.koyeb.app",
-)
+# CSRF trusted origins: merge env/secret with required origins so admin login always works.
 _backend_origin = env("BACKEND_ORIGIN", "https://onec-clone-sxmuves-5f246324.koyeb.app")
-if _backend_origin and _backend_origin not in _csrf_origins:
-    _csrf_origins.append(_backend_origin)
-CSRF_TRUSTED_ORIGINS = _csrf_origins
+_required_csrf_origins = [
+    _backend_origin,
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://1c-clone-frontend.vercel.app",
+    "https://1c-clone-frontend-baxr1lloevs-projects.vercel.app",
+]
+_env_csrf = env_list(
+    "CSRF_TRUSTED_ORIGINS",
+    "https://onec-clone-sxmuves-5f246324.koyeb.app,"
+    "https://1c-clone-frontend.vercel.app,https://1c-clone-frontend-baxr1lloevs-projects.vercel.app",
+)
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(_required_csrf_origins + _env_csrf))
 
 # Security settings for production
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", False)
