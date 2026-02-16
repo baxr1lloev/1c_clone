@@ -1500,6 +1500,16 @@ class BankStatementLine(models.Model):
     )
     matched_document_id = models.PositiveIntegerField(null=True, blank=True)
     
+    # Link to created PaymentDocument
+    created_payment_document = models.ForeignKey(
+        'PaymentDocument',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bank_statement_line',
+        verbose_name=_('Created Payment Document')
+    )
+    
     status = models.CharField(
         _('Status'),
         max_length=20,
@@ -1519,6 +1529,100 @@ class BankStatementLine(models.Model):
     def transaction_type(self):
         """Return 'INCOMING' or 'OUTGOING'"""
         return 'INCOMING' if self.debit_amount > 0 else 'OUTGOING'
+    
+    def create_payment_document(self, user, counterparty=None, contract=None, auto_post=False):
+        """
+        Create PaymentDocument from this bank statement line.
+        
+        Args:
+            user: User creating the document
+            counterparty: Counterparty (if None, will try to find by name or create)
+            contract: Contract (optional)
+            auto_post: Whether to automatically post the document
+            
+        Returns:
+            PaymentDocument: Created payment document
+        """
+        from django.db import transaction
+        from django.utils import timezone
+        from django.contrib.contenttypes.models import ContentType
+        from decimal import Decimal
+        from directories.models import Counterparty, Contract, Currency
+        
+        if self.created_payment_document:
+            raise ValueError(_("Payment document already created for this line"))
+        
+        with transaction.atomic():
+            # Get or create counterparty
+            if not counterparty:
+                if self.counterparty:
+                    counterparty = self.counterparty
+                elif self.counterparty_name:
+                    # Try to find by name
+                    counterparty = Counterparty.objects.filter(
+                        tenant=self.statement.tenant,
+                        name__icontains=self.counterparty_name
+                    ).first()
+                    
+                    if not counterparty:
+                        # Create new counterparty
+                        counterparty = Counterparty.objects.create(
+                            tenant=self.statement.tenant,
+                            name=self.counterparty_name,
+                            type='CUSTOMER' if self.transaction_type == 'INCOMING' else 'SUPPLIER',
+                            created_by=user
+                        )
+                else:
+                    raise ValueError(_("Counterparty is required"))
+            
+            # Get contract or create default
+            if not contract:
+                if self.counterparty:
+                    contract = Contract.objects.filter(
+                        tenant=self.statement.tenant,
+                        counterparty=counterparty
+                    ).first()
+                
+                if not contract:
+                    # Create default contract
+                    contract = Contract.objects.create(
+                        tenant=self.statement.tenant,
+                        counterparty=counterparty,
+                        name=_("Default Contract"),
+                        created_by=user
+                    )
+            
+            # Get currency from bank account
+            currency = self.statement.bank_account.currency
+            
+            # Create PaymentDocument
+            payment_doc = PaymentDocument.objects.create(
+                tenant=self.statement.tenant,
+                created_by=user,
+                counterparty=counterparty,
+                contract=contract,
+                bank_account=self.statement.bank_account,
+                currency=currency,
+                rate=Decimal('1'),  # TODO: Get actual rate
+                amount=self.amount,
+                payment_type=self.transaction_type,
+                purpose=self.description or _("Payment from bank statement"),
+                date=timezone.now(),
+                number=None  # Auto-generated
+            )
+            
+            # Link to this line
+            self.created_payment_document = payment_doc
+            self.status = 'matched'
+            self.matched_document_type = ContentType.objects.get_for_model(PaymentDocument)
+            self.matched_document_id = payment_doc.id
+            self.save()
+            
+            # Auto-post if requested
+            if auto_post:
+                payment_doc.post(user=user)
+            
+            return payment_doc
     
     def __str__(self):
         return f"{self.transaction_date} - {self.description[:50]}"

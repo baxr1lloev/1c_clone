@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PiBankBold, PiArrowLeftBold, PiCheckBold, PiXBold, PiPlusBold, PiPencilBold, PiTrashBold } from 'react-icons/pi';
+import { PiBankBold, PiArrowLeftBold, PiCheckBold, PiXBold, PiPlusBold, PiPencilBold, PiTrashBold, PiFileTextBold } from 'react-icons/pi';
 import { DataTable } from '@/components/data-table/data-table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -84,6 +84,29 @@ export default function BankStatementDetailPage() {
             queryClient.invalidateQueries({ queryKey: ['bank-statement', id] });
         },
         onError: (error: any) => toast.error(error.response?.data?.error || 'Ошибка удаления строки')
+    });
+
+    const createPaymentMutation = useMutation({
+        mutationFn: ({ lineId, options }: { lineId: number, options?: any }) => 
+            BankStatementService.createPaymentFromLine(id, lineId, options),
+        onSuccess: (data) => {
+            toast.success(`Документ "${data.payment_type_display}" создан`);
+            queryClient.invalidateQueries({ queryKey: ['bank-statement', id] });
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Ошибка создания документа')
+    });
+
+    const createPaymentsForUnmatchedMutation = useMutation({
+        mutationFn: (autoPost: boolean) => 
+            BankStatementService.createPaymentsForUnmatched(id, autoPost),
+        onSuccess: (data) => {
+            toast.success(`Создано документов: ${data.created_count}`);
+            if (data.errors && data.errors.length > 0) {
+                toast.warning(`Ошибки: ${data.errors.join(', ')}`);
+            }
+            queryClient.invalidateQueries({ queryKey: ['bank-statement', id] });
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Ошибка создания документов')
     });
 
     const resetLineForm = () => {
@@ -220,12 +243,23 @@ export default function BankStatementDetailPage() {
             accessorKey: 'status',
             header: 'Статус',
             cell: ({ row }: any) => {
-                const status = row.original.status;
-                if (status === 'matched') {
+                const line = row.original;
+                const status = line.status;
+                if (status === 'matched' || line.created_payment_document) {
                     return (
-                        <Badge variant="default" className="gap-1 bg-green-600 hover:bg-green-700">
-                            <PiCheckBold className="h-3 w-3" /> Сопоставлено
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                            <Badge variant="default" className="gap-1 bg-green-600 hover:bg-green-700 w-fit">
+                                <PiCheckBold className="h-3 w-3" /> Сопоставлено
+                            </Badge>
+                            {line.created_payment_document_number && (
+                                <Link 
+                                    href={`/ru/documents/payments/${line.created_payment_document}`}
+                                    className="text-xs text-blue-600 hover:underline"
+                                >
+                                    Док. {line.created_payment_document_number}
+                                </Link>
+                            )}
+                        </div>
                     );
                 }
                 return (
@@ -240,8 +274,23 @@ export default function BankStatementDetailPage() {
             header: 'Действия',
             cell: ({ row }: any) => {
                 const line = row.original;
+                const canCreatePayment = line.status === 'unmatched' && !line.matched_document_id;
                 return (
                     <div className="flex gap-2">
+                        {canCreatePayment && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                    if (confirm(`Создать документ "${line.transaction_type === 'INCOMING' ? 'Поступление' : 'Списание'}" для этой строки?`)) {
+                                        createPaymentMutation.mutate({ lineId: line.id });
+                                    }
+                                }}
+                                title={line.transaction_type === 'INCOMING' ? 'Создать поступление' : 'Создать списание'}
+                            >
+                                <PiFileTextBold className="h-4 w-4 text-blue-600" />
+                            </Button>
+                        )}
                         <Button
                             variant="ghost"
                             size="icon"
@@ -288,6 +337,20 @@ export default function BankStatementDetailPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
+                    {statement.status === 'draft' && (
+                        <Button 
+                            variant="outline"
+                            onClick={() => {
+                                if (confirm('Создать документы "Поступление"/"Списание" для всех несопоставленных строк?')) {
+                                    createPaymentsForUnmatchedMutation.mutate(false);
+                                }
+                            }}
+                            disabled={createPaymentsForUnmatchedMutation.isPending}
+                        >
+                            <PiFileTextBold className="mr-2" />
+                            Создать документы для всех
+                        </Button>
+                    )}
                     <Button variant="outline">
                         Сопоставить все
                     </Button>

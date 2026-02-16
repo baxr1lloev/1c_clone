@@ -1123,6 +1123,83 @@ class BankStatementViewSet(TenantFilterMixin, viewsets.ModelViewSet):
             )
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['post'], url_path='lines/(?P<line_id>\\d+)/create-payment')
+    def create_payment_from_line(self, request, pk=None, line_id=None):
+        """Create PaymentDocument from a bank statement line."""
+        statement = self.get_object()
+        
+        try:
+            line = BankStatementLine.objects.get(id=line_id, statement=statement)
+            
+            # Check if payment already created
+            if line.created_payment_document:
+                return Response(
+                    {'error': 'Payment document already created for this line'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Get optional parameters
+            counterparty_id = request.data.get('counterparty_id')
+            contract_id = request.data.get('contract_id')
+            auto_post = request.data.get('auto_post', False)
+            
+            counterparty = None
+            contract = None
+            
+            if counterparty_id:
+                from directories.models import Counterparty
+                counterparty = Counterparty.objects.get(id=counterparty_id, tenant=request.user.tenant)
+            
+            if contract_id:
+                from directories.models import Contract
+                contract = Contract.objects.get(id=contract_id, tenant=request.user.tenant)
+            
+            # Create payment document
+            payment_doc = line.create_payment_document(
+                user=request.user,
+                counterparty=counterparty,
+                contract=contract,
+                auto_post=auto_post
+            )
+            
+            # Serialize and return
+            from .serializers import PaymentDocumentSerializer
+            serializer = PaymentDocumentSerializer(payment_doc)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except BankStatementLine.DoesNotExist:
+            return Response(
+                {'error': 'Line not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['post'], url_path='create-payments-for-unmatched')
+    def create_payments_for_unmatched(self, request, pk=None):
+        """Create PaymentDocuments for all unmatched lines."""
+        statement = self.get_object()
+        auto_post = request.data.get('auto_post', False)
+        created_count = 0
+        errors = []
+        
+        unmatched_lines = statement.lines.filter(status='unmatched', created_payment_document__isnull=True)
+        
+        for line in unmatched_lines:
+            try:
+                line.create_payment_document(
+                    user=request.user,
+                    auto_post=auto_post
+                )
+                created_count += 1
+            except Exception as e:
+                errors.append(f"Line {line.id}: {str(e)}")
+        
+        return Response({
+            'created_count': created_count,
+            'errors': errors
+        }, status=status.HTTP_200_OK)
 
 class PayrollDocumentViewSet(TenantFilterMixin, DocumentPostingsMixin, viewsets.ModelViewSet):
     """API endpoint for payroll documents."""

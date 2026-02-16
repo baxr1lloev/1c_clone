@@ -703,6 +703,11 @@ class BankStatementLineSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     transaction_type = serializers.CharField(read_only=True)
+    created_payment_document_number = serializers.CharField(
+        source='created_payment_document.number', 
+        read_only=True, 
+        allow_null=True
+    )
     
     class Meta:
         model = BankStatementLine
@@ -710,7 +715,8 @@ class BankStatementLineSerializer(serializers.ModelSerializer):
             'id', 'transaction_date', 'description', 'counterparty_name',
             'debit_amount', 'credit_amount', 'balance', 'amount', 'transaction_type',
             'status', 'status_display', 'counterparty', 'matched_document_type', 
-            'matched_document_id', 'created_at', 'updated_at'
+            'matched_document_id', 'created_payment_document', 'created_payment_document_number',
+            'created_at', 'updated_at'
         ]
         read_only_fields = ['amount', 'transaction_type', 'balance']
 
