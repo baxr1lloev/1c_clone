@@ -20,6 +20,7 @@ import Link from 'next/link';
 export default function BankStatementsPage() {
     const t = useTranslations('documents');
     const [open, setOpen] = useState(false);
+    const [openCreate, setOpenCreate] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [bankAccount, setBankAccount] = useState('');
     const [statementDate, setStatementDate] = useState('');
@@ -40,6 +41,31 @@ export default function BankStatementsPage() {
             // Handle paginated response structure if needed, assuming list for now or check structure
             // Usually paginated: { results: [] }
             return res.results || res.data;
+        }
+    });
+
+    // Create Mutation
+    const createMutation = useMutation({
+        mutationFn: async () => {
+            if (!bankAccount || !statementDate) throw new Error('Missing fields');
+            return await BankStatementService.create({
+                bank_account: Number(bankAccount),
+                statement_date: statementDate,
+                opening_balance: openingBalance,
+            });
+        },
+        onSuccess: (data) => {
+            toast.success('Выписка успешно создана');
+            setOpenCreate(false);
+            setBankAccount('');
+            setStatementDate('');
+            setOpeningBalance('0');
+            queryClient.invalidateQueries({ queryKey: ['bank-statements'] });
+            // Redirect to detail page
+            window.location.href = `/ru/documents/bank-statements/${data.id}`;
+        },
+        onError: (error: any) => {
+            toast.error(`Ошибка создания: ${error.response?.data?.error || error.message}`);
         }
     });
 
@@ -67,6 +93,14 @@ export default function BankStatementsPage() {
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
         }
+    };
+
+    const handleCreate = () => {
+        if (!bankAccount || !statementDate) {
+            toast.error('Пожалуйста, заполните все обязательные поля');
+            return;
+        }
+        createMutation.mutate();
     };
 
     const handleUpload = () => {
@@ -178,9 +212,70 @@ export default function BankStatementsPage() {
                     <p className="text-muted-foreground">Загрузка и обработка выписок из банк-клиента</p>
                 </div>
                 <div className="flex gap-2">
+                    <Dialog open={openCreate} onOpenChange={setOpenCreate}>
+                        <DialogTrigger asChild>
+                            <Button className="gap-2" variant="default" suppressHydrationWarning>
+                                <PiPlusBold className="h-4 w-4" />
+                                Создать выписку
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[500px]">
+                            <DialogHeader>
+                                <DialogTitle>Создание банковской выписки</DialogTitle>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="create-bank-account">Банковский счет *</Label>
+                                    <Select value={bankAccount} onValueChange={setBankAccount}>
+                                        <SelectTrigger id="create-bank-account">
+                                            <SelectValue placeholder="Выберите счет" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {bankAccounts && bankAccounts.map((acc: any) => (
+                                                <SelectItem key={acc.id} value={String(acc.id)}>
+                                                    {acc.bank_name} - {acc.currency?.code} ({acc.account_number})
+                                                </SelectItem>
+                                            ))}
+                                            {!bankAccounts && <SelectItem value="loading" disabled>Загрузка...</SelectItem>}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="create-date">Дата выписки *</Label>
+                                        <Input
+                                            id="create-date"
+                                            type="date"
+                                            value={statementDate}
+                                            onChange={(e) => setStatementDate(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="create-balance">Вх. остаток</Label>
+                                        <Input
+                                            id="create-balance"
+                                            type="number"
+                                            step="0.01"
+                                            value={openingBalance}
+                                            onChange={(e) => setOpeningBalance(e.target.value)}
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button variant="outline" onClick={() => setOpenCreate(false)}>Отмена</Button>
+                                <Button onClick={handleCreate} disabled={createMutation.isPending}>
+                                    {createMutation.isPending ? 'Создание...' : 'Создать'}
+                                </Button>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+
                     <Dialog open={open} onOpenChange={setOpen}>
                         <DialogTrigger asChild>
-                            <Button className="gap-2" suppressHydrationWarning>
+                            <Button className="gap-2" variant="outline" suppressHydrationWarning>
                                 <PiUploadBold className="h-4 w-4" />
                                 Загрузить выписку
                             </Button>

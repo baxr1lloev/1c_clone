@@ -1393,6 +1393,11 @@ class BankStatement(BaseDocument):
     lines_count = models.IntegerField(_('Lines Count'), default=0)
     matched_count = models.IntegerField(_('Matched Lines'), default=0)
     
+    @classmethod
+    def get_document_prefix(cls):
+        """Return document prefix for auto-numbering."""
+        return 'BS'
+    
     def recalculate_totals(self):
         """Recalculate totals from lines"""
         from django.db.models import Sum

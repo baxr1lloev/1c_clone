@@ -1,0 +1,411 @@
+src/app/[locale]/(dashboard)/accounting/operations/[id]/page.tsx(21,20): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/accounting/reconciliation/page.tsx(16,20): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/accounting/tools/sequence/page.tsx(19,20): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/accounting/trial-balance/page.tsx(155,37): error TS2339: Property 'rows' does not exist on type 'TrialBalanceRow[]'.
+src/app/[locale]/(dashboard)/admin/audit-log/page.tsx(25,20): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/balances/accounts/page.tsx(120,90): error TS2339: Property 'results' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/balances/settlement/page.tsx(96,45): error TS2339: Property 'results' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/balances/stock/page.tsx(102,45): error TS2339: Property 'results' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(28,27): error TS2339: Property 'name' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(45,66): error TS2339: Property 'name' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(46,68): error TS2339: Property 'bank_name' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(50,46): error TS2339: Property 'is_active' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(51,35): error TS2339: Property 'is_active' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(62,35): error TS2339: Property 'balance' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(62,76): error TS2339: Property 'currency' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(82,70): error TS2339: Property 'name' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(86,70): error TS2339: Property 'bank_name' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(90,70): error TS2339: Property 'account_number' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(94,70): error TS2339: Property 'currency' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(98,70): error TS2339: Property 'description' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(124,74): error TS2339: Property 'created_at' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/bank-accounts/[id]/page.tsx(128,74): error TS2339: Property 'updated_at' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/categories/page.tsx(48,31): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/directories/categories/page.tsx(48,49): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/directories/categories/page.tsx(49,17): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/directories/categories/page.tsx(49,43): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/directories/categories/page.tsx(49,64): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/directories/categories/page.tsx(64,31): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/directories/categories/page.tsx(64,49): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/directories/categories/page.tsx(65,17): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/directories/categories/page.tsx(65,43): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/directories/categories/page.tsx(65,64): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/directories/contracts/[id]/page.tsx(119,11): error TS7022: 'response' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+src/app/[locale]/(dashboard)/directories/contracts/[id]/page.tsx(125,51): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/app/[locale]/(dashboard)/directories/counterparties/page.tsx(342,30): error TS2820: Type '"counterparties"' is not assignable to type '"sales-list" | "purchase-list" | "counterparty-list" | "item-list" | "transfer-list" | "document-form" | undefined'. Did you mean '"counterparty-list"'?
+src/app/[locale]/(dashboard)/directories/counterparties/page.tsx(364,17): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date | RichTagsFunction'.
+  Type 'undefined' is not assignable to type 'string | number | Date | RichTagsFunction'.
+src/app/[locale]/(dashboard)/directories/employees/[id]/page.tsx(21,20): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/directories/fixed-assets/page.tsx(189,52): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date'.
+  Type 'undefined' is not assignable to type 'string | number | Date'.
+src/app/[locale]/(dashboard)/directories/intangible-assets/page.tsx(188,52): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date'.
+  Type 'undefined' is not assignable to type 'string | number | Date'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(68,24): error TS2339: Property 'name' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(139,63): error TS2339: Property 'name' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(140,70): error TS2339: Property 'sku' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(144,43): error TS2339: Property 'is_active' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(145,32): error TS2339: Property 'is_active' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(166,67): error TS2339: Property 'name' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(170,67): error TS2339: Property 'sku' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(174,67): error TS2339: Property 'item_type' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(178,67): error TS2339: Property 'base_unit' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(182,68): error TS2339: Property 'purchase_price' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(186,68): error TS2339: Property 'sale_price' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(200,53): error TS2339: Property 'balances' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(214,54): error TS2339: Property 'documents' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(229,71): error TS2339: Property 'created_at' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/directories/items/[id]/page.tsx(233,71): error TS2339: Property 'updated_at' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/bank-statements/page.tsx(42,20): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/documents/bank-statements/page.tsx(42,35): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/documents/cash-orders/page.tsx(181,11): error TS2322: Type '{ id: number; type: string; label: string | number | null | undefined; className: string; onClick: () => void; }' is not assignable to type 'IntrinsicAttributes & ReferenceLinkProps'.
+  Property 'onClick' does not exist on type 'IntrinsicAttributes & ReferenceLinkProps'.
+src/app/[locale]/(dashboard)/documents/cash-orders/page.tsx(371,30): error TS2322: Type '"cash-orders"' is not assignable to type '"sales-list" | "purchase-list" | "counterparty-list" | "item-list" | "transfer-list" | "document-form" | undefined'.
+src/app/[locale]/(dashboard)/documents/cash-orders/page.tsx(393,17): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date | RichTagsFunction'.
+  Type 'undefined' is not assignable to type 'string | number | Date | RichTagsFunction'.
+src/app/[locale]/(dashboard)/documents/fa-receipts/page.tsx(177,52): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date'.
+  Type 'undefined' is not assignable to type 'string | number | Date'.
+src/app/[locale]/(dashboard)/documents/ia-receipts/page.tsx(177,52): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date'.
+  Type 'undefined' is not assignable to type 'string | number | Date'.
+src/app/[locale]/(dashboard)/documents/inventory/[id]/page.tsx(39,22): error TS2339: Property 'number' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/inventory/[id]/page.tsx(49,22): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/inventory/[id]/page.tsx(50,44): error TS2739: Type '{}' is missing the following properties from type 'InventoryDocument': number, date, warehouse, lines
+src/app/[locale]/(dashboard)/documents/payments/page.tsx(22,3): error TS2741: Property 'bank_account' is missing in type '{ id: number; tenant: number; number: string; date: string; status: "posted"; is_posted: true; comment: string; payment_type: "INCOMING"; payment_method: string; counterparty: number; contract: number; ... 8 more ...; updated_at: string; }' but required in type 'PaymentDocument'.
+src/app/[locale]/(dashboard)/documents/payments/page.tsx(23,3): error TS2741: Property 'bank_account' is missing in type '{ id: number; tenant: number; number: string; date: string; status: "posted"; is_posted: true; comment: string; payment_type: "OUTGOING"; payment_method: string; counterparty: number; contract: null; ... 8 more ...; updated_at: string; }' but required in type 'PaymentDocument'.
+src/app/[locale]/(dashboard)/documents/payments/page.tsx(24,3): error TS2741: Property 'bank_account' is missing in type '{ id: number; tenant: number; number: string; date: string; status: "draft"; is_posted: false; comment: string; payment_type: "INCOMING"; payment_method: string; counterparty: number; contract: null; ... 8 more ...; updated_at: string; }' but required in type 'PaymentDocument'.
+src/app/[locale]/(dashboard)/documents/payroll/[id]/page.tsx(21,20): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/documents/purchases/[id]/page.tsx(39,22): error TS2339: Property 'number' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/purchases/[id]/page.tsx(49,19): error TS2339: Property 'date' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/purchases/[id]/page.tsx(51,51): error TS2339: Property 'date' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/purchases/[id]/page.tsx(56,22): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales-orders/page.tsx(56,14): error TS18046: 'response' is of type 'unknown'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(71,41): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(143,41): error TS2339: Property 'rate' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(143,58): error TS2339: Property 'exchange_rate' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(146,46): error TS2339: Property 'currency_code' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(149,44): error TS2339: Property 'currency' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(150,42): error TS2339: Property 'date' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(158,74): error TS2339: Property 'results' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(171,35): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(172,46): error TS2339: Property 'rate' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(172,63): error TS2339: Property 'exchange_rate' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(187,38): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(205,28): error TS2339: Property 'number' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(216,30): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(217,28): error TS2339: Property 'lines' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(218,42): error TS2339: Property 'currency_code' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(220,42): error TS2339: Property 'rate' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(220,59): error TS2339: Property 'exchange_rate' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(232,41): error TS2339: Property 'total_amount' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(240,24): error TS2339: Property 'date' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(241,52): error TS2339: Property 'date' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(249,34): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(261,37): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(262,37): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(271,48): error TS2339: Property 'errors' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(272,50): error TS2339: Property 'warnings' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(284,58): error TS2339: Property 'number' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(285,56): error TS2339: Property 'date' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(286,50): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(290,57): error TS2339: Property 'counterparty' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(294,57): error TS2339: Property 'warehouse' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(365,66): error TS2339: Property 'counterparty' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(366,67): error TS2339: Property 'warehouse' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(367,60): error TS2339: Property 'date' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(368,64): error TS2339: Property 'tenant' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(470,46): error TS2339: Property 'counterparty' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page.tsx(471,47): error TS2339: Property 'warehouse' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(14,10): error TS2305: Module '"@/hooks/use-keyboard-shortcuts"' has no exported member 'useKeyboardShortcuts'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(77,33): error TS2339: Property 'can_post' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(85,28): error TS2339: Property 'number' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(118,34): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(119,35): error TS2339: Property 'can_post' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(120,37): error TS2339: Property 'can_unpost' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(121,37): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(125,42): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(127,30): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(141,46): error TS2339: Property 'number' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(142,44): error TS2339: Property 'date' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(143,38): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(149,50): error TS2339: Property 'counterparty_id' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(151,53): error TS2339: Property 'counterparty_name' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(160,50): error TS2339: Property 'contract_id' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(162,53): error TS2339: Property 'contract_number' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(162,85): error TS2339: Property 'contract_id' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(170,50): error TS2339: Property 'warehouse_id' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(172,53): error TS2339: Property 'warehouse_name' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(179,45): error TS2339: Property 'currency_code' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(185,47): error TS2339: Property 'total_amount' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(185,83): error TS2339: Property 'currency_code' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(199,21): error TS2322: Type '{ documentId: number; documentType: "sales"; isPosted: boolean; activeTab: string; onTabChange: Dispatch<SetStateAction<string>>; itemsContent: Element; }' is not assignable to type 'IntrinsicAttributes & DocumentTabsProps'.
+  Property 'isPosted' does not exist on type 'IntrinsicAttributes & DocumentTabsProps'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(199,40): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/sales/page.tsx(609,17): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date | RichTagsFunction'.
+  Type 'undefined' is not assignable to type 'string | number | Date | RichTagsFunction'.
+src/app/[locale]/(dashboard)/documents/transfers/[id]/page.tsx(42,22): error TS2339: Property 'number' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/transfers/[id]/page.tsx(51,22): error TS2339: Property 'status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/documents/transfers/[id]/page.tsx(52,55): error TS2739: Type '{}' is missing the following properties from type 'TransferDocument': number, date, from_warehouse, to_warehouse, lines
+src/app/[locale]/(dashboard)/fixed-assets/[id]/page.tsx(49,20): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/fixed-assets/[id]/page.tsx(56,20): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/fixed-assets/page.tsx(35,20): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/registers/batches/page.tsx(120,44): error TS2339: Property 'results' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/registers/journal-entries/page.tsx(125,44): error TS2339: Property 'results' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/registers/settlement-movements/page.tsx(133,46): error TS2339: Property 'results' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/registers/stock-movements/page.tsx(122,34): error TS2339: Property 'results' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/account-card/page.tsx(13,31): error TS2307: Cannot find module '@/components/directories/account-select' or its corresponding type declarations.
+src/app/[locale]/(dashboard)/reports/depreciation-schedule/page.tsx(27,20): error TS18046: 'res' is of type 'unknown'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(62,21): error TS2339: Property 'overall_status' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(86,60): error TS2339: Property 'stock_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(93,53): error TS2339: Property 'stock_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(101,41): error TS2339: Property 'stock_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(108,51): error TS2339: Property 'stock_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(113,66): error TS2339: Property 'stock_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(115,84): error TS2339: Property 'stock_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(116,41): error TS2339: Property 'stock_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(116,105): error TS2339: Property 'stock_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(121,30): error TS2339: Property 'stock_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(134,45): error TS2339: Property 'stock_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(155,60): error TS2339: Property 'settlements_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(162,53): error TS2339: Property 'settlements_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(170,41): error TS2339: Property 'settlements_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(176,41): error TS2339: Property 'settlements_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(182,41): error TS2339: Property 'settlements_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(185,66): error TS2339: Property 'settlements_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(187,83): error TS2339: Property 'settlements_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(188,41): error TS2339: Property 'settlements_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(201,60): error TS2339: Property 'consistency_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(208,53): error TS2339: Property 'consistency_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(215,77): error TS2339: Property 'consistency_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(219,78): error TS2339: Property 'consistency_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(220,41): error TS2339: Property 'consistency_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(225,29): error TS2339: Property 'consistency_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/reconciliation/page.tsx(237,41): error TS2339: Property 'consistency_check' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/sales/page.tsx(128,43): error TS2339: Property 'rows' does not exist on type 'SalesReportRow[]'.
+src/app/[locale]/(dashboard)/reports/settlements-as-of-date/page.tsx(102,38): error TS2339: Property 'counterparties' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/settlements-as-of-date/page.tsx(109,41): error TS2339: Property 'counterparties' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/settlements-as-of-date/page.tsx(189,24): error TS2339: Property 'movements' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/stock-as-of-date/page.tsx(117,38): error TS2339: Property 'items' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/stock-as-of-date/page.tsx(124,41): error TS2339: Property 'items' does not exist on type '{}'.
+src/app/[locale]/(dashboard)/reports/stock/page.tsx(129,43): error TS2339: Property 'rows' does not exist on type 'StockReportRow[]'.
+src/components/accounting/operation-form.tsx(77,20): error TS18046: 'res' is of type 'unknown'.
+src/components/accounting/period-closing-wizard.tsx(87,20): error TS18046: 'res' is of type 'unknown'.
+src/components/accounting/period-closing-wizard.tsx(98,20): error TS18046: 'res' is of type 'unknown'.
+src/components/accounting/period-closing-wizard.tsx(121,20): error TS18046: 'res' is of type 'unknown'.
+src/components/admin/import-wizard-dialog.tsx(40,20): error TS18046: 'response' is of type 'unknown'.
+src/components/admin/repost-period-dialog.tsx(34,39): error TS18046: 'data' is of type 'unknown'.
+src/components/admin/user-form.tsx(69,30): error TS2571: Object is of type 'unknown'.
+src/components/assets/fixed-asset-form.tsx(80,20): error TS18046: 'res' is of type 'unknown'.
+src/components/assets/fixed-asset-form.tsx(89,20): error TS18046: 'res' is of type 'unknown'.
+src/components/assets/intangible-asset-form.tsx(69,20): error TS18046: 'res' is of type 'unknown'.
+src/components/documents/bulk-actions-toolbar.tsx(41,20): error TS18046: 'response' is of type 'unknown'.
+src/components/documents/bulk-actions-toolbar.tsx(65,20): error TS18046: 'response' is of type 'unknown'.
+src/components/documents/bulk-actions-toolbar.tsx(86,20): error TS18046: 'response' is of type 'unknown'.
+src/components/documents/cash-order-form.tsx(82,55): error TS18046: 'response' is of type 'unknown'.
+src/components/documents/document-chain.tsx(67,9): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options: DefinedInitialDataOptions<ChainData, Error, ChainData, readonly unknown[]>, queryClient?: QueryClient | undefined): DefinedUseQueryResult<...>', gave the following error.
+    Type '() => Promise<unknown>' is not assignable to type 'QueryFunction<ChainData, readonly unknown[]>'.
+      Type 'Promise<unknown>' is not assignable to type 'ChainData | Promise<ChainData>'.
+        Type 'Promise<unknown>' is not assignable to type 'Promise<ChainData>'.
+          Type 'unknown' is not assignable to type 'ChainData'.
+  Overload 2 of 3, '(options: UndefinedInitialDataOptions<ChainData, Error, ChainData, readonly unknown[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Type '() => Promise<unknown>' is not assignable to type 'unique symbol | QueryFunction<ChainData, readonly unknown[], never> | undefined'.
+      Type '() => Promise<unknown>' is not assignable to type 'QueryFunction<ChainData, readonly unknown[], never>'.
+        Type 'Promise<unknown>' is not assignable to type 'ChainData | Promise<ChainData>'.
+          Type 'Promise<unknown>' is not assignable to type 'Promise<ChainData>'.
+            Type 'unknown' is not assignable to type 'ChainData'.
+  Overload 3 of 3, '(options: UseQueryOptions<ChainData, Error, ChainData, readonly unknown[]>, queryClient?: QueryClient | undefined): UseQueryResult<ChainData, Error>', gave the following error.
+    Type '() => Promise<unknown>' is not assignable to type 'unique symbol | QueryFunction<ChainData, readonly unknown[], never> | undefined'.
+      Type '() => Promise<unknown>' is not assignable to type 'QueryFunction<ChainData, readonly unknown[], never>'.
+        Type 'Promise<unknown>' is not assignable to type 'ChainData | Promise<ChainData>'.
+          Type 'Promise<unknown>' is not assignable to type 'Promise<ChainData>'.
+            Type 'unknown' is not assignable to type 'ChainData'.
+src/components/documents/document-chain.tsx(90,29): error TS2339: Property 'base_document' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(91,14): error TS2339: Property 'child_documents' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(92,14): error TS2339: Property 'available_creations' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(93,14): error TS2339: Property 'settlement' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(109,23): error TS2339: Property 'base_document' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(115,40): error TS2339: Property 'base_document' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(119,35): error TS2339: Property 'base_document' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(123,35): error TS2339: Property 'base_document' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(129,23): error TS2339: Property 'child_documents' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(132,54): error TS2339: Property 'child_documents' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(135,35): error TS2339: Property 'child_documents' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(135,56): error TS7006: Parameter 'doc' implicitly has an 'any' type.
+src/components/documents/document-chain.tsx(163,23): error TS2339: Property 'settlement' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(170,35): error TS2339: Property 'settlement' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(186,43): error TS2339: Property 'settlement' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(192,43): error TS2339: Property 'settlement' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(197,69): error TS2339: Property 'settlement' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(198,43): error TS2339: Property 'settlement' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(206,23): error TS2339: Property 'available_creations' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(213,35): error TS2339: Property 'available_creations' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/document-chain.tsx(213,60): error TS7006: Parameter 'creation' implicitly has an 'any' type.
+src/components/documents/document-chain.tsx(254,17): error TS18046: 'data' is of type 'unknown'.
+src/components/documents/document-chain.tsx(255,29): error TS18046: 'data' is of type 'unknown'.
+src/components/documents/document-context-panel.tsx(84,26): error TS2339: Property 'debt' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(85,26): error TS2339: Property 'credit_limit' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(86,26): error TS2339: Property 'overdue_days' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(118,59): error TS2339: Property 'overdue_days' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(120,95): error TS2339: Property 'overdue_days' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(123,59): error TS2339: Property 'debt' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(123,79): error TS2339: Property 'credit_limit' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(126,68): error TS2339: Property 'debt' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(126,88): error TS2339: Property 'credit_limit' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(139,54): error TS2339: Property 'debt' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(141,55): error TS2339: Property 'debt' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(145,51): error TS2339: Property 'overdue_days' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(147,62): error TS2339: Property 'overdue_days' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(157,62): error TS2339: Property 'used_credit' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(157,89): error TS2339: Property 'credit_limit' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(160,58): error TS2339: Property 'used_credit' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(160,85): error TS2339: Property 'credit_limit' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(164,61): error TS2339: Property 'used_credit' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(166,61): error TS2339: Property 'credit_limit' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(169,51): error TS2339: Property 'used_credit' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(169,78): error TS2339: Property 'credit_limit' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(177,47): error TS2339: Property 'last_payment_date' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(183,68): error TS2339: Property 'last_payment_date' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(185,55): error TS2339: Property 'last_payment_amount' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(187,63): error TS2339: Property 'last_payment_amount' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(193,47): error TS2339: Property 'recent_docs' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(193,75): error TS2339: Property 'recent_docs' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(199,59): error TS2339: Property 'recent_docs' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(241,102): error TS2339: Property 'on_hand' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(245,84): error TS2339: Property 'reserved' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(251,59): error TS2339: Property 'available' does not exist on type '{}'.
+src/components/documents/document-context-panel.tsx(253,60): error TS2339: Property 'available' does not exist on type '{}'.
+src/components/documents/document-history-panel.tsx(45,30): error TS2322: Type 'unknown' is not assignable to type 'AuditLog[] | undefined'.
+src/components/documents/document-postings.tsx(38,31): error TS2339: Property 'stock' does not exist on type '{}'.
+src/components/documents/document-postings.tsx(38,49): error TS2339: Property 'stock' does not exist on type '{}'.
+src/components/documents/document-postings.tsx(39,37): error TS2339: Property 'settlement' does not exist on type '{}'.
+src/components/documents/document-postings.tsx(39,60): error TS2339: Property 'settlement' does not exist on type '{}'.
+src/components/documents/document-postings.tsx(40,36): error TS2339: Property 'accounting' does not exist on type '{}'.
+src/components/documents/document-postings.tsx(40,59): error TS2339: Property 'accounting' does not exist on type '{}'.
+src/components/documents/document-postings.tsx(66,43): error TS2339: Property 'accounting' does not exist on type '{}'.
+src/components/documents/document-postings.tsx(108,43): error TS2339: Property 'settlement' does not exist on type '{}'.
+src/components/documents/document-postings.tsx(148,43): error TS2339: Property 'stock' does not exist on type '{}'.
+src/components/documents/document-tab.tsx(182,58): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/components/documents/document-tab.tsx(243,20): error TS18046: 'response' is of type 'unknown'.
+src/components/documents/document-tab.tsx(252,20): error TS18046: 'response' is of type 'unknown'.
+src/components/documents/document-tabs.tsx(85,33): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/components/documents/document-tabs.tsx(85,57): error TS2339: Property 'length' does not exist on type '{}'.
+src/components/documents/document-tabs.tsx(87,52): error TS2339: Property 'length' does not exist on type '{}'.
+src/components/documents/document-tabs.tsx(96,33): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/components/documents/document-tabs.tsx(96,67): error TS2339: Property 'length' does not exist on type '{}'.
+src/components/documents/document-tabs.tsx(98,57): error TS2339: Property 'length' does not exist on type '{}'.
+src/components/documents/document-tabs.tsx(118,49): error TS2339: Property 'length' does not exist on type '{}'.
+src/components/documents/document-tabs.tsx(119,45): error TS2740: Type '{}' is missing the following properties from type 'StockMovement[]': length, pop, push, concat, and 35 more.
+src/components/documents/document-tabs.tsx(130,29): error TS2740: Type '{}' is missing the following properties from type 'any[]': length, pop, push, concat, and 35 more.
+src/components/documents/document-tabs.tsx(136,51): error TS2339: Property 'length' does not exist on type '{}'.
+src/components/documents/document-tabs.tsx(137,46): error TS2740: Type '{}' is missing the following properties from type 'AuditLog[]': length, pop, push, concat, and 35 more.
+src/components/documents/fa-receipt-document-form.tsx(99,27): error TS18046: 'data' is of type 'unknown'.
+src/components/documents/ia-receipt-document-form.tsx(62,20): error TS18046: 'res' is of type 'unknown'.
+src/components/documents/ia-receipt-document-form.tsx(71,20): error TS18046: 'res' is of type 'unknown'.
+src/components/documents/ia-receipt-document-form.tsx(96,27): error TS18046: 'data' is of type 'unknown'.
+src/components/documents/inventory-document-form.tsx(85,49): error TS18046: 'data' is of type 'unknown'.
+src/components/documents/period-status-banner.tsx(26,37): error TS2339: Property 'is_closed' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/period-status-banner.tsx(37,53): error TS2339: Property 'period' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/period-status-banner.tsx(40,43): error TS2339: Property 'accounting_closed' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/period-status-banner.tsx(48,43): error TS2339: Property 'operational_closed' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/period-status-banner.tsx(58,109): error TS2339: Property 'closed_by' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/period-status-banner.tsx(60,51): error TS2339: Property 'closed_at' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/period-status-banner.tsx(60,85): error TS2339: Property 'closed_at' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/period-status-banner.tsx(67,31): error TS2339: Property 'can_reopen' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/components/documents/production-form.tsx(91,30): error TS2571: Object is of type 'unknown'.
+src/components/documents/production-form.tsx(96,30): error TS2571: Object is of type 'unknown'.
+src/components/documents/purchase-document-form.tsx(82,45): error TS2339: Property 'unit' does not exist on type '{}'.
+src/components/documents/purchase-document-form.tsx(85,18): error TS2339: Property 'packages' does not exist on type '{}'.
+src/components/documents/purchase-document-form.tsx(85,34): error TS2339: Property 'packages' does not exist on type '{}'.
+src/components/documents/purchase-document-form.tsx(102,32): error TS2339: Property 'unit' does not exist on type '{}'.
+src/components/documents/purchase-document-form.tsx(137,32): error TS2339: Property 'unit' does not exist on type '{}'.
+src/components/documents/purchase-document-form.tsx(179,40): error TS2339: Property 'id' does not exist on type 'never'.
+src/components/documents/purchase-document-form.tsx(182,36): error TS2339: Property 'id' does not exist on type 'never'.
+src/components/documents/purchase-document-form.tsx(185,37): error TS2339: Property 'id' does not exist on type 'never'.
+src/components/documents/purchase-document-form.tsx(188,36): error TS2339: Property 'id' does not exist on type 'never'.
+src/components/documents/sales-document-form.tsx(495,57): error TS2339: Property 'base_unit' does not exist on type '{}'.
+src/components/documents/sales-document-form.tsx(496,39): error TS2339: Property 'units' does not exist on type '{}'.
+src/components/documents/sales-document-form.tsx(507,45): error TS2339: Property 'base_unit' does not exist on type '{}'.
+src/components/documents/sales-document-form.tsx(557,106): error TS2339: Property 'base_unit' does not exist on type '{}'.
+src/components/documents/sales-order-form.tsx(215,57): error TS2339: Property 'base_unit' does not exist on type '{}'.
+src/components/documents/sales-order-form.tsx(216,39): error TS2339: Property 'units' does not exist on type '{}'.
+src/components/documents/sales-order-form.tsx(227,45): error TS2339: Property 'base_unit' does not exist on type '{}'.
+src/components/documents/sales-order-form.tsx(275,106): error TS2339: Property 'base_unit' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(67,34): error TS2339: Property 'pricing' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(68,36): error TS2339: Property 'defaults' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(69,38): error TS2339: Property 'defaults' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(70,37): error TS2339: Property 'pricing' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(80,52): error TS2339: Property 'pricing' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(209,43): error TS2339: Property 'pricing' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(219,46): error TS2339: Property 'pricing' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(224,39): error TS2339: Property 'pricing' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(226,48): error TS2339: Property 'pricing' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(251,43): error TS2339: Property 'defaults' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(261,46): error TS2339: Property 'defaults' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(281,31): error TS2339: Property 'stock' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(287,50): error TS2339: Property 'stock' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(293,50): error TS2339: Property 'stock' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(300,49): error TS2339: Property 'stock' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(302,50): error TS2339: Property 'stock' does not exist on type '{}'.
+src/components/documents/smart-line-item-form.tsx(303,50): error TS2339: Property 'stock' does not exist on type '{}'.
+src/components/documents/transfer-document-form.tsx(78,49): error TS18046: 'data' is of type 'unknown'.
+src/components/layout/help-panel.tsx(85,34): error TS2339: Property 'features' does not exist on type '{ title: string; description: string; shortcuts: { key: string; action: string; }[]; tips: string[]; features: string[]; } | { title: string; description: string; shortcuts: { key: string; action: string; }[]; tips: string[]; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'features' does not exist on type '{ title: string; description: string; shortcuts: { key: string; action: string; }[]; tips: string[]; }'.
+src/components/layout/help-panel.tsx(90,50): error TS2339: Property 'features' does not exist on type '{ title: string; description: string; shortcuts: { key: string; action: string; }[]; tips: string[]; features: string[]; } | { title: string; description: string; shortcuts: { key: string; action: string; }[]; tips: string[]; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'features' does not exist on type '{ title: string; description: string; shortcuts: { key: string; action: string; }[]; tips: string[]; }'.
+src/components/layout/help-panel.tsx(90,64): error TS7006: Parameter 'feature' implicitly has an 'any' type.
+src/components/layout/help-panel.tsx(90,73): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/components/reports/account-analysis-dialog.tsx(58,20): error TS18046: 'res' is of type 'unknown'.
+src/components/reports/stock-history-table.tsx(34,16): error TS2339: Property 'movements' does not exist on type '{}'.
+src/components/reports/stock-history-table.tsx(34,34): error TS2339: Property 'movements' does not exist on type '{}'.
+src/components/reports/stock-history-table.tsx(50,23): error TS2339: Property 'movements' does not exist on type '{}'.
+src/components/selectors/item-select.tsx(27,20): error TS18046: 'response' is of type 'unknown'.
+src/components/selectors/item-select.tsx(27,45): error TS18046: 'response' is of type 'unknown'.
+src/components/selectors/item-select.tsx(35,13): error TS2322: Type '{ value: any; onSelect: (item: number | null) => void; options: any; isLoading: boolean; onSearch: Dispatch<SetStateAction<string>>; placeholder: string; disabled: boolean | undefined; displayField: string; valueField: string; }' is not assignable to type 'IntrinsicAttributes & ReferenceSelectorProps'.
+  Property 'options' does not exist on type 'IntrinsicAttributes & ReferenceSelectorProps'.
+src/components/ui/detail-side-panel.tsx(139,20): error TS18046: 'response' is of type 'unknown'.
+src/components/ui/drilldown-modal.tsx(97,20): error TS18046: 'response' is of type 'unknown'.
+src/components/ui/linkable-cell.tsx(98,32): error TS18046: 'response' is of type 'unknown'.
+src/components/ui/reference-selector.tsx(77,41): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{}'.
+  No index signature with a parameter of type 'string' was found on type '{}'.
+src/components/ui/smart-package-input.tsx(46,20): error TS18046: 'response' is of type 'unknown'.
+src/hooks/use-document-validation.ts(57,9): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options: DefinedInitialDataOptions<ValidationResult, Error, ValidationResult, readonly unknown[]>, queryClient?: QueryClient | undefined): DefinedUseQueryResult<...>', gave the following error.
+    Type '() => Promise<unknown>' is not assignable to type 'QueryFunction<ValidationResult, readonly unknown[]>'.
+      Type 'Promise<unknown>' is not assignable to type 'ValidationResult | Promise<ValidationResult>'.
+        Type 'Promise<unknown>' is not assignable to type 'Promise<ValidationResult>'.
+          Type 'unknown' is not assignable to type 'ValidationResult'.
+  Overload 2 of 3, '(options: UndefinedInitialDataOptions<ValidationResult, Error, ValidationResult, readonly unknown[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Type '() => Promise<unknown>' is not assignable to type 'unique symbol | QueryFunction<ValidationResult, readonly unknown[], never> | undefined'.
+      Type '() => Promise<unknown>' is not assignable to type 'QueryFunction<ValidationResult, readonly unknown[], never>'.
+        Type 'Promise<unknown>' is not assignable to type 'ValidationResult | Promise<ValidationResult>'.
+          Type 'Promise<unknown>' is not assignable to type 'Promise<ValidationResult>'.
+            Type 'unknown' is not assignable to type 'ValidationResult'.
+  Overload 3 of 3, '(options: UseQueryOptions<ValidationResult, Error, ValidationResult, readonly unknown[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Type '() => Promise<unknown>' is not assignable to type 'unique symbol | QueryFunction<ValidationResult, readonly unknown[], never> | undefined'.
+      Type '() => Promise<unknown>' is not assignable to type 'QueryFunction<ValidationResult, readonly unknown[], never>'.
+        Type 'Promise<unknown>' is not assignable to type 'ValidationResult | Promise<ValidationResult>'.
+          Type 'Promise<unknown>' is not assignable to type 'Promise<ValidationResult>'.
+            Type 'unknown' is not assignable to type 'ValidationResult'.
+src/hooks/use-document-validation.ts(75,30): error TS2339: Property 'is_valid' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/hooks/use-document-validation.ts(76,30): error TS2339: Property 'can_post' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/hooks/use-document-validation.ts(77,29): error TS2339: Property 'errors' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/hooks/use-document-validation.ts(78,31): error TS2339: Property 'warnings' does not exist on type 'NonNullable<NoInfer<TQueryFnData>>'.
+src/hooks/use-period-status.ts(23,9): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(options: DefinedInitialDataOptions<PeriodStatus, Error, PeriodStatus, readonly unknown[]>, queryClient?: QueryClient | undefined): DefinedUseQueryResult<...>', gave the following error.
+    Type '() => Promise<unknown>' is not assignable to type 'QueryFunction<PeriodStatus, readonly unknown[]>'.
+      Type 'Promise<unknown>' is not assignable to type 'PeriodStatus | Promise<PeriodStatus>'.
+        Type 'Promise<unknown>' is not assignable to type 'Promise<PeriodStatus>'.
+          Type 'unknown' is not assignable to type 'PeriodStatus'.
+  Overload 2 of 3, '(options: UndefinedInitialDataOptions<PeriodStatus, Error, PeriodStatus, readonly unknown[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Type '() => Promise<unknown>' is not assignable to type 'unique symbol | QueryFunction<PeriodStatus, readonly unknown[], never> | undefined'.
+      Type '() => Promise<unknown>' is not assignable to type 'QueryFunction<PeriodStatus, readonly unknown[], never>'.
+        Type 'Promise<unknown>' is not assignable to type 'PeriodStatus | Promise<PeriodStatus>'.
+          Type 'Promise<unknown>' is not assignable to type 'Promise<PeriodStatus>'.
+            Type 'unknown' is not assignable to type 'PeriodStatus'.
+  Overload 3 of 3, '(options: UseQueryOptions<PeriodStatus, Error, PeriodStatus, readonly unknown[]>, queryClient?: QueryClient | undefined): UseQueryResult<...>', gave the following error.
+    Type '() => Promise<unknown>' is not assignable to type 'unique symbol | QueryFunction<PeriodStatus, readonly unknown[], never> | undefined'.
+      Type '() => Promise<unknown>' is not assignable to type 'QueryFunction<PeriodStatus, readonly unknown[], never>'.
+        Type 'Promise<unknown>' is not assignable to type 'PeriodStatus | Promise<PeriodStatus>'.
+          Type 'Promise<unknown>' is not assignable to type 'Promise<PeriodStatus>'.
+            Type 'unknown' is not assignable to type 'PeriodStatus'.
+src/lib/api.ts(106,5): error TS2345: Argument of type '(response: AxiosResponse<any, any, {}>) => unknown' is not assignable to parameter of type 'AxiosInterceptorFulfilled<AxiosResponse<any, any, {}>>'.
+  Type 'unknown' is not assignable to type 'AxiosResponse<any, any, {}> | Promise<AxiosResponse<any, any, {}>>'.

@@ -975,6 +975,154 @@ class BankStatementViewSet(TenantFilterMixin, viewsets.ModelViewSet):
             return Response(serializer.data)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Line management actions
+    @action(detail=True, methods=['post'], url_path='lines')
+    def create_line(self, request, pk=None):
+        """Create a new line for a bank statement."""
+        from decimal import Decimal
+        from django.utils import timezone
+        
+        statement = self.get_object()
+        
+        # Only allow editing draft statements
+        if statement.status != 'draft':
+            return Response(
+                {'error': 'Can only add lines to draft statements'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            transaction_date = request.data.get('transaction_date', statement.statement_date)
+            description = request.data.get('description', '')
+            counterparty_name = request.data.get('counterparty_name', '')
+            debit_amount = Decimal(request.data.get('debit_amount', '0') or '0')
+            credit_amount = Decimal(request.data.get('credit_amount', '0') or '0')
+            
+            # Calculate balance
+            last_line = statement.lines.order_by('-id').first()
+            previous_balance = last_line.balance if last_line else statement.opening_balance
+            new_balance = previous_balance + debit_amount - credit_amount
+            
+            line = BankStatementLine.objects.create(
+                statement=statement,
+                transaction_date=transaction_date,
+                description=description,
+                counterparty_name=counterparty_name,
+                debit_amount=debit_amount,
+                credit_amount=credit_amount,
+                balance=new_balance
+            )
+            
+            # Recalculate totals
+            statement.recalculate_totals()
+            
+            serializer = BankStatementLineSerializer(line)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['patch', 'put'], url_path='lines/(?P<line_id>\\d+)')
+    def update_line(self, request, pk=None, line_id=None):
+        """Update a bank statement line."""
+        from decimal import Decimal
+        
+        statement = self.get_object()
+        
+        # Only allow editing draft statements
+        if statement.status != 'draft':
+            return Response(
+                {'error': 'Can only edit lines in draft statements'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            line = BankStatementLine.objects.get(id=line_id, statement=statement)
+            
+            # Update fields
+            if 'transaction_date' in request.data:
+                line.transaction_date = request.data['transaction_date']
+            if 'description' in request.data:
+                line.description = request.data['description']
+            if 'counterparty_name' in request.data:
+                line.counterparty_name = request.data['counterparty_name']
+            if 'debit_amount' in request.data:
+                line.debit_amount = Decimal(request.data['debit_amount'] or '0')
+            if 'credit_amount' in request.data:
+                line.credit_amount = Decimal(request.data['credit_amount'] or '0')
+            
+            # Recalculate balance for this line and all subsequent lines
+            previous_line = statement.lines.filter(id__lt=line.id).order_by('-id').first()
+            previous_balance = previous_line.balance if previous_line else statement.opening_balance
+            line.balance = previous_balance + line.debit_amount - line.credit_amount
+            line.save()
+            
+            # Recalculate all subsequent lines
+            subsequent_lines = statement.lines.filter(id__gt=line.id).order_by('id')
+            running_balance = line.balance
+            for subsequent_line in subsequent_lines:
+                running_balance = running_balance + subsequent_line.debit_amount - subsequent_line.credit_amount
+                subsequent_line.balance = running_balance
+                subsequent_line.save(update_fields=['balance'])
+            
+            # Recalculate totals
+            statement.recalculate_totals()
+            
+            serializer = BankStatementLineSerializer(line)
+            return Response(serializer.data)
+            
+        except BankStatementLine.DoesNotExist:
+            return Response(
+                {'error': 'Line not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['delete'], url_path='lines/(?P<line_id>\\d+)')
+    def delete_line(self, request, pk=None, line_id=None):
+        """Delete a bank statement line."""
+        statement = self.get_object()
+        
+        # Only allow editing draft statements
+        if statement.status != 'draft':
+            return Response(
+                {'error': 'Can only delete lines from draft statements'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            line = BankStatementLine.objects.get(id=line_id, statement=statement)
+            line_id_to_delete = line.id
+            
+            # Get previous balance
+            previous_line = statement.lines.filter(id__lt=line_id_to_delete).order_by('-id').first()
+            previous_balance = previous_line.balance if previous_line else statement.opening_balance
+            
+            # Delete the line
+            line.delete()
+            
+            # Recalculate all subsequent lines
+            subsequent_lines = statement.lines.filter(id__gt=line_id_to_delete).order_by('id')
+            running_balance = previous_balance
+            for subsequent_line in subsequent_lines:
+                running_balance = running_balance + subsequent_line.debit_amount - subsequent_line.credit_amount
+                subsequent_line.balance = running_balance
+                subsequent_line.save(update_fields=['balance'])
+            
+            # Recalculate totals
+            statement.recalculate_totals()
+            
+            return Response(status=status.HTTP_204_NO_CONTENT)
+            
+        except BankStatementLine.DoesNotExist:
+            return Response(
+                {'error': 'Line not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 class PayrollDocumentViewSet(TenantFilterMixin, DocumentPostingsMixin, viewsets.ModelViewSet):
     """API endpoint for payroll documents."""

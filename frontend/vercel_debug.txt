@@ -1,0 +1,138 @@
+Vercel CLI 48.2.9
+> [debug] [2026-02-12T21:14:24.186Z] user supplied known subcommand: "deploy"
+> [debug] [2026-02-12T21:14:24.203Z] Setting target to production
+> [debug] [2026-02-12T21:14:24.211Z] Found ".git/config" - detected "/Users/baxrilloev/Desktop/saas_project 2 modifaied/project_1c" as repo root
+> [debug] [2026-02-12T21:14:24.230Z] Spinner invoked (Retrieving project…) with a 1000ms delay
+> [debug] [2026-02-12T21:14:24.230Z] Valid access token, skipping token refresh.
+> [debug] [2026-02-12T21:14:24.230Z] Valid access token, skipping token refresh.
+> [debug] [2026-02-12T21:14:24.234Z] #1 → GET https://api.vercel.com/teams/team_pxiQF0HKA5oIa9u8RwzFWxop?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop
+> [debug] [2026-02-12T21:14:24.235Z] #2 → GET https://api.vercel.com/v9/projects/prj_bGoN9OmJGoRVluxcIurTWYTHT047?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop
+> [debug] [2026-02-12T21:14:24.243Z] Retrying: FetchError: request to https://api.vercel.com/v9/projects/prj_bGoN9OmJGoRVluxcIurTWYTHT047?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+FetchError: request to https://api.vercel.com/v9/projects/prj_bGoN9OmJGoRVluxcIurTWYTHT047?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+    at ClientRequest.<anonymous> (/opt/homebrew/lib/node_modules/vercel/dist/index.js:41437:18)
+    at ClientRequest.emit (node:events:520:22)
+    at ClientRequest.emit (node:domain:489:12)
+    at emitErrorEvent (node:_http_client:108:11)
+    at TLSSocket.socketErrorListener (node:_http_client:575:5)
+    at TLSSocket.emit (node:events:508:20)
+    at TLSSocket.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+> [debug] [2026-02-12T21:14:24.244Z] Retrying: FetchError: request to https://api.vercel.com/teams/team_pxiQF0HKA5oIa9u8RwzFWxop?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+FetchError: request to https://api.vercel.com/teams/team_pxiQF0HKA5oIa9u8RwzFWxop?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+    at ClientRequest.<anonymous> (/opt/homebrew/lib/node_modules/vercel/dist/index.js:41437:18)
+    at ClientRequest.emit (node:events:520:22)
+    at ClientRequest.emit (node:domain:489:12)
+    at emitErrorEvent (node:_http_client:108:11)
+    at TLSSocket.socketErrorListener (node:_http_client:575:5)
+    at TLSSocket.emit (node:events:508:20)
+    at TLSSocket.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+> [debug] [2026-02-12T21:14:25.246Z] Valid access token, skipping token refresh.
+> [debug] [2026-02-12T21:14:25.247Z] #3 → GET https://api.vercel.com/v9/projects/prj_bGoN9OmJGoRVluxcIurTWYTHT047?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop
+> [debug] [2026-02-12T21:14:25.248Z] Valid access token, skipping token refresh.
+> [debug] [2026-02-12T21:14:25.249Z] #4 → GET https://api.vercel.com/teams/team_pxiQF0HKA5oIa9u8RwzFWxop?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop
+> [debug] [2026-02-12T21:14:25.250Z] Retrying: FetchError: request to https://api.vercel.com/v9/projects/prj_bGoN9OmJGoRVluxcIurTWYTHT047?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+FetchError: request to https://api.vercel.com/v9/projects/prj_bGoN9OmJGoRVluxcIurTWYTHT047?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+    at ClientRequest.<anonymous> (/opt/homebrew/lib/node_modules/vercel/dist/index.js:41437:18)
+    at ClientRequest.emit (node:events:520:22)
+    at ClientRequest.emit (node:domain:489:12)
+    at emitErrorEvent (node:_http_client:108:11)
+    at TLSSocket.socketErrorListener (node:_http_client:575:5)
+    at TLSSocket.emit (node:events:508:20)
+    at TLSSocket.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+> [debug] [2026-02-12T21:14:25.250Z] Retrying: FetchError: request to https://api.vercel.com/teams/team_pxiQF0HKA5oIa9u8RwzFWxop?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+FetchError: request to https://api.vercel.com/teams/team_pxiQF0HKA5oIa9u8RwzFWxop?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+    at ClientRequest.<anonymous> (/opt/homebrew/lib/node_modules/vercel/dist/index.js:41437:18)
+    at ClientRequest.emit (node:events:520:22)
+    at ClientRequest.emit (node:domain:489:12)
+    at emitErrorEvent (node:_http_client:108:11)
+    at TLSSocket.socketErrorListener (node:_http_client:575:5)
+    at TLSSocket.emit (node:events:508:20)
+    at TLSSocket.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+> [debug] [2026-02-12T21:14:27.252Z] Valid access token, skipping token refresh.
+> [debug] [2026-02-12T21:14:27.254Z] #5 → GET https://api.vercel.com/v9/projects/prj_bGoN9OmJGoRVluxcIurTWYTHT047?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop
+> [debug] [2026-02-12T21:14:27.255Z] Valid access token, skipping token refresh.
+> [debug] [2026-02-12T21:14:27.257Z] #6 → GET https://api.vercel.com/teams/team_pxiQF0HKA5oIa9u8RwzFWxop?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop
+> [debug] [2026-02-12T21:14:27.258Z] Retrying: FetchError: request to https://api.vercel.com/v9/projects/prj_bGoN9OmJGoRVluxcIurTWYTHT047?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+FetchError: request to https://api.vercel.com/v9/projects/prj_bGoN9OmJGoRVluxcIurTWYTHT047?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+    at ClientRequest.<anonymous> (/opt/homebrew/lib/node_modules/vercel/dist/index.js:41437:18)
+    at ClientRequest.emit (node:events:520:22)
+    at ClientRequest.emit (node:domain:489:12)
+    at emitErrorEvent (node:_http_client:108:11)
+    at TLSSocket.socketErrorListener (node:_http_client:575:5)
+    at TLSSocket.emit (node:events:508:20)
+    at TLSSocket.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+> [debug] [2026-02-12T21:14:27.259Z] Retrying: FetchError: request to https://api.vercel.com/teams/team_pxiQF0HKA5oIa9u8RwzFWxop?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+FetchError: request to https://api.vercel.com/teams/team_pxiQF0HKA5oIa9u8RwzFWxop?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+    at ClientRequest.<anonymous> (/opt/homebrew/lib/node_modules/vercel/dist/index.js:41437:18)
+    at ClientRequest.emit (node:events:520:22)
+    at ClientRequest.emit (node:domain:489:12)
+    at emitErrorEvent (node:_http_client:108:11)
+    at TLSSocket.socketErrorListener (node:_http_client:575:5)
+    at TLSSocket.emit (node:events:508:20)
+    at TLSSocket.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+> [debug] [2026-02-12T21:14:31.261Z] Valid access token, skipping token refresh.
+> [debug] [2026-02-12T21:14:31.262Z] #7 → GET https://api.vercel.com/v9/projects/prj_bGoN9OmJGoRVluxcIurTWYTHT047?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop
+> [debug] [2026-02-12T21:14:31.263Z] Valid access token, skipping token refresh.
+> [debug] [2026-02-12T21:14:31.263Z] #8 → GET https://api.vercel.com/teams/team_pxiQF0HKA5oIa9u8RwzFWxop?teamId=team_pxiQF0HKA5oIa9u8RwzFWxop
+> [debug] [2026-02-12T21:14:31.264Z] Valid access token, skipping token refresh.
+> [debug] [2026-02-12T21:14:31.265Z] #9 → GET https://api.vercel.com/v2/user
+> [debug] [2026-02-12T21:14:31.265Z] Retrying: FetchError: request to https://api.vercel.com/v2/user failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+FetchError: request to https://api.vercel.com/v2/user failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+    at ClientRequest.<anonymous> (/opt/homebrew/lib/node_modules/vercel/dist/index.js:41437:18)
+    at ClientRequest.emit (node:events:520:22)
+    at ClientRequest.emit (node:domain:489:12)
+    at emitErrorEvent (node:_http_client:108:11)
+    at TLSSocket.socketErrorListener (node:_http_client:575:5)
+    at TLSSocket.emit (node:events:508:20)
+    at TLSSocket.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+> [debug] [2026-02-12T21:14:32.268Z] Valid access token, skipping token refresh.
+> [debug] [2026-02-12T21:14:32.270Z] #10 → GET https://api.vercel.com/v2/user
+> [debug] [2026-02-12T21:14:32.274Z] Retrying: FetchError: request to https://api.vercel.com/v2/user failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+FetchError: request to https://api.vercel.com/v2/user failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+    at ClientRequest.<anonymous> (/opt/homebrew/lib/node_modules/vercel/dist/index.js:41437:18)
+    at ClientRequest.emit (node:events:520:22)
+    at ClientRequest.emit (node:domain:489:12)
+    at emitErrorEvent (node:_http_client:108:11)
+    at TLSSocket.socketErrorListener (node:_http_client:575:5)
+    at TLSSocket.emit (node:events:508:20)
+    at TLSSocket.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+> [debug] [2026-02-12T21:14:34.276Z] Valid access token, skipping token refresh.
+> [debug] [2026-02-12T21:14:34.277Z] #11 → GET https://api.vercel.com/v2/user
+> [debug] [2026-02-12T21:14:34.279Z] Retrying: FetchError: request to https://api.vercel.com/v2/user failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+FetchError: request to https://api.vercel.com/v2/user failed, reason: getaddrinfo ENOTFOUND api.vercel.com
+    at ClientRequest.<anonymous> (/opt/homebrew/lib/node_modules/vercel/dist/index.js:41437:18)
+    at ClientRequest.emit (node:events:520:22)
+    at ClientRequest.emit (node:domain:489:12)
+    at emitErrorEvent (node:_http_client:108:11)
+    at TLSSocket.socketErrorListener (node:_http_client:575:5)
+    at TLSSocket.emit (node:events:508:20)
+    at TLSSocket.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+> [debug] [2026-02-12T21:14:38.281Z] Valid access token, skipping token refresh.
+> [debug] [2026-02-12T21:14:38.283Z] #12 → GET https://api.vercel.com/v2/user
+> [debug] [2026-02-12T21:14:38.350Z] Sentry is not reachable: Error: getaddrinfo ENOTFOUND sentry.io

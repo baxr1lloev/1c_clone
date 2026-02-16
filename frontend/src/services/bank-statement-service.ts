@@ -56,6 +56,16 @@ export const BankStatementService = {
         return response;
     },
 
+    create: async (data: {
+        bank_account: number;
+        statement_date: string;
+        opening_balance: string;
+        comment?: string;
+    }) => {
+        const response = await api.post<BankStatementDetail>('/documents/bank-statements/', data);
+        return response;
+    },
+
     upload: async (file: File, bankAccountId: string, statementDate: string, openingBalance: string) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -79,6 +89,28 @@ export const BankStatementService = {
 
     unpost: async (id: number | string) => {
         const response = await api.post<BankStatementDetail>(`/documents/bank-statements/${id}/unpost/`);
+        return response;
+    },
+
+    // Line management
+    createLine: async (statementId: number | string, data: {
+        transaction_date: string;
+        description: string;
+        counterparty_name?: string;
+        debit_amount?: string;
+        credit_amount?: string;
+    }) => {
+        const response = await api.post<BankStatementLine>(`/documents/bank-statements/${statementId}/lines/`, data);
+        return response;
+    },
+
+    updateLine: async (statementId: number | string, lineId: number, data: Partial<BankStatementLine>) => {
+        const response = await api.patch<BankStatementLine>(`/documents/bank-statements/${statementId}/lines/${lineId}/`, data);
+        return response;
+    },
+
+    deleteLine: async (statementId: number | string, lineId: number) => {
+        const response = await api.delete(`/documents/bank-statements/${statementId}/lines/${lineId}/`);
         return response;
     }
 };

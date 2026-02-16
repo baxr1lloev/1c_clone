@@ -1,0 +1,44 @@
+src/app/[locale]/(dashboard)/accounting/trial-balance/page.tsx(155,37): error TS2339: Property 'rows' does not exist on type 'TrialBalanceRow[]'.
+src/app/[locale]/(dashboard)/directories/contracts/[id]/page.tsx(119,11): error TS7022: 'response' implicitly has type 'any' because it does not have a type annotation and is referenced directly or indirectly in its own initializer.
+src/app/[locale]/(dashboard)/directories/contracts/[id]/page.tsx(125,51): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/app/[locale]/(dashboard)/directories/counterparties/page.tsx(342,30): error TS2820: Type '"counterparties"' is not assignable to type '"sales-list" | "purchase-list" | "counterparty-list" | "item-list" | "transfer-list" | "document-form" | undefined'. Did you mean '"counterparty-list"'?
+src/app/[locale]/(dashboard)/directories/counterparties/page.tsx(364,17): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date | RichTagsFunction'.
+  Type 'undefined' is not assignable to type 'string | number | Date | RichTagsFunction'.
+src/app/[locale]/(dashboard)/directories/fixed-assets/page.tsx(189,52): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date'.
+  Type 'undefined' is not assignable to type 'string | number | Date'.
+src/app/[locale]/(dashboard)/directories/intangible-assets/page.tsx(188,52): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date'.
+  Type 'undefined' is not assignable to type 'string | number | Date'.
+src/app/[locale]/(dashboard)/documents/cash-orders/page.tsx(181,11): error TS2322: Type '{ id: number; type: string; label: string | number | null | undefined; className: string; onClick: () => void; }' is not assignable to type 'IntrinsicAttributes & ReferenceLinkProps'.
+  Property 'onClick' does not exist on type 'IntrinsicAttributes & ReferenceLinkProps'.
+src/app/[locale]/(dashboard)/documents/cash-orders/page.tsx(371,30): error TS2322: Type '"cash-orders"' is not assignable to type '"sales-list" | "purchase-list" | "counterparty-list" | "item-list" | "transfer-list" | "document-form" | undefined'.
+src/app/[locale]/(dashboard)/documents/cash-orders/page.tsx(393,17): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date | RichTagsFunction'.
+  Type 'undefined' is not assignable to type 'string | number | Date | RichTagsFunction'.
+src/app/[locale]/(dashboard)/documents/fa-receipts/page.tsx(177,52): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date'.
+  Type 'undefined' is not assignable to type 'string | number | Date'.
+src/app/[locale]/(dashboard)/documents/ia-receipts/page.tsx(177,52): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date'.
+  Type 'undefined' is not assignable to type 'string | number | Date'.
+src/app/[locale]/(dashboard)/documents/payments/page.tsx(22,3): error TS2741: Property 'bank_account' is missing in type '{ id: number; tenant: number; number: string; date: string; status: "posted"; is_posted: true; comment: string; payment_type: "INCOMING"; payment_method: string; counterparty: number; contract: number; ... 8 more ...; updated_at: string; }' but required in type 'PaymentDocument'.
+src/app/[locale]/(dashboard)/documents/payments/page.tsx(23,3): error TS2741: Property 'bank_account' is missing in type '{ id: number; tenant: number; number: string; date: string; status: "posted"; is_posted: true; comment: string; payment_type: "OUTGOING"; payment_method: string; counterparty: number; contract: null; ... 8 more ...; updated_at: string; }' but required in type 'PaymentDocument'.
+src/app/[locale]/(dashboard)/documents/payments/page.tsx(24,3): error TS2741: Property 'bank_account' is missing in type '{ id: number; tenant: number; number: string; date: string; status: "draft"; is_posted: false; comment: string; payment_type: "INCOMING"; payment_method: string; counterparty: number; contract: null; ... 8 more ...; updated_at: string; }' but required in type 'PaymentDocument'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(14,10): error TS2305: Module '"@/hooks/use-keyboard-shortcuts"' has no exported member 'useKeyboardShortcuts'.
+src/app/[locale]/(dashboard)/documents/sales/[id]/page_EXAMPLE.tsx(199,21): error TS2322: Type '{ documentId: number; documentType: "sales"; isPosted: boolean; activeTab: string; onTabChange: Dispatch<SetStateAction<string>>; itemsContent: Element; }' is not assignable to type 'IntrinsicAttributes & DocumentTabsProps'.
+  Property 'isPosted' does not exist on type 'IntrinsicAttributes & DocumentTabsProps'.
+src/app/[locale]/(dashboard)/documents/sales/page.tsx(609,17): error TS2322: Type 'string | undefined' is not assignable to type 'string | number | Date | RichTagsFunction'.
+  Type 'undefined' is not assignable to type 'string | number | Date | RichTagsFunction'.
+src/app/[locale]/(dashboard)/reports/account-card/page.tsx(13,31): error TS2307: Cannot find module '@/components/directories/account-select' or its corresponding type declarations.
+src/app/[locale]/(dashboard)/reports/sales/page.tsx(128,43): error TS2339: Property 'rows' does not exist on type 'SalesReportRow[]'.
+src/app/[locale]/(dashboard)/reports/stock/page.tsx(129,43): error TS2339: Property 'rows' does not exist on type 'StockReportRow[]'.
+src/components/documents/document-tab.tsx(182,58): error TS2322: Type '{}' is not assignable to type 'ReactNode'.
+src/components/documents/purchase-document-form.tsx(179,40): error TS2339: Property 'id' does not exist on type 'never'.
+src/components/documents/purchase-document-form.tsx(182,36): error TS2339: Property 'id' does not exist on type 'never'.
+src/components/documents/purchase-document-form.tsx(185,37): error TS2339: Property 'id' does not exist on type 'never'.
+src/components/documents/purchase-document-form.tsx(188,36): error TS2339: Property 'id' does not exist on type 'never'.
+src/components/layout/help-panel.tsx(85,34): error TS2339: Property 'features' does not exist on type '{ title: string; description: string; shortcuts: { key: string; action: string; }[]; tips: string[]; features: string[]; } | { title: string; description: string; shortcuts: { key: string; action: string; }[]; tips: string[]; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'features' does not exist on type '{ title: string; description: string; shortcuts: { key: string; action: string; }[]; tips: string[]; }'.
+src/components/layout/help-panel.tsx(90,50): error TS2339: Property 'features' does not exist on type '{ title: string; description: string; shortcuts: { key: string; action: string; }[]; tips: string[]; features: string[]; } | { title: string; description: string; shortcuts: { key: string; action: string; }[]; tips: string[]; } | { ...; } | { ...; } | { ...; } | { ...; }'.
+  Property 'features' does not exist on type '{ title: string; description: string; shortcuts: { key: string; action: string; }[]; tips: string[]; }'.
+src/components/layout/help-panel.tsx(90,64): error TS7006: Parameter 'feature' implicitly has an 'any' type.
+src/components/layout/help-panel.tsx(90,73): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/components/selectors/item-select.tsx(35,13): error TS2322: Type '{ value: any; onSelect: (item: number | null) => void; options: any; isLoading: boolean; onSearch: Dispatch<SetStateAction<string>>; placeholder: string; disabled: boolean | undefined; displayField: string; valueField: string; }' is not assignable to type 'IntrinsicAttributes & ReferenceSelectorProps'.
+  Property 'options' does not exist on type 'IntrinsicAttributes & ReferenceSelectorProps'.
+src/lib/api.ts(106,7): error TS7006: Parameter 'response' implicitly has an 'any' type.

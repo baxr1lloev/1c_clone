@@ -1,16 +1,18 @@
 'use client';
 
-'use client';
-
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PiBankBold, PiArrowLeftBold, PiCheckBold, PiXBold } from 'react-icons/pi';
+import { PiBankBold, PiArrowLeftBold, PiCheckBold, PiXBold, PiPlusBold, PiPencilBold, PiTrashBold } from 'react-icons/pi';
 import { DataTable } from '@/components/data-table/data-table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BankStatementService } from '@/services/bank-statement-service';
+import { BankStatementService, BankStatementLine } from '@/services/bank-statement-service';
 import { toast } from 'sonner';
 
 export default function BankStatementDetailPage() {
@@ -18,6 +20,15 @@ export default function BankStatementDetailPage() {
     const router = useRouter();
     const queryClient = useQueryClient();
     const id = params.id as string;
+    const [openLineDialog, setOpenLineDialog] = useState(false);
+    const [editingLine, setEditingLine] = useState<BankStatementLine | null>(null);
+    const [lineForm, setLineForm] = useState({
+        transaction_date: '',
+        description: '',
+        counterparty_name: '',
+        debit_amount: '',
+        credit_amount: '',
+    });
 
     const { data: statement, isLoading } = useQuery({
         queryKey: ['bank-statement', id],
@@ -41,6 +52,98 @@ export default function BankStatementDetailPage() {
         },
         onError: (error: any) => toast.error(error.response?.data?.error || 'Ошибка отмены проведения')
     });
+
+    const createLineMutation = useMutation({
+        mutationFn: (data: any) => BankStatementService.createLine(id, data),
+        onSuccess: () => {
+            toast.success('Строка добавлена');
+            setOpenLineDialog(false);
+            resetLineForm();
+            queryClient.invalidateQueries({ queryKey: ['bank-statement', id] });
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Ошибка добавления строки')
+    });
+
+    const updateLineMutation = useMutation({
+        mutationFn: ({ lineId, data }: { lineId: number, data: any }) => 
+            BankStatementService.updateLine(id, lineId, data),
+        onSuccess: () => {
+            toast.success('Строка обновлена');
+            setOpenLineDialog(false);
+            setEditingLine(null);
+            resetLineForm();
+            queryClient.invalidateQueries({ queryKey: ['bank-statement', id] });
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Ошибка обновления строки')
+    });
+
+    const deleteLineMutation = useMutation({
+        mutationFn: (lineId: number) => BankStatementService.deleteLine(id, lineId),
+        onSuccess: () => {
+            toast.success('Строка удалена');
+            queryClient.invalidateQueries({ queryKey: ['bank-statement', id] });
+        },
+        onError: (error: any) => toast.error(error.response?.data?.error || 'Ошибка удаления строки')
+    });
+
+    const resetLineForm = () => {
+        if (statement) {
+            setLineForm({
+                transaction_date: statement.statement_date,
+                description: '',
+                counterparty_name: '',
+                debit_amount: '',
+                credit_amount: '',
+            });
+        }
+    };
+
+    const openAddLineDialog = () => {
+        setEditingLine(null);
+        if (statement) {
+            setLineForm({
+                transaction_date: statement.statement_date,
+                description: '',
+                counterparty_name: '',
+                debit_amount: '',
+                credit_amount: '',
+            });
+        }
+        setOpenLineDialog(true);
+    };
+
+    const openEditLineDialog = (line: BankStatementLine) => {
+        setEditingLine(line);
+        setLineForm({
+            transaction_date: line.transaction_date,
+            description: line.description || '',
+            counterparty_name: line.counterparty_name || '',
+            debit_amount: line.debit_amount || '',
+            credit_amount: line.credit_amount || '',
+        });
+        setOpenLineDialog(true);
+    };
+
+    const handleSaveLine = () => {
+        if (!lineForm.transaction_date || (!lineForm.debit_amount && !lineForm.credit_amount)) {
+            toast.error('Заполните обязательные поля');
+            return;
+        }
+
+        const data = {
+            transaction_date: lineForm.transaction_date,
+            description: lineForm.description,
+            counterparty_name: lineForm.counterparty_name,
+            debit_amount: lineForm.debit_amount || '0',
+            credit_amount: lineForm.credit_amount || '0',
+        };
+
+        if (editingLine) {
+            updateLineMutation.mutate({ lineId: editingLine.id, data });
+        } else {
+            createLineMutation.mutate(data);
+        }
+    };
 
     if (isLoading) return <div className="p-6">Загрузка...</div>;
     if (!statement) return <div className="p-6">Выписка не найдена</div>;
@@ -132,6 +235,35 @@ export default function BankStatementDetailPage() {
                 );
             }
         },
+        ...(statement?.status === 'draft' ? [{
+            id: 'actions',
+            header: 'Действия',
+            cell: ({ row }: any) => {
+                const line = row.original;
+                return (
+                    <div className="flex gap-2">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditLineDialog(line)}
+                        >
+                            <PiPencilBold className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                                if (confirm('Удалить эту строку?')) {
+                                    deleteLineMutation.mutate(line.id);
+                                }
+                            }}
+                        >
+                            <PiTrashBold className="h-4 w-4 text-red-600" />
+                        </Button>
+                    </div>
+                );
+            }
+        }] : []),
     ];
 
     return (
@@ -238,8 +370,87 @@ export default function BankStatementDetailPage() {
 
             {/* Transactions Table */}
             <Card className="flex-1 border-0 shadow-none bg-transparent">
-                <CardHeader className="px-0 pt-0">
+                <CardHeader className="px-0 pt-0 flex flex-row items-center justify-between">
                     <CardTitle>Операции ({statement.lines_count})</CardTitle>
+                    {statement.status === 'draft' && (
+                        <Dialog open={openLineDialog} onOpenChange={setOpenLineDialog}>
+                            <DialogTrigger asChild>
+                                <Button onClick={openAddLineDialog} className="gap-2">
+                                    <PiPlusBold className="h-4 w-4" />
+                                    Добавить строку
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[500px]">
+                                <DialogHeader>
+                                    <DialogTitle>
+                                        {editingLine ? 'Редактировать строку' : 'Добавить строку'}
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="line-date">Дата операции *</Label>
+                                        <Input
+                                            id="line-date"
+                                            type="date"
+                                            value={lineForm.transaction_date}
+                                            onChange={(e) => setLineForm({ ...lineForm, transaction_date: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="line-description">Описание</Label>
+                                        <Input
+                                            id="line-description"
+                                            value={lineForm.description}
+                                            onChange={(e) => setLineForm({ ...lineForm, description: e.target.value })}
+                                            placeholder="Описание операции"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="line-counterparty">Контрагент</Label>
+                                        <Input
+                                            id="line-counterparty"
+                                            value={lineForm.counterparty_name}
+                                            onChange={(e) => setLineForm({ ...lineForm, counterparty_name: e.target.value })}
+                                            placeholder="Название контрагента"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="line-debit">Поступление</Label>
+                                            <Input
+                                                id="line-debit"
+                                                type="number"
+                                                step="0.01"
+                                                value={lineForm.debit_amount}
+                                                onChange={(e) => setLineForm({ ...lineForm, debit_amount: e.target.value, credit_amount: '' })}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="line-credit">Списание</Label>
+                                            <Input
+                                                id="line-credit"
+                                                type="number"
+                                                step="0.01"
+                                                value={lineForm.credit_amount}
+                                                onChange={(e) => setLineForm({ ...lineForm, credit_amount: e.target.value, debit_amount: '' })}
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="outline" onClick={() => setOpenLineDialog(false)}>Отмена</Button>
+                                    <Button 
+                                        onClick={handleSaveLine} 
+                                        disabled={createLineMutation.isPending || updateLineMutation.isPending}
+                                    >
+                                        {createLineMutation.isPending || updateLineMutation.isPending ? 'Сохранение...' : 'Сохранить'}
+                                    </Button>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    )}
                 </CardHeader>
                 <CardContent className="p-0">
                     <DataTable
