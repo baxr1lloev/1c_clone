@@ -139,30 +139,5 @@ export const BankStatementService = {
             auto_post: auto_post || false
         });
         return response;
-    },
-
-    // Create PaymentDocument from line
-    createPaymentFromLine: async (
-        statementId: number | string, 
-        lineId: number, 
-        options?: {
-            counterparty_id?: number;
-            contract_id?: number;
-            auto_post?: boolean;
-        }
-    ) => {
-        const response = await api.post(`/documents/bank-statements/${statementId}/lines/${lineId}/create-payment/`, options || {});
-        return response;
-    },
-
-    // Create payments for all unmatched lines
-    createPaymentsForUnmatched: async (
-        statementId: number | string,
-        auto_post?: boolean
-    ) => {
-        const response = await api.post(`/documents/bank-statements/${statementId}/create-payments-for-unmatched/`, {
-            auto_post: auto_post || false
-        });
-        return response;
     }
 };
