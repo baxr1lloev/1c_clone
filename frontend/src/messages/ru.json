@@ -91,6 +91,8 @@
         "bankStatements": "Банковские выписки",
         "cashOrders": "Кассовые ордера",
         "payments": "Платежи",
+        "bankAccounts": "Банковские счета",
+        "bankExchangeSettings": "Настройки обмена с банком",
         "sales": "Продажи",
         "salesRealization": "Реализации",
         "salesOrders": "Заказы покупателей",
@@ -119,6 +121,8 @@
         "contracts": "Договоры",
         "currencies": "Валюты",
         "allDirectories": "Все справочники",
+        "directoriesBankAccounts": "Банковские счета",
+        "directoriesBankExchange": "Настройки обмена с банком",
         "admin": "Администрирование",
         "users": "Пользователи"
     },

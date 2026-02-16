@@ -35,6 +35,14 @@ interface SalesOrderFormProps {
     initialData?: SalesOrder
 }
 
+function formatBaseQuantity(value: number): string {
+    if (!Number.isFinite(value)) return '0';
+    return value.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 3,
+    });
+}
+
 // Helper: Transform DB Line (Base) to UI Line (Package)
 const toUiLine = (line: SalesOrderLine): SalesOrderLine => {
     const coef = Number(line.coefficient) || 1;
@@ -212,10 +220,12 @@ export function SalesOrderForm({ initialData, mode }: SalesOrderFormProps) {
                 const { data: item } = useItemDetails(row.original.item);
                 const units = useMemo(() => {
                     if (!item) return [];
-                    const base = { id: null, name: item.base_unit || 'pcs', coefficient: 1 };
-                    const pkgs = item.units?.map((p: any) => ({
+                    const baseUnitName = item.base_unit || item.unit || 'pcs';
+                    const base = { id: null, name: baseUnitName, coefficient: 1 };
+                    const sourceUnits = item.units || item.packages || [];
+                    const pkgs = sourceUnits.map((p: any) => ({
                         id: p.id, name: p.name, coefficient: Number(p.coefficient)
-                    })) || [];
+                    }));
                     return [base, ...pkgs];
                 }, [item]);
 
@@ -224,7 +234,7 @@ export function SalesOrderForm({ initialData, mode }: SalesOrderFormProps) {
                         <UnitSelector
                             value={row.original.package || null}
                             units={units}
-                            baseUnit={item?.base_unit || 'pcs'}
+                            baseUnit={item?.base_unit || item?.unit || 'pcs'}
                             onChange={(unitId, coefficient) => {
                                 const newLines = [...lines];
                                 const oldCoef = Number(newLines[row.index].coefficient) || 1;
@@ -272,7 +282,7 @@ export function SalesOrderForm({ initialData, mode }: SalesOrderFormProps) {
                         <div className="flex flex-col justify-center px-1 border-l border-dashed min-w-[3rem]">
                             <span className="text-[9px] text-muted-foreground leading-none">Base</span>
                             <span className="text-[10px] font-mono text-muted-foreground text-right font-bold">
-                                {baseQty.toFixed(0)} <span className="text-[8px] font-normal">{itemData?.base_unit || 'pcs'}</span>
+                                {formatBaseQuantity(baseQty)} <span className="text-[8px] font-normal">{itemData?.base_unit || itemData?.unit || 'pcs'}</span>
                             </span>
                         </div>
                     </div>

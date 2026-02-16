@@ -14,13 +14,14 @@ class CashOrderListSerializer(serializers.ModelSerializer):
     order_type_display = serializers.CharField(source='get_order_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     currency_code = serializers.CharField(source='currency.code', read_only=True)
+    cash_desk = serializers.CharField(read_only=True)
     
     class Meta:
         model = CashOrder
         fields = [
             'id', 'number', 'date', 'order_type', 'order_type_display',
             'status', 'status_display', 'counterparty_name',
-            'amount', 'currency_code', 'purpose'
+            'amount', 'currency_code', 'cash_desk', 'purpose'
         ]
 
 
@@ -29,6 +30,9 @@ class CashOrderDetailSerializer(serializers.ModelSerializer):
     order_type_display = serializers.CharField(source='get_order_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     currency_code = serializers.CharField(source='currency.code', read_only=True)
+    cash_flow_item_name = serializers.CharField(source='cash_flow_item.name', read_only=True)
+    debit_account_code = serializers.CharField(source='debit_account.code', read_only=True)
+    credit_account_code = serializers.CharField(source='credit_account.code', read_only=True)
     counterparty_data = CounterpartyListSerializer(source='counterparty', read_only=True)
     
     # Permissions (Backend as Brain)
@@ -44,7 +48,10 @@ class CashOrderDetailSerializer(serializers.ModelSerializer):
             'status', 'status_display', 'comment',
             'counterparty_name', 'counterparty', 'counterparty_data',
             'amount', 'currency', 'currency_code',
-            'purpose', 'basis',
+            'cash_desk', 'purpose', 'basis',
+            'cash_flow_item', 'cash_flow_item_name',
+            'debit_account', 'debit_account_code',
+            'credit_account', 'credit_account_code',
             'created_at', 'updated_at', 'posted_at',
             # State Flags
             'can_edit', 'can_post', 'can_unpost', 'period_is_closed'
@@ -59,7 +66,8 @@ class CashOrderCreateUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'number', 'date', 'order_type', 'comment',
             'counterparty_name', 'counterparty',
-            'amount', 'currency', 'purpose', 'basis'
+            'amount', 'currency', 'cash_desk', 'purpose', 'basis',
+            'cash_flow_item', 'debit_account', 'credit_account',
         ]
     
     def create(self, validated_data):

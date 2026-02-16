@@ -1,349 +1,418 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { PiBankBold, PiPlusBold, PiUploadBold, PiFileCsvBold } from 'react-icons/pi';
-import { DataTable } from '@/components/data-table/data-table';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { PiFileCsvBold, PiPlusBold, PiUploadBold } from 'react-icons/pi';
+
+import { api } from '@/lib/api';
+import { BankStatement, BankStatementService } from '@/services/bank-statement-service';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataTable } from '@/components/data-table/data-table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { BankStatementService, BankStatement } from '@/services/bank-statement-service';
-import { api } from '@/lib/api';
-import Link from 'next/link';
+
+function formatMoney(value: number | string, currencyCode?: string) {
+    const amount = Number(value || 0);
+    try {
+        return new Intl.NumberFormat('ru-RU', {
+            style: 'currency',
+            currency: currencyCode || 'RUB',
+        }).format(amount);
+    } catch {
+        return amount.toFixed(2);
+    }
+}
+
+type BankAccountOption = {
+    id: number;
+    name?: string;
+    bank_name?: string;
+    account_number: string;
+};
+
+type RowCell<T> = { row: { original: T } };
+
+function getErrorMessage(error: unknown, fallback: string) {
+    const err = error as { response?: { data?: { error?: string } }; message?: string } | undefined;
+    return err?.response?.data?.error || err?.message || fallback;
+}
 
 export default function BankStatementsPage() {
-    const t = useTranslations('documents');
-    const [open, setOpen] = useState(false);
+    const router = useRouter();
+    const queryClient = useQueryClient();
+
     const [openCreate, setOpenCreate] = useState(false);
+    const [openUpload, setOpenUpload] = useState(false);
     const [file, setFile] = useState<File | null>(null);
     const [bankAccount, setBankAccount] = useState('');
     const [statementDate, setStatementDate] = useState('');
-    const [openingBalance, setOpeningBalance] = useState('0');
-    const queryClient = useQueryClient();
+    const [openingBalance, setOpeningBalance] = useState('');
 
-    // Fetch Bank Statements
     const { data: statements, isLoading } = useQuery({
         queryKey: ['bank-statements'],
-        queryFn: BankStatementService.getAll
+        queryFn: BankStatementService.getAll,
     });
 
-    // Fetch Bank Accounts (Simple fetch)
-    const { data: bankAccounts } = useQuery({
+    const { data: bankAccounts = [], isLoading: isBankAccountsLoading } = useQuery<BankAccountOption[]>({
         queryKey: ['bank-accounts'],
         queryFn: async () => {
             const res = await api.get('/directories/bank-accounts/');
-            // Handle paginated response structure if needed, assuming list for now or check structure
-            // Usually paginated: { results: [] }
-            return res.results || res.data;
-        }
+            if (Array.isArray(res)) return res;
+            return res?.results || [];
+        },
+        initialData: [],
     });
 
-    // Create Mutation
+    const { data: exchangeSettings = [], isLoading: isExchangeSettingsLoading } = useQuery<Array<{ id: number }>>({
+        queryKey: ['bank-exchange-settings'],
+        queryFn: async () => {
+            const res = await api.get('/directories/bank-exchange-settings/');
+            if (Array.isArray(res)) return res;
+            return res?.results || [];
+        },
+        initialData: [],
+    });
+
+    const { data: openingHint } = useQuery({
+        queryKey: ['bank-statement-opening-hint', bankAccount, statementDate],
+        queryFn: () => BankStatementService.suggestOpeningBalance(bankAccount, statementDate),
+        enabled: Boolean(bankAccount && statementDate),
+    });
+
+    const noBankAccounts = !isBankAccountsLoading && bankAccounts.length === 0;
+    const noExchangeSettings = !isExchangeSettingsLoading && exchangeSettings.length === 0;
+
+    const openingBalanceLocked = Boolean(openingHint?.opening_balance_locked);
+
+    const resolveOpeningBalance = () => {
+        if (openingBalanceLocked) {
+            return String(openingHint?.opening_balance ?? '0');
+        }
+        if (openingBalance !== '') return openingBalance;
+        return String(openingHint?.opening_balance ?? '0');
+    };
+
+    const resetForm = () => {
+        setFile(null);
+        setBankAccount('');
+        setStatementDate('');
+        setOpeningBalance('');
+    };
+
+    const validateBeforeSubmit = () => {
+        if (noBankAccounts) {
+            toast.error('Create a bank account first');
+            router.push('/directories/bank-accounts');
+            return false;
+        }
+        if (!bankAccount || !statementDate) {
+            toast.error('Fill required fields');
+            return false;
+        }
+        if (openingHint && !openingHint.can_create_for_date) {
+            toast.error(`Cannot create statement before ${openingHint.latest_statement_date}`);
+            return false;
+        }
+        return true;
+    };
+
     const createMutation = useMutation({
         mutationFn: async () => {
-            if (!bankAccount || !statementDate) throw new Error('Missing fields');
-            return await BankStatementService.create({
+            if (!validateBeforeSubmit()) throw new Error('Validation failed');
+            return BankStatementService.create({
                 bank_account: Number(bankAccount),
                 statement_date: statementDate,
-                opening_balance: openingBalance,
+                opening_balance: resolveOpeningBalance(),
             });
         },
         onSuccess: (data) => {
-            toast.success('Выписка успешно создана');
+            toast.success('Statement created');
             setOpenCreate(false);
-            setBankAccount('');
-            setStatementDate('');
-            setOpeningBalance('0');
+            resetForm();
             queryClient.invalidateQueries({ queryKey: ['bank-statements'] });
-            // Redirect to detail page
-            window.location.href = `/ru/documents/bank-statements/${data.id}`;
+            router.push(`/documents/bank-statements/${data.id}`);
         },
-        onError: (error: any) => {
-            toast.error(`Ошибка создания: ${error.response?.data?.error || error.message}`);
-        }
+        onError: (error: unknown) => toast.error(getErrorMessage(error, 'Failed to create statement')),
     });
 
-    // Upload Mutation
     const uploadMutation = useMutation({
         mutationFn: async () => {
-            if (!file || !bankAccount || !statementDate) throw new Error('Missing fields');
-            return await BankStatementService.upload(file, bankAccount, statementDate, openingBalance);
+            if (!file) throw new Error('Select file');
+            if (!validateBeforeSubmit()) throw new Error('Validation failed');
+            return BankStatementService.upload(file, bankAccount, statementDate, resolveOpeningBalance());
         },
-        onSuccess: () => {
-            toast.success('Выписка успешно загружена');
-            setOpen(false);
-            setFile(null);
-            setBankAccount('');
-            setStatementDate('');
-            setOpeningBalance('0');
+        onSuccess: (data) => {
+            toast.success('Statement uploaded');
+            setOpenUpload(false);
+            resetForm();
             queryClient.invalidateQueries({ queryKey: ['bank-statements'] });
+            router.push(`/documents/bank-statements/${data.id}`);
         },
-        onError: (error: any) => {
-            toast.error(`Ошибка загрузки: ${error.response?.data?.error || error.message}`);
-        }
+        onError: (error: unknown) => toast.error(getErrorMessage(error, 'Failed to upload statement')),
     });
-
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
-        }
-    };
-
-    const handleCreate = () => {
-        if (!bankAccount || !statementDate) {
-            toast.error('Пожалуйста, заполните все обязательные поля');
-            return;
-        }
-        createMutation.mutate();
-    };
-
-    const handleUpload = () => {
-        if (!file || !bankAccount || !statementDate) {
-            toast.error('Пожалуйста, заполните все поля');
-            return;
-        }
-        uploadMutation.mutate();
-    };
 
     const columns = [
         {
             accessorKey: 'number',
-            header: 'Номер',
-            cell: ({ row }: any) => (
+            header: 'Number',
+            cell: ({ row }: RowCell<BankStatement>) => (
                 <Link href={`/ru/documents/bank-statements/${row.original.id}`} className="font-medium text-primary hover:underline">
                     {row.original.number}
                 </Link>
             ),
         },
+        { accessorKey: 'statement_date', header: 'Statement Date' },
         {
-            accessorKey: 'statement_date',
-            header: 'Дата выписки',
+            accessorKey: 'source',
+            header: 'Source',
+            cell: ({ row }: RowCell<BankStatement>) => (
+                row.original.source === 'imported'
+                    ? <Badge variant="outline" className="border-0 bg-blue-100 text-blue-800">Imported</Badge>
+                    : <Badge variant="outline" className="border-0 bg-slate-100 text-slate-800">Manual</Badge>
+            ),
         },
         {
             accessorKey: 'bank_account_name',
-            header: 'Счет',
-            cell: ({ row }: any) => (
+            header: 'Account',
+            cell: ({ row }: RowCell<BankStatement>) => (
                 <div className="flex flex-col">
                     <span>{row.original.bank_account_name}</span>
                     <span className="text-xs text-muted-foreground">{row.original.bank_account_number}</span>
                 </div>
-            )
+            ),
         },
         {
             accessorKey: 'opening_balance',
-            header: 'Вх. остаток',
-            cell: ({ row }: any) => row.original.opening_balance ? Number(row.original.opening_balance).toFixed(2) : '0.00'
+            header: 'Opening',
+            cell: ({ row }: RowCell<BankStatement>) => formatMoney(row.original.opening_balance, row.original.currency_code),
         },
         {
             accessorKey: 'total_receipts',
-            header: 'Поступление',
-            cell: ({ row }: any) => (
-                <span className="text-green-600 font-medium">
-                    {row.original.total_receipts ? `+${Number(row.original.total_receipts).toFixed(2)}` : '0.00'}
-                </span>
-            )
+            header: 'Receipts',
+            cell: ({ row }: RowCell<BankStatement>) => <span className="font-medium text-green-600">+{formatMoney(row.original.total_receipts, row.original.currency_code)}</span>,
         },
         {
             accessorKey: 'total_payments',
-            header: 'Списание',
-            cell: ({ row }: any) => (
-                <span className="text-red-600 font-medium">
-                    {row.original.total_payments ? `-${Number(row.original.total_payments).toFixed(2)}` : '0.00'}
-                </span>
-            )
+            header: 'Payments',
+            cell: ({ row }: RowCell<BankStatement>) => <span className="font-medium text-red-600">-{formatMoney(row.original.total_payments, row.original.currency_code)}</span>,
         },
         {
             accessorKey: 'closing_balance',
-            header: 'Исх. остаток',
-            cell: ({ row }: any) => row.original.closing_balance ? Number(row.original.closing_balance).toFixed(2) : '0.00'
+            header: 'Closing',
+            cell: ({ row }: RowCell<BankStatement>) => formatMoney(row.original.closing_balance, row.original.currency_code),
+        },
+        {
+            accessorKey: 'accounting_balance_difference',
+            header: 'Difference',
+            cell: ({ row }: RowCell<BankStatement>) => {
+                const diff = Number(row.original.accounting_balance_difference || 0);
+                if (diff === 0) return <span className="text-green-600">0.00</span>;
+                return (
+                    <span className={diff > 0 ? 'text-red-600' : 'text-amber-600'}>
+                        {diff > 0 ? '+' : '-'}{Math.abs(diff).toFixed(2)}
+                    </span>
+                );
+            },
         },
         {
             accessorKey: 'status',
-            header: 'Статус',
-            cell: ({ row }: any) => {
-                const status = row.original.status;
-                const statusMap: Record<string, { label: string, color: string, emoji: string }> = {
-                    'draft': { label: 'Черновик', color: 'bg-yellow-100 text-yellow-800', emoji: '🟡' },
-                    'processing': { label: 'Обработка', color: 'bg-blue-100 text-blue-800', emoji: '🔵' },
-                    'posted': { label: 'Проведён', color: 'bg-green-100 text-green-800', emoji: '🟢' },
-                };
-                const config = statusMap[status] || { label: status, color: 'bg-gray-100', emoji: '⚪' };
-
-                return (
-                    <Badge variant="outline" className={`${config.color} border-0`}>
-                        {config.emoji} {config.label}
-                    </Badge>
-                );
-            }
+            header: 'Status',
+            cell: ({ row }: RowCell<BankStatement>) => {
+                const isBalanced = row.original.is_balanced !== false;
+                const unmatched = row.original.unmatched_count ?? Math.max((row.original.lines_count || 0) - (row.original.matched_count || 0), 0);
+                if (!isBalanced) return <Badge variant="outline" className="border-0 bg-red-100 text-red-800">Difference</Badge>;
+                if (unmatched > 0) return <Badge variant="outline" className="border-0 bg-orange-100 text-orange-800">Unmatched</Badge>;
+                if (row.original.status === 'posted') return <Badge variant="outline" className="border-0 bg-green-100 text-green-800">Posted</Badge>;
+                if (row.original.status === 'processing') return <Badge variant="outline" className="border-0 bg-blue-100 text-blue-800">Processing</Badge>;
+                return <Badge variant="outline" className="border-0 bg-slate-100 text-slate-800">Draft</Badge>;
+            },
         },
         {
             accessorKey: 'matching_percentage',
-            header: 'Сопоставление',
-            cell: ({ row }: any) => {
+            header: 'Matching',
+            cell: ({ row }: RowCell<BankStatement>) => {
                 const percentage = row.original.matching_percentage || 0;
                 const matches = row.original.matched_count || 0;
                 const total = row.original.lines_count || 0;
-
-                let colorClass = "text-red-500";
-                if (percentage >= 100) colorClass = "text-green-600";
-                else if (percentage >= 50) colorClass = "text-yellow-600";
-
                 return (
                     <div className="flex flex-col items-center">
-                        <span className={`font-bold ${colorClass}`}>{percentage}%</span>
+                        <span className={`font-bold ${percentage >= 100 ? 'text-green-600' : percentage >= 50 ? 'text-yellow-600' : 'text-red-500'}`}>{percentage}%</span>
                         <span className="text-xs text-muted-foreground">{matches} / {total}</span>
                     </div>
                 );
-            }
-        }
+            },
+        },
     ];
 
     return (
-        <div className="flex flex-col h-[calc(100vh-4rem)] p-6 space-y-4">
+        <div className="flex h-[calc(100vh-4rem)] flex-col space-y-4 p-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Банковские выписки</h1>
-                    <p className="text-muted-foreground">Загрузка и обработка выписок из банк-клиента</p>
+                    <h1 className="text-2xl font-bold tracking-tight">Bank Statements</h1>
+                    <p className="text-muted-foreground">Import and process statements from bank-client exchange</p>
                 </div>
                 <div className="flex gap-2">
-                    <Dialog open={openCreate} onOpenChange={setOpenCreate}>
+                    <Button className="gap-2" variant="outline" onClick={() => router.push('/documents/payments/new?type=INCOMING')}>
+                        <PiPlusBold className="h-4 w-4" />
+                        New payment
+                    </Button>
+
+                    <Dialog
+                        open={openCreate}
+                        onOpenChange={(next) => {
+                            if (next && noBankAccounts) {
+                                toast.error('Create bank account first');
+                                router.push('/directories/bank-accounts');
+                                return;
+                            }
+                            if (next && !statementDate) {
+                                setStatementDate(new Date().toISOString().slice(0, 10));
+                            }
+                            setOpenCreate(next);
+                        }}
+                    >
                         <DialogTrigger asChild>
-                            <Button className="gap-2" variant="default" suppressHydrationWarning>
+                            <Button className="gap-2" onClick={() => {
+                                if (noBankAccounts) {
+                                    toast.error('Create bank account first');
+                                    router.push('/directories/bank-accounts');
+                                }
+                            }}>
                                 <PiPlusBold className="h-4 w-4" />
-                                Создать выписку
+                                Create statement
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px]">
-                            <DialogHeader>
-                                <DialogTitle>Создание банковской выписки</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
+                        <DialogContent className="sm:max-w-[540px]">
+                            <DialogHeader><DialogTitle>Create bank statement</DialogTitle></DialogHeader>
+                            <div className="grid gap-4 py-2">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="create-bank-account">Банковский счет *</Label>
-                                    <Select value={bankAccount} onValueChange={setBankAccount}>
-                                        <SelectTrigger id="create-bank-account">
-                                            <SelectValue placeholder="Выберите счет" />
-                                        </SelectTrigger>
+                                    <Label>Bank account *</Label>
+                                    <Select value={bankAccount} onValueChange={(v) => { setBankAccount(v); setOpeningBalance(''); }}>
+                                        <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
                                         <SelectContent>
-                                            {bankAccounts && bankAccounts.map((acc: any) => (
+                                            {bankAccounts.map((acc) => (
                                                 <SelectItem key={acc.id} value={String(acc.id)}>
-                                                    {acc.bank_name} - {acc.currency?.code} ({acc.account_number})
+                                                    {acc.name || acc.bank_name} ({acc.account_number})
                                                 </SelectItem>
                                             ))}
-                                            {!bankAccounts && <SelectItem value="loading" disabled>Загрузка...</SelectItem>}
                                         </SelectContent>
                                     </Select>
                                 </div>
-
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="create-date">Дата выписки *</Label>
-                                        <Input
-                                            id="create-date"
-                                            type="date"
-                                            value={statementDate}
-                                            onChange={(e) => setStatementDate(e.target.value)}
-                                        />
+                                        <Label>Statement date *</Label>
+                                        <Input type="date" value={statementDate} onChange={(e) => { setStatementDate(e.target.value); setOpeningBalance(''); }} />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="create-balance">Вх. остаток</Label>
+                                        <Label>Opening balance</Label>
                                         <Input
-                                            id="create-balance"
                                             type="number"
                                             step="0.01"
-                                            value={openingBalance}
+                                            value={openingBalanceLocked ? String(openingHint?.opening_balance || '0') : openingBalance}
                                             onChange={(e) => setOpeningBalance(e.target.value)}
-                                            placeholder="0.00"
+                                            disabled={openingBalanceLocked}
                                         />
                                     </div>
                                 </div>
+                                {openingHint ? (
+                                    <div className="space-y-1 rounded-md border bg-muted/40 p-3 text-sm">
+                                        {openingHint.previous_statement_date ? (
+                                            <p>Previous statement: {openingHint.previous_statement_date}</p>
+                                        ) : null}
+                                        <p>Accounting balance: {Number(openingHint.accounting_balance || 0).toFixed(2)}</p>
+                                        {openingHint.continuity_warning ? <p className="text-amber-600">{openingHint.continuity_warning}</p> : null}
+                                        {!openingHint.can_create_for_date ? (
+                                            <p className="text-red-600">Cannot create statement before {openingHint.latest_statement_date}</p>
+                                        ) : null}
+                                    </div>
+                                ) : null}
                             </div>
                             <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setOpenCreate(false)}>Отмена</Button>
-                                <Button onClick={handleCreate} disabled={createMutation.isPending}>
-                                    {createMutation.isPending ? 'Создание...' : 'Создать'}
+                                <Button variant="outline" onClick={() => setOpenCreate(false)}>Cancel</Button>
+                                <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
+                                    {createMutation.isPending ? 'Creating...' : 'Create'}
                                 </Button>
                             </div>
                         </DialogContent>
                     </Dialog>
 
-                    <Dialog open={open} onOpenChange={setOpen}>
+                    <Dialog
+                        open={openUpload}
+                        onOpenChange={(next) => {
+                            if (next && noBankAccounts) {
+                                toast.error('Create bank account first');
+                                router.push('/directories/bank-accounts');
+                                return;
+                            }
+                            if (next && !statementDate) {
+                                setStatementDate(new Date().toISOString().slice(0, 10));
+                            }
+                            setOpenUpload(next);
+                        }}
+                    >
                         <DialogTrigger asChild>
-                            <Button className="gap-2" variant="outline" suppressHydrationWarning>
+                            <Button className="gap-2" variant="outline">
                                 <PiUploadBold className="h-4 w-4" />
-                                Загрузить выписку
+                                Upload statement
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px]">
-                            <DialogHeader>
-                                <DialogTitle>Загрузка выписки</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
+                        <DialogContent className="sm:max-w-[540px]">
+                            <DialogHeader><DialogTitle>Upload statement</DialogTitle></DialogHeader>
+                            <div className="grid gap-4 py-2">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="bank-account">Банковский счет</Label>
-                                    <Select value={bankAccount} onValueChange={setBankAccount}>
-                                        <SelectTrigger id="bank-account">
-                                            <SelectValue placeholder="Выберите счет" />
-                                        </SelectTrigger>
+                                    <Label>Bank account *</Label>
+                                    <Select value={bankAccount} onValueChange={(v) => { setBankAccount(v); setOpeningBalance(''); }}>
+                                        <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
                                         <SelectContent>
-                                            {bankAccounts && bankAccounts.map((acc: any) => (
+                                            {bankAccounts.map((acc) => (
                                                 <SelectItem key={acc.id} value={String(acc.id)}>
-                                                    {acc.bank_name} - {acc.currency?.code} ({acc.account_number})
+                                                    {acc.name || acc.bank_name} ({acc.account_number})
                                                 </SelectItem>
                                             ))}
-                                            {!bankAccounts && <SelectItem value="loading" disabled>Загрузка...</SelectItem>}
                                         </SelectContent>
                                     </Select>
                                 </div>
-
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="date">Дата выписки</Label>
-                                        <Input
-                                            id="date"
-                                            type="date"
-                                            value={statementDate}
-                                            onChange={(e) => setStatementDate(e.target.value)}
-                                        />
+                                        <Label>Statement date *</Label>
+                                        <Input type="date" value={statementDate} onChange={(e) => { setStatementDate(e.target.value); setOpeningBalance(''); }} />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="balance">Вх. остаток</Label>
+                                        <Label>Opening balance</Label>
                                         <Input
-                                            id="balance"
                                             type="number"
                                             step="0.01"
-                                            value={openingBalance}
+                                            value={openingBalanceLocked ? String(openingHint?.opening_balance || '0') : openingBalance}
                                             onChange={(e) => setOpeningBalance(e.target.value)}
+                                            disabled={openingBalanceLocked}
                                         />
                                     </div>
                                 </div>
-
                                 <div className="grid gap-2">
-                                    <Label htmlFor="file">Файл выписки (CSV, 1C)</Label>
-                                    <div className="flex items-center justify-center w-full">
-                                        <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-800 dark:bg-gray-700 border-gray-300 dark:border-gray-600">
-                                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                                <PiFileCsvBold className="w-8 h-8 mb-2 text-gray-500" />
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                    {file ? file.name : <span className="font-semibold">Нажмите для выбора файла</span>}
-                                                </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">CSV, TXT, XLS</p>
-                                            </div>
-                                            <input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept=".csv,.txt,.xls,.xlsx" />
-                                        </label>
-                                    </div>
+                                    <Label>Statement file (CSV/TXT/XLS)</Label>
+                                    <label className="flex h-28 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-800">
+                                        <PiFileCsvBold className="mb-2 h-8 w-8 text-gray-500" />
+                                        <p className="text-sm text-gray-500">{file ? file.name : 'Click to choose file'}</p>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                            accept=".csv,.txt,.xls,.xlsx"
+                                        />
+                                    </label>
                                 </div>
                             </div>
                             <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setOpen(false)}>Отмена</Button>
-                                <Button onClick={handleUpload} disabled={uploadMutation.isPending}>
-                                    {uploadMutation.isPending ? 'Загрузка...' : 'Загрузить'}
+                                <Button variant="outline" onClick={() => setOpenUpload(false)}>Cancel</Button>
+                                <Button onClick={() => uploadMutation.mutate()} disabled={uploadMutation.isPending}>
+                                    {uploadMutation.isPending ? 'Uploading...' : 'Upload'}
                                 </Button>
                             </div>
                         </DialogContent>
@@ -351,18 +420,34 @@ export default function BankStatementsPage() {
                 </div>
             </div>
 
-            <Card className="flex-1 border-0 shadow-none bg-transparent">
+            {(noBankAccounts || noExchangeSettings) ? (
+                <Card className="border-dashed">
+                    <CardHeader className="pb-2"><CardTitle className="text-base">Setup before first statement</CardTitle></CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                        <p className="text-muted-foreground">For stable import flow, create bank account and exchange settings first.</p>
+                        <div className="flex flex-wrap gap-2">
+                            {noBankAccounts ? (
+                                <Button onClick={() => router.push('/directories/bank-accounts')}>1. Create bank account</Button>
+                            ) : null}
+                            {noExchangeSettings ? (
+                                <Button variant="outline" onClick={() => router.push('/directories/bank-exchange-settings')}>2. Configure exchange</Button>
+                            ) : null}
+                        </div>
+                    </CardContent>
+                </Card>
+            ) : null}
+
+            <Card className="flex-1 border-0 bg-transparent shadow-none">
                 <CardContent className="p-0">
                     <DataTable
                         columns={columns}
                         data={statements || []}
                         isLoading={isLoading}
                         searchColumn="number"
-                        searchPlaceholder="Поиск по номеру..."
+                        searchPlaceholder="Search by number..."
                     />
                 </CardContent>
             </Card>
         </div>
     );
 }
-

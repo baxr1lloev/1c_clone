@@ -14,6 +14,7 @@ from .advanced_reports import (
     SettlementCounterpartyHistoryView,
 )
 from .cash_flow import CashFlowView
+from .cash_book import CashBookView
 from .reconciliation_view import ReconciliationView as ReconciliationCheckView # Renamed to avoid conflict
 # from .api import reconciliation_view, sequence_view # Removed incorrect import
 from .sequence_view import SequenceRestorationView
@@ -31,6 +32,7 @@ urlpatterns = [
     
     # Cash Flow
     path('cash-flow/', CashFlowView.as_view(), name='cash_flow'),
+    path('cash-book/', CashBookView.as_view(), name='cash_book'),
     # Level 7: Balance as of date
     path('stock-as-of-date/', StockBalanceAsOfDateView.as_view(), name='api-stock-as-of-date'),
     path('settlements-as-of-date/', SettlementBalanceAsOfDateView.as_view(), name='api-settlements-as-of-date'),

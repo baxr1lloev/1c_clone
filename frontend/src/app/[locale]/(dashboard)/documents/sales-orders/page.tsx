@@ -38,6 +38,13 @@ interface SalesOrder {
   is_fully_shipped: boolean;
 }
 
+interface CreateSalesDocumentResponse {
+  status: string;
+  id: number;
+  number: string;
+  message: string;
+}
+
 export default function SalesOrdersPage() {
   const t = useTranslations("documents");
   const tc = useTranslations("common");
@@ -65,8 +72,10 @@ export default function SalesOrdersPage() {
       toast.success(t("salesOrders.alerts.confirmed"));
       queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
     },
-    onError: (err: any) =>
-      toast.error(err.response?.data?.error || t("post_failed")),
+    onError: (err: unknown) => {
+      const apiErr = err as { response?: { data?: { error?: string } } };
+      toast.error(apiErr.response?.data?.error || t("post_failed"));
+    },
   });
 
   // Unpost Mutation
@@ -77,20 +86,22 @@ export default function SalesOrdersPage() {
       toast.success(t("salesOrders.alerts.unposted"));
       queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
     },
-    onError: (err: any) => toast.error(t("unpost_failed")),
+    onError: () => toast.error(t("unpost_failed")),
   });
 
   // Create Based On: Sales Document
   const createDocumentMutation = useMutation({
     mutationFn: async (id: number) =>
-      api.post(`/documents/sales-orders/${id}/create_sales_document/`),
-    onSuccess: (data: any) => {
-      toast.success(data.data.message);
+      api.post<CreateSalesDocumentResponse>(`/documents/sales-orders/${id}/create_sales_document/`),
+    onSuccess: (data) => {
+      toast.success(data.message || "Sales document created");
       // Redirect to the new document
-      router.push(`/documents/sales/${data.data.id}`);
+      router.push(`/documents/sales/${data.id}`);
     },
-    onError: (err: any) =>
-      toast.error(err.response?.data?.error || tc("errorCreatingDocument")),
+    onError: (err: unknown) => {
+      const apiErr = err as { response?: { data?: { error?: string } } };
+      toast.error(apiErr.response?.data?.error || tc("errorCreatingDocument"));
+    },
   });
 
   // Actions

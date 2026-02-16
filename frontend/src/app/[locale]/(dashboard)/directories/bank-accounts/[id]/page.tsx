@@ -17,8 +17,8 @@ export default function BankAccountDetailPage() {
     const { data: account, isLoading } = useQuery({
         queryKey: ['bank-account', id],
         queryFn: async () => {
-            const response = await api.get(`/api/bank-accounts/${id}/`);
-            return response.data;
+            const response = await api.get(`/directories/bank-accounts/${id}/`);
+            return response;
         },
     });
 
@@ -54,17 +54,6 @@ export default function BankAccountDetailPage() {
                 </div>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Current Balance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-3xl font-bold">
-                        {account?.balance?.toFixed(2) || '0.00'} {account?.currency?.code || 'USD'}
-                    </div>
-                </CardContent>
-            </Card>
-
             <Tabs defaultValue="details" className="w-full">
                 <TabsList>
                     <TabsTrigger value="details">Details</TabsTrigger>
@@ -92,11 +81,35 @@ export default function BankAccountDetailPage() {
                             </div>
                             <div>
                                 <p className="text-sm text-muted-foreground">Currency</p>
-                                <p className="font-medium">{account?.currency?.code}</p>
+                                <p className="font-medium">{account?.currency_code || account?.currency}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Account Type</p>
+                                <p className="font-medium">{account?.account_type_display || account?.account_type || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">BIK</p>
+                                <p className="font-medium">{account?.bik || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Correspondent Account</p>
+                                <p className="font-medium">{account?.correspondent_account || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">SWIFT</p>
+                                <p className="font-medium">{account?.swift_code || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Accounting Account</p>
+                                <p className="font-medium">{account?.accounting_account_code || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Default</p>
+                                <p className="font-medium">{account?.is_default ? 'Yes' : 'No'}</p>
                             </div>
                             <div className="col-span-2">
-                                <p className="text-sm text-muted-foreground">Description</p>
-                                <p className="font-medium">{account?.description || 'N/A'}</p>
+                                <p className="text-sm text-muted-foreground">Comment</p>
+                                <p className="font-medium">{account?.comment || 'N/A'}</p>
                             </div>
                         </CardContent>
                     </Card>

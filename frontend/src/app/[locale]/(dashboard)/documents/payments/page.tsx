@@ -13,16 +13,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { PiPencilBold, PiTrashBold, PiArrowsDownUpBold, PiCheckCircleBold, PiXCircleBold, PiArrowCircleDownBold, PiArrowCircleUpBold } from 'react-icons/pi';
+import { PiPencilBold, PiTrashBold, PiArrowsDownUpBold, PiCheckCircleBold, PiXCircleBold, PiArrowCircleDownBold, PiArrowCircleUpBold, PiPlusBold } from 'react-icons/pi';
 import { useRouter } from 'next/navigation';
 import type { PaymentDocument, PaginatedResponse, DocumentStatus, PaymentType } from '@/types';
 import { CommandBar, CommandBarAction } from '@/components/ui/command-bar';
-
-const decorationPayments: PaymentDocument[] = [
-  { id: 1, tenant: 1, number: 'PAY-2024-0001', date: '2024-01-20', status: 'posted', is_posted: true, comment: '', payment_type: 'INCOMING', payment_method: 'bank_transfer', counterparty: 1, contract: 1, currency: 1, rate: 1, amount: 1650, purpose: 'Payment for SL-2024-0001', bank_account: 1, created_by: 1, posted_by: 1, posted_at: '2024-01-20', created_at: '2024-01-20', updated_at: '2024-01-20' },
-  { id: 2, tenant: 1, number: 'PAY-2024-0002', date: '2024-01-21', status: 'posted', is_posted: true, comment: '', payment_type: 'OUTGOING', payment_method: 'bank_transfer', counterparty: 2, contract: null, currency: 1, rate: 1, amount: 5500, purpose: 'Payment for PR-2024-0001', bank_account: 1, created_by: 1, posted_by: 1, posted_at: '2024-01-21', created_at: '2024-01-21', updated_at: '2024-01-21' },
-  { id: 3, tenant: 1, number: 'PAY-2024-0003', date: '2024-01-22', status: 'draft', is_posted: false, comment: '', payment_type: 'INCOMING', payment_method: 'cash', counterparty: 3, contract: null, currency: 1, rate: 1, amount: 2000, purpose: 'Advance payment', bank_account: null, created_by: 1, posted_by: null, posted_at: null, created_at: '2024-01-22', updated_at: '2024-01-22' },
-];
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const statusColors: Record<DocumentStatus, string> = {
   draft: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
@@ -40,6 +35,7 @@ export default function PaymentsPage() {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<PaymentDocument | null>(null);
   const [searchValue, setSearchValue] = useState('');
+  const [activeTab, setActiveTab] = useState<'all' | 'incoming' | 'outgoing'>('all');
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['payments'],
@@ -47,7 +43,7 @@ export default function PaymentsPage() {
       try {
         const response = await api.get<PaginatedResponse<PaymentDocument>>('/documents/payments/');
         return response.results;
-      } catch { return decorationPayments; }
+      } catch { return []; }
     },
   });
 
@@ -80,17 +76,24 @@ export default function PaymentsPage() {
     onError: () => toast.error('Failed to delete document'),
   });
 
-  const handleCreate = () => router.push('/documents/payments/new');
+  const handleCreate = (type: 'INCOMING' | 'OUTGOING' = 'INCOMING') =>
+    router.push(`/documents/payments/new?type=${type}`);
   const handleEdit = (doc: PaymentDocument) => router.push(`/documents/payments/${doc.id}`);
   const handleView = (doc: PaymentDocument) => router.push(`/documents/payments/${doc.id}`);
 
   const mainActions: CommandBarAction[] = [
     {
-      label: tc('create'),
-      icon: <PiPencilBold />,
-      onClick: handleCreate,
+      label: t('incoming'),
+      icon: <PiPlusBold />,
+      onClick: () => handleCreate('INCOMING'),
       variant: 'default',
       shortcut: 'Ins',
+    },
+    {
+      label: t('outgoing'),
+      icon: <PiPlusBold />,
+      onClick: () => handleCreate('OUTGOING'),
+      variant: 'secondary',
     },
   ];
 
@@ -129,6 +132,23 @@ export default function PaymentsPage() {
     if (!data) return 0;
     return data.reduce((sum, doc) => sum + Number(doc.amount || 0), 0);
   }, [data]);
+
+  const filteredData = useMemo(() => {
+    if (!data) return [];
+    let result = data;
+    if (activeTab === 'incoming') result = result.filter((d) => d.payment_type === 'INCOMING');
+    if (activeTab === 'outgoing') result = result.filter((d) => d.payment_type === 'OUTGOING');
+    if (searchValue.trim()) {
+      const term = searchValue.toLowerCase();
+      result = result.filter((d) =>
+        (d.number || '').toLowerCase().includes(term)
+        || String(d.id).includes(term)
+        || (d.counterparty_name || '').toLowerCase().includes(term)
+        || (d.purpose || '').toLowerCase().includes(term)
+      );
+    }
+    return result;
+  }, [data, activeTab, searchValue]);
 
   const columns: ColumnDef<PaymentDocument>[] = [
     {
@@ -171,8 +191,10 @@ export default function PaymentsPage() {
       accessorKey: 'counterparty',
       header: tf('counterparty'),
       cell: ({ row }) => {
-        const val = row.getValue('counterparty');
-        return <LinkableCell id={val as number} type="counterparty" label={`CP #${val}`} />;
+        const id = row.original.counterparty;
+        const name = row.original.counterparty_name || (id ? `CP #${id}` : '-');
+        if (!id) return <span>{name}</span>;
+        return <LinkableCell id={id} type="counterparty" label={name} />;
       },
     },
     {
@@ -180,9 +202,10 @@ export default function PaymentsPage() {
       header: tc('amount'),
       cell: ({ row }) => {
         const amount = parseFloat(row.getValue('amount'));
-        return <span className="font-mono font-bold">${amount.toFixed(2)}</span>;
+        const currency = row.original.currency_code || 'CUR';
+        return <span className="font-mono font-bold">{amount.toFixed(2)} {currency}</span>;
       },
-      footer: () => <span className="font-mono text-primary">${totalSum.toFixed(2)}</span>,
+      footer: () => <span className="font-mono text-primary">{totalSum.toFixed(2)}</span>,
     },
     {
       accessorKey: 'purpose',
@@ -205,9 +228,18 @@ export default function PaymentsPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
+      <div className="px-4 py-3 border-b">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'incoming' | 'outgoing')}>
+            <TabsList>
+            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="incoming">{t('incoming')}</TabsTrigger>
+            <TabsTrigger value="outgoing">{t('outgoing')}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
       <DataTable
         columns={columns}
-        data={data || []}
+        data={filteredData}
         isLoading={isLoading}
         onRowClick={setSelectedItem}
         onRowDoubleClick={(row) => row.status === 'draft' ? handleEdit(row) : handleView(row)}

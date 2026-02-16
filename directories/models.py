@@ -209,11 +209,33 @@ class BankAccount(models.Model):
     """
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='bank_accounts')
     name = models.CharField(_('Name'), max_length=100, help_text="User-friendly name, e.g. Main Account")
+    ACCOUNT_TYPE_CHOICES = [
+        ('settlement', _('Settlement')),
+        ('foreign', _('Foreign Currency')),
+        ('deposit', _('Deposit')),
+    ]
+    account_type = models.CharField(_('Account Type'), max_length=20, choices=ACCOUNT_TYPE_CHOICES, default='settlement')
     bank_name = models.CharField(_('Bank Name'), max_length=100)
     account_number = models.CharField(_('Account Number'), max_length=50) # IBAN or local
+    bik = models.CharField(_('BIK'), max_length=20, blank=True, help_text="Bank Identification Code")
+    correspondent_account = models.CharField(_('Correspondent Account'), max_length=50, blank=True)
+    swift_code = models.CharField(_('SWIFT Code'), max_length=20, blank=True)
+    accounting_account = models.ForeignKey(
+        'accounting.ChartOfAccounts',
+        on_delete=models.PROTECT,
+        related_name='bank_accounts',
+        null=True,
+        blank=True
+    )
     currency = models.ForeignKey(Currency, on_delete=models.PROTECT)
-    
+    is_default = models.BooleanField(_('Default For Tenant'), default=False)
     is_active = models.BooleanField(default=True)
+    opening_date = models.DateField(_('Opening Date'), null=True, blank=True)
+
+    overdraft_allowed = models.BooleanField(_('Overdraft Allowed'), default=False)
+    overdraft_limit = models.DecimalField(_('Overdraft Limit'), max_digits=15, decimal_places=2, default=0)
+    minimum_balance = models.DecimalField(_('Minimum Balance'), max_digits=15, decimal_places=2, default=0)
+    comment = models.TextField(_('Comment'), blank=True)
     
     class Meta:
         verbose_name = _('Bank Account')
@@ -221,6 +243,109 @@ class BankAccount(models.Model):
         
     def __str__(self):
         return f"{self.bank_name} ({self.currency}) - {self.account_number}"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if self.account_type == 'foreign' and not self.swift_code:
+            raise ValidationError({'swift_code': _('SWIFT code is required for foreign currency accounts.')})
+
+        if not self.overdraft_allowed and self.overdraft_limit:
+            raise ValidationError({'overdraft_limit': _('Set overdraft limit only when overdraft is allowed.')})
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.is_default:
+            BankAccount.objects.filter(
+                tenant=self.tenant,
+                is_default=True
+            ).exclude(pk=self.pk).update(is_default=False)
+
+
+class BankExchangeSettings(models.Model):
+    """
+    Bank exchange configuration (import/export settings per bank account).
+    """
+    FORMAT_CHOICES = [
+        ('CSV', _('CSV')),
+        ('CLIENT_BANK_1C', _('1C ClientBank')),
+        ('ISO20022', _('ISO20022')),
+        ('API', _('Bank API')),
+    ]
+    ENCODING_CHOICES = [
+        ('WINDOWS-1251', _('Windows (CP1251)')),
+        ('DOS-866', _('DOS (CP866)')),
+        ('UTF-8', _('UTF-8')),
+    ]
+
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='bank_exchange_settings')
+    bank_account = models.OneToOneField(
+        BankAccount,
+        on_delete=models.CASCADE,
+        related_name='exchange_settings'
+    )
+    exchange_format = models.CharField(_('Exchange Format'), max_length=30, choices=FORMAT_CHOICES, default='CSV')
+    bank_program_name = models.CharField(_('Bank Program Name'), max_length=100, blank=True)
+    encoding = models.CharField(_('Encoding'), max_length=20, choices=ENCODING_CHOICES, default='UTF-8')
+
+    # Import behavior
+    auto_create_counterparties = models.BooleanField(_('Auto Create Counterparties'), default=True)
+    new_counterparty_group_name = models.CharField(_('New Counterparty Group'), max_length=100, blank=True)
+    auto_detect_bank_fees = models.BooleanField(_('Auto Detect Bank Fees'), default=True)
+    auto_post_incoming = models.BooleanField(_('Auto Post Incoming'), default=False)
+    auto_post_outgoing = models.BooleanField(_('Auto Post Outgoing'), default=False)
+    show_form_before_import = models.BooleanField(_('Show Form Before Import'), default=True)
+
+    # Export behavior
+    export_payment_orders = models.BooleanField(_('Export Payment Orders'), default=True)
+    export_payment_claims = models.BooleanField(_('Export Payment Claims'), default=False)
+    validate_document_number = models.BooleanField(_('Validate Document Number'), default=True)
+    validate_exchange_security = models.BooleanField(_('Validate Exchange Security'), default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('Bank Exchange Settings')
+        verbose_name_plural = _('Bank Exchange Settings')
+
+    def __str__(self):
+        return f"{self.bank_account} ({self.exchange_format})"
+
+
+class BankOperationType(models.Model):
+    """
+    Bank operation semantics (templates for posting and validation).
+    """
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='bank_operation_types')
+    code = models.CharField(_('Code'), max_length=50)
+    name = models.CharField(_('Name'), max_length=255)
+
+    debit_account = models.ForeignKey(
+        'accounting.ChartOfAccounts',
+        on_delete=models.PROTECT,
+        related_name='bank_operation_types_debit'
+    )
+    credit_account = models.ForeignKey(
+        'accounting.ChartOfAccounts',
+        on_delete=models.PROTECT,
+        related_name='bank_operation_types_credit'
+    )
+
+    requires_counterparty = models.BooleanField(default=False)
+    requires_contract = models.BooleanField(default=False)
+    requires_tax = models.BooleanField(default=False)
+    auto_create_payment = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = _('Bank Operation Type')
+        verbose_name_plural = _('Bank Operation Types')
+        unique_together = ('tenant', 'code')
+        ordering = ['code']
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
 
 
 class Employee(models.Model):

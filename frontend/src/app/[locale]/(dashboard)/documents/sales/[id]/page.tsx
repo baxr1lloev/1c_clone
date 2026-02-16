@@ -42,7 +42,8 @@ export default function LiveSalesDocumentPage() {
     const params = useParams();
     const router = useRouter();
     const queryClient = useQueryClient();
-    const documentId = parseInt(params.id as string);
+    const rawDocumentId = Array.isArray(params.id) ? params.id[0] : params.id;
+    const documentId = Number(rawDocumentId);
     const tNav = useTranslations('nav');
     const tCommon = useTranslations('common');
     const tFields = useTranslations('fields');
@@ -53,12 +54,14 @@ export default function LiveSalesDocumentPage() {
     const [activeTab, setActiveTab] = useState('details');
 
     // Fetch document
-    const { data: document, isLoading } = useQuery({
+    const { data: document, isLoading, isError, error } = useQuery({
         queryKey: ['sales-document', documentId],
         queryFn: async () => {
             const response = await api.get(`/documents/sales/${documentId}/`);
             return response;
         },
+        enabled: Number.isFinite(documentId) && documentId > 0,
+        retry: false,
     });
 
     // Real-time validation (auto-validates every 5 seconds!)
@@ -160,8 +163,42 @@ export default function LiveSalesDocumentPage() {
         return <div className="container mx-auto py-6">{tDetail('loading')}</div>;
     }
 
-    if (!document) {
-        return <div className="container mx-auto py-6">{tDetail('notFound')}</div>;
+    if (!Number.isFinite(documentId) || documentId <= 0) {
+        return (
+            <div className="container mx-auto py-6 space-y-4">
+                <div className="text-lg font-semibold">{tDetail('notFound')}</div>
+                <div className="text-sm text-muted-foreground">Некорректный идентификатор документа.</div>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => router.push('/documents/sales')}>
+                        К списку реализаций
+                    </Button>
+                    <Button onClick={() => router.push('/documents/sales/new')}>
+                        Создать реализацию
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
+    if (isError || !document) {
+        const apiError = error as { response?: { status?: number; data?: { error?: string } } } | undefined;
+        const is404 = apiError?.response?.status === 404;
+        return (
+            <div className="container mx-auto py-6 space-y-4">
+                <div className="text-lg font-semibold">{is404 ? tDetail('notFound') : 'Ошибка загрузки документа'}</div>
+                <div className="text-sm text-muted-foreground">
+                    {apiError?.response?.data?.error || (is404 ? 'Документ с таким номером не найден или недоступен.' : 'Не удалось получить данные с сервера.')}
+                </div>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => router.push('/documents/sales')}>
+                        К списку реализаций
+                    </Button>
+                    <Button onClick={() => router.push('/documents/sales/new')}>
+                        Создать реализацию
+                    </Button>
+                </div>
+            </div>
+        );
     }
 
     const isDraft = document.status === 'draft';

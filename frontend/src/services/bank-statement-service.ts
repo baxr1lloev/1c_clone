@@ -8,16 +8,22 @@ export interface BankStatement {
     statement_date: string;
     status: 'draft' | 'processing' | 'posted';
     status_display: string;
+    source?: 'manual' | 'imported';
     bank_account: number;
     bank_account_name: string;
     bank_account_number: string;
+    currency?: number;
+    currency_code?: string;
     opening_balance: string;
     closing_balance: string;
     total_receipts: string;
     total_payments: string;
     lines_count: number;
     matched_count: number;
+    unmatched_count?: number;
     matching_percentage: number;
+    is_balanced?: boolean;
+    accounting_balance_difference?: string;
     file?: string;
     can_post?: boolean;
     can_unpost?: boolean;
@@ -25,10 +31,16 @@ export interface BankStatement {
 }
 
 export interface BankStatementLine {
+    operation_type?: BankStatementOperationType | '';
+    operation_type_display?: string;
     id: number;
     transaction_date: string;
+    bank_document_number?: string;
     description: string;
+    payment_purpose?: string;
     counterparty_name: string;
+    contract?: number | null;
+    contract_number?: string;
     debit_amount: string;
     credit_amount: string;
     balance: string;
@@ -43,8 +55,30 @@ export interface BankStatementLine {
     created_payment_document_number?: string | null;
 }
 
+export type BankStatementOperationType =
+    | 'CUSTOMER_PAYMENT'
+    | 'SUPPLIER_PAYMENT'
+    | 'TAX_PAYMENT'
+    | 'BANK_FEE'
+    | 'TRANSFER_INTERNAL'
+    | 'SALARY_PAYMENT'
+    | 'ACCOUNTABLE'
+    | 'LOAN_RETURN'
+    | 'OTHER';
+
 export interface BankStatementDetail extends BankStatement {
     lines: BankStatementLine[];
+}
+
+export interface OpeningBalanceSuggestion {
+    opening_balance: string;
+    opening_balance_locked: boolean;
+    previous_statement_date: string | null;
+    previous_statement_closing_balance: string | null;
+    latest_statement_date: string | null;
+    continuity_warning: string | null;
+    can_create_for_date: boolean;
+    accounting_balance: string;
 }
 
 export const BankStatementService = {
@@ -55,6 +89,13 @@ export const BankStatementService = {
 
     getById: async (id: number | string) => {
         const response = await api.get<BankStatementDetail>(`/documents/bank-statements/${id}/`);
+        return response;
+    },
+
+    suggestOpeningBalance: async (bankAccountId: number | string, statementDate: string) => {
+        const response = await api.get<OpeningBalanceSuggestion>(
+            `/documents/bank-statements/suggest-opening-balance/?bank_account=${bankAccountId}&statement_date=${statementDate}`
+        );
         return response;
     },
 
@@ -97,8 +138,12 @@ export const BankStatementService = {
     // Line management
     createLine: async (statementId: number | string, data: {
         transaction_date: string;
+        bank_document_number?: string;
         description: string;
+        payment_purpose?: string;
+        operation_type?: BankStatementOperationType | '';
         counterparty_name?: string;
+        contract?: number | null;
         debit_amount?: string;
         credit_amount?: string;
     }) => {

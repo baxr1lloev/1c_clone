@@ -1,16 +1,16 @@
-from django.db import models
+﻿from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from tenants.models import Tenant
-from directories.models import Counterparty, Contract, Warehouse, Item, Currency
+from directories.models import Counterparty, Contract, Warehouse, Item, Currency, BankOperationType
 
 class BaseDocument(models.Model):
     """
     Base class for all documents with 1C-style document chain support.
     
-    Document Chain (Цепочка документов):
+    Document Chain (Р¦РµРїРѕС‡РєР° РґРѕРєСѓРјРµРЅС‚РѕРІ):
     - base_document: The source document this was created from
     - Related documents can be found via get_child_documents()
     """
@@ -40,9 +40,9 @@ class BaseDocument(models.Model):
     posted_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
                                   on_delete=models.SET_NULL, related_name='%(class)s_posted')
     
-    # ═══════════════════════════════════════════════════════════════════════════
+    # в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
     # OPTIMISTIC LOCKING (Concurrency Control)
-    # ═══════════════════════════════════════════════════════════════════════════
+    # в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
     version = models.IntegerField(
         default=1,
         editable=False,
@@ -50,10 +50,10 @@ class BaseDocument(models.Model):
         help_text=_('Incremented on each save to detect concurrent modifications')
     )
     
-    # ═══════════════════════════════════════════════════════════════════════════
-    # 1C-STYLE DOCUMENT CHAIN (Цепочка документов)
-    # ═══════════════════════════════════════════════════════════════════════════
-    # Generic FK to base document (документ-основание)
+    # в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
+    # 1C-STYLE DOCUMENT CHAIN (Р¦РµРїРѕС‡РєР° РґРѕРєСѓРјРµРЅС‚РѕРІ)
+    # в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
+    # Generic FK to base document (РґРѕРєСѓРјРµРЅС‚-РѕСЃРЅРѕРІР°РЅРёРµ)
     base_document_type = models.ForeignKey(
         ContentType, 
         on_delete=models.SET_NULL, 
@@ -160,9 +160,9 @@ class BaseDocument(models.Model):
         2. Auto-number generation
         3. Number immutability after posting
         """
-        # ═══════════════════════════════════════════════════════════════════
+        # в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
         # OPTIMISTIC LOCKING: Check version hasn't changed
-        # ═══════════════════════════════════════════════════════════════════
+        # в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
         skip_version_check = kwargs.pop('skip_version_check', False)
         
         if self.pk and not skip_version_check:
@@ -181,9 +181,9 @@ class BaseDocument(models.Model):
                 # Increment version for this save
                 self.version = current.version + 1
                 
-                # ═══════════════════════════════════════════════════════════
+                # в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
                 # NUMBER IMMUTABILITY: Lock number after posting
-                # ═══════════════════════════════════════════════════════════
+                # в•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђв•ђ
                 if current.status == self.STATUS_POSTED and current.number != self.number:
                     raise ValidationError({
                         'number': _('Cannot change document number after posting')
@@ -222,7 +222,7 @@ class BaseDocument(models.Model):
 
 class SalesDocument(BaseDocument):
     """
-    Goods Issue / Realization (Реализация).
+    Goods Issue / Realization (Р РµР°Р»РёР·Р°С†РёСЏ).
     """
     counterparty = models.ForeignKey(Counterparty, on_delete=models.PROTECT, related_name='sales')
     contract = models.ForeignKey(Contract, on_delete=models.PROTECT, related_name='sales')
@@ -285,9 +285,9 @@ class SalesDocument(BaseDocument):
         
         self.save(update_fields=['subtotal', 'tax_amount', 'total_amount', 'total_amount_base'])
 
-    # ─────────────────────────────────────────────────────────────────
+    # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     # 1C Mental Model: Backend State Authority
-    # ─────────────────────────────────────────────────────────────────
+    # в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
     
     @property
     def period_is_closed(self):
@@ -348,11 +348,11 @@ class SalesDocument(BaseDocument):
 
     def post(self, user=None):
         """
-        Post document (1C-style проведение).
+        Post document (1C-style РїСЂРѕРІРµРґРµРЅРёРµ).
         
         Creates accounting entries:
-        - Дт 62 "Покупатели" Кт 90.1 "Выручка" - total_amount_base
-        - Дт 90.2 "Себестоимость" Кт 41 "Товары" - cost (TODO: calculate from batches)
+        - Р”С‚ 62 "РџРѕРєСѓРїР°С‚РµР»Рё" РљС‚ 90.1 "Р’С‹СЂСѓС‡РєР°" - total_amount_base
+        - Р”С‚ 90.2 "РЎРµР±РµСЃС‚РѕРёРјРѕСЃС‚СЊ" РљС‚ 41 "РўРѕРІР°СЂС‹" - cost (TODO: calculate from batches)
         
         Also creates register movements (stock, settlements, etc.)
         """
@@ -370,10 +370,10 @@ class SalesDocument(BaseDocument):
         with transaction.atomic():
             # Get accounts (assuming they exist)
             try:
-                acc_62 = ChartOfAccounts.objects.get(tenant=self.tenant, code='62')  # Покупатели
-                acc_90_1 = ChartOfAccounts.objects.get(tenant=self.tenant, code='90.1')  # Выручка
-                acc_90_2 = ChartOfAccounts.objects.get(tenant=self.tenant, code='90.2')  # Себестоимость
-                acc_41 = ChartOfAccounts.objects.get(tenant=self.tenant, code='41')  # Товары
+                acc_62 = ChartOfAccounts.objects.get(tenant=self.tenant, code='62')  # РџРѕРєСѓРїР°С‚РµР»Рё
+                acc_90_1 = ChartOfAccounts.objects.get(tenant=self.tenant, code='90.1')  # Р’С‹СЂСѓС‡РєР°
+                acc_90_2 = ChartOfAccounts.objects.get(tenant=self.tenant, code='90.2')  # РЎРµР±РµСЃС‚РѕРёРјРѕСЃС‚СЊ
+                acc_41 = ChartOfAccounts.objects.get(tenant=self.tenant, code='41')  # РўРѕРІР°СЂС‹
             except ChartOfAccounts.DoesNotExist:
                 raise ValidationError(_("Required accounts not found in Chart of Accounts. Please set up accounts first."))
             
@@ -381,7 +381,7 @@ class SalesDocument(BaseDocument):
             base_currency = Currency.objects.get(tenant=self.tenant, is_base=True)
             
             # Entry 1: Revenue (Split by Item for analytics)
-            # Дт 62 "Покупатели" Кт 90.1 "Выручка"
+            # Р”С‚ 62 "РџРѕРєСѓРїР°С‚РµР»Рё" РљС‚ 90.1 "Р’С‹СЂСѓС‡РєР°"
             
             # Group lines by VAT/Department/Project if needed, but for Item analytics we iterate
             for line in self.lines.all():
@@ -408,7 +408,7 @@ class SalesDocument(BaseDocument):
                 )
             
             # Entry 2: COGS (Cost of Goods Sold) using FIFO
-            # Дт 90.2 "Себестоимость" Кт 41 "Товары"
+            # Р”С‚ 90.2 "РЎРµР±РµСЃС‚РѕРёРјРѕСЃС‚СЊ" РљС‚ 41 "РўРѕРІР°СЂС‹"
             from registers.services import FIFOService
             from decimal import Decimal
             
@@ -467,7 +467,7 @@ class SalesDocument(BaseDocument):
     
     def unpost(self):
         """
-        Unpost document (1C-style отмена проведения).
+        Unpost document (1C-style РѕС‚РјРµРЅР° РїСЂРѕРІРµРґРµРЅРёСЏ).
         
         Deletes all accounting entries created by this document.
         """
@@ -539,13 +539,13 @@ class SalesDocumentLine(models.Model):
         max_length=20,
         choices=PRICE_SOURCE_CHOICES,
         default='MANUAL',
-        help_text="Источник цены - для объяснения 'откуда эта цена?'"
+        help_text="РСЃС‚РѕС‡РЅРёРє С†РµРЅС‹ - РґР»СЏ РѕР±СЉСЏСЃРЅРµРЅРёСЏ 'РѕС‚РєСѓРґР° СЌС‚Р° С†РµРЅР°?'"
     )
     price_source_date = models.DateField(
         _('Price Source Date'),
         null=True,
         blank=True,
-        help_text="Дата последней продажи/прайса (если применимо)"
+        help_text="Р”Р°С‚Р° РїРѕСЃР»РµРґРЅРµР№ РїСЂРѕРґР°Р¶Рё/РїСЂР°Р№СЃР° (РµСЃР»Рё РїСЂРёРјРµРЅРёРјРѕ)"
     )
     
     RATE_SOURCE_CHOICES = [
@@ -558,13 +558,13 @@ class SalesDocumentLine(models.Model):
         max_length=20,
         choices=RATE_SOURCE_CHOICES,
         default='OFFICIAL',
-        help_text="Источник курса валюты"
+        help_text="РСЃС‚РѕС‡РЅРёРє РєСѓСЂСЃР° РІР°Р»СЋС‚С‹"
     )
     rate_source_date = models.DateField(
         _('Rate Source Date'),
         null=True,
         blank=True,
-        help_text="Дата официального курса"
+        help_text="Р”Р°С‚Р° РѕС„РёС†РёР°Р»СЊРЅРѕРіРѕ РєСѓСЂСЃР°"
     )
 
     def save(self, *args, **kwargs):
@@ -616,7 +616,7 @@ class SalesDocumentLine(models.Model):
 
 class PurchaseDocument(BaseDocument):
     """
-    Goods Receipt (Поступление).
+    Goods Receipt (РџРѕСЃС‚СѓРїР»РµРЅРёРµ).
     """
     counterparty = models.ForeignKey(Counterparty, on_delete=models.PROTECT, related_name='purchases')
     contract = models.ForeignKey(Contract, on_delete=models.PROTECT, related_name='purchases')
@@ -701,14 +701,14 @@ class PurchaseDocument(BaseDocument):
                 )
             
             # Create Accounting Entries (1C-style)
-            # Дт 41 "Товары" Кт 60 "Поставщики"
+            # Р”С‚ 41 "РўРѕРІР°СЂС‹" РљС‚ 60 "РџРѕСЃС‚Р°РІС‰РёРєРё"
             
             from accounting.models import AccountingEntry, ChartOfAccounts
             
             # Get accounts (assuming they exist - validation already done in Sales, but good to be safe)
             try:
-                acc_41 = ChartOfAccounts.objects.get(tenant=self.tenant, code='41')  # Товары
-                acc_60 = ChartOfAccounts.objects.get(tenant=self.tenant, code='60')  # Поставщики
+                acc_41 = ChartOfAccounts.objects.get(tenant=self.tenant, code='41')  # РўРѕРІР°СЂС‹
+                acc_60 = ChartOfAccounts.objects.get(tenant=self.tenant, code='60')  # РџРѕСЃС‚Р°РІС‰РёРєРё
             except ChartOfAccounts.DoesNotExist:
                  # Should be caught earlier or seeded
                  pass
@@ -847,7 +847,7 @@ class PurchaseDocumentLine(models.Model):
 
 class PaymentDocument(BaseDocument):
     """
-    Incoming/Outgoing Payment (Платеж).
+    Incoming/Outgoing Payment (РџР»Р°С‚РµР¶).
     
     Universal document for Bank Operations.
     """
@@ -861,13 +861,51 @@ class PaymentDocument(BaseDocument):
     
     # Financial Details
     bank_account = models.ForeignKey('directories.BankAccount', on_delete=models.PROTECT, related_name='payments', null=True) # null=True for migration safe
+    bank_operation_type = models.ForeignKey(
+        BankOperationType,
+        on_delete=models.PROTECT,
+        related_name='payments',
+        null=True,
+        blank=True
+    )
     currency = models.ForeignKey(Currency, on_delete=models.PROTECT)
     rate = models.DecimalField(_('Exchange Rate'), max_digits=12, decimal_places=6, default=1, help_text="Rate used at time of posting")
     
     amount = models.DecimalField(_('Amount'), max_digits=15, decimal_places=2)
     payment_type = models.CharField(_('Type'), max_length=20, choices=PAYMENT_TYPES)
     
-    purpose = models.TextField(_('Payment Purpose'), blank=True, help_text="Назначение платежа")
+    purpose = models.TextField(_('Payment Purpose'), blank=True, help_text="РќР°Р·РЅР°С‡РµРЅРёРµ РїР»Р°С‚РµР¶Р°")
+    vat_amount = models.DecimalField(_('VAT Amount'), max_digits=15, decimal_places=2, default=0)
+    cash_flow_item = models.ForeignKey(
+        'directories.CashFlowItem',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payment_documents'
+    )
+    basis = models.CharField(_('Basis'), max_length=255, blank=True)
+    debit_account = models.ForeignKey(
+        'accounting.ChartOfAccounts',
+        on_delete=models.PROTECT,
+        related_name='payment_documents_debit',
+        null=True,
+        blank=True
+    )
+    credit_account = models.ForeignKey(
+        'accounting.ChartOfAccounts',
+        on_delete=models.PROTECT,
+        related_name='payment_documents_credit',
+        null=True,
+        blank=True
+    )
+    payment_priority = models.PositiveSmallIntegerField(_('Payment Priority'), default=5)
+    PAYMENT_KIND_CHOICES = [
+        ('supplier', _('Supplier')),
+        ('tax', _('Tax')),
+        ('salary', _('Salary')),
+        ('other', _('Other')),
+    ]
+    payment_kind = models.CharField(_('Payment Kind'), max_length=20, choices=PAYMENT_KIND_CHOICES, default='other')
     
     @classmethod
     def get_document_prefix(cls):
@@ -903,30 +941,64 @@ class PaymentDocument(BaseDocument):
         validate_period_is_open(self.date, self.tenant, check_type='ACCOUNTING')
         
         with transaction.atomic():
+            if self.bank_operation_type_id and self.bank_operation_type.requires_counterparty and not self.counterparty_id:
+                raise ValidationError(_("Counterparty is required for selected operation type."))
+
             # 1. Accounts
-            try:
-                acc_bank = ChartOfAccounts.objects.get(tenant=self.tenant, code='1030') # Bank
-                
-                if self.counterparty.type == 'CUSTOMER':
-                    acc_partner = ChartOfAccounts.objects.get(tenant=self.tenant, code='1210') # Receivable
-                else:
-                    acc_partner = ChartOfAccounts.objects.get(tenant=self.tenant, code='3310') # Payable
-            except ChartOfAccounts.DoesNotExist:
-                 # Fallback or Error? 1C requires accounts.
-                 # For now, let's assume they exist or error out.
-                 raise ValidationError(_("System Accounts (1030, 1210/3310) not found! Please configure Chart of Accounts."))
+            if self.debit_account_id and self.credit_account_id:
+                debit = self.debit_account
+                credit = self.credit_account
+            elif self.bank_operation_type_id:
+                debit = self.bank_operation_type.debit_account
+                credit = self.bank_operation_type.credit_account
+            else:
+                try:
+                    acc_bank = ChartOfAccounts.objects.get(tenant=self.tenant, code='1030') # Bank
+                    
+                    if self.counterparty.type == 'CUSTOMER':
+                        acc_partner = ChartOfAccounts.objects.get(tenant=self.tenant, code='1210') # Receivable
+                    else:
+                        acc_partner = ChartOfAccounts.objects.get(tenant=self.tenant, code='3310') # Payable
+                except ChartOfAccounts.DoesNotExist:
+                     # Fallback or Error? 1C requires accounts.
+                     # For now, let's assume they exist or error out.
+                     raise ValidationError(_("System Accounts (1030, 1210/3310) not found! Please configure Chart of Accounts."))
 
             # 2. Accounting Entries
-            if self.payment_type == 'INCOMING':
-                # Debit Bank, Credit Partner
-                # Дт 1030 Кт 1210
-                debit = acc_bank
-                credit = acc_partner
-            else:
-                # Debit Partner, Credit Bank
-                # Дт 3310 Кт 1030
-                debit = acc_partner
-                credit = acc_bank
+            if not self.bank_operation_type_id and not (self.debit_account_id and self.credit_account_id):
+                if self.payment_type == 'INCOMING':
+                    # Debit Bank, Credit Partner
+                    # Р”С‚ 1030 РљС‚ 1210
+                    debit = acc_bank
+                    credit = acc_partner
+                else:
+                    # Debit Partner, Credit Bank
+                    # Р”С‚ 3310 РљС‚ 1030
+                    debit = acc_partner
+                    credit = acc_bank
+
+            # Balance control for outgoing bank payments.
+            if self.payment_type == 'OUTGOING' and getattr(credit, 'code', '').startswith('1030'):
+                from decimal import Decimal
+                from django.db.models import Sum
+                available_debit = AccountingEntry.objects.filter(
+                    tenant=self.tenant,
+                    date__date__lte=self.date.date(),
+                    debit_account__code__startswith='1030'
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                available_credit = AccountingEntry.objects.filter(
+                    tenant=self.tenant,
+                    date__date__lte=self.date.date(),
+                    credit_account__code__startswith='1030'
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                available_balance = available_debit - available_credit
+                if self.amount > available_balance:
+                    raise ValidationError(
+                        _("Insufficient bank balance. Available: %(available)s, required: %(required)s") % {
+                            'available': available_balance,
+                            'required': self.amount,
+                        }
+                    )
                 
             AccountingEntry.objects.create(
                 tenant=self.tenant,
@@ -955,22 +1027,27 @@ class PaymentDocument(BaseDocument):
             # Purchase = -1000 (We owe)
             # Payment Out = +1000 => 0
             
-            movement_amount = self.amount
-            if self.payment_type == 'INCOMING':
-                 movement_amount = -self.amount
-            else:
-                 movement_amount = self.amount 
-                 
-            SettlementMovement.objects.create(
-                tenant=self.tenant,
-                date=self.date,
-                counterparty=self.counterparty,
-                contract=self.contract,
-                currency=self.currency,
-                amount=movement_amount,
-                content_type=ContentType.objects.get_for_model(self),
-                object_id=self.id
-            )
+            needs_settlement = True
+            if self.bank_operation_type_id:
+                needs_settlement = self.bank_operation_type.requires_counterparty
+
+            if needs_settlement:
+                movement_amount = self.amount
+                if self.payment_type == 'INCOMING':
+                     movement_amount = -self.amount
+                else:
+                     movement_amount = self.amount 
+                     
+                SettlementMovement.objects.create(
+                    tenant=self.tenant,
+                    date=self.date,
+                    counterparty=self.counterparty,
+                    contract=self.contract,
+                    currency=self.currency,
+                    amount=movement_amount,
+                    content_type=ContentType.objects.get_for_model(self),
+                    object_id=self.id
+                )
             
             # Update Document
             self.status = self.STATUS_POSTED
@@ -1013,7 +1090,7 @@ class PaymentDocument(BaseDocument):
 
 class TransferDocument(BaseDocument):
     """
-    Stock Transfer (Перемещение).
+    Stock Transfer (РџРµСЂРµРјРµС‰РµРЅРёРµ).
     Can be to another internal warehouse OR to "Agent" warehouse.
     """
     from_warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='transfers_out')
@@ -1039,7 +1116,7 @@ class TransferDocumentLine(models.Model):
 
 class InventoryDocument(BaseDocument):
     """
-    Инвентаризация - Physical stock count / Inventory adjustment.
+    РРЅРІРµРЅС‚Р°СЂРёР·Р°С†РёСЏ - Physical stock count / Inventory adjustment.
     Compares book quantity vs actual counted quantity and creates adjustments.
     """
     warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, related_name='inventories')
@@ -1084,13 +1161,13 @@ class InventoryDocumentLine(models.Model):
 
 
 # ============================================================================
-# SALES ORDERS (Заказы покупателей)
+# SALES ORDERS (Р—Р°РєР°Р·С‹ РїРѕРєСѓРїР°С‚РµР»РµР№)
 # ============================================================================
 
 
 class SalesOrder(BaseDocument):
     """
-    Sales Order (Заказ покупателя) - Pre-sales document
+    Sales Order (Р—Р°РєР°Р· РїРѕРєСѓРїР°С‚РµР»СЏ) - Pre-sales document
     """
     STATUS_CONFIRMED = 'confirmed'
     STATUS_SHIPPED = 'shipped'
@@ -1334,12 +1411,12 @@ class SalesOrderLine(models.Model):
 
 
 # ============================================================================
-# BANK STATEMENTS (Банковские выписки)
+# BANK STATEMENTS (Р‘Р°РЅРєРѕРІСЃРєРёРµ РІС‹РїРёСЃРєРё)
 # ============================================================================
 
 class BankStatement(BaseDocument):
     """
-    Bank Statement (Банковская выписка) - 1C Style
+    Bank Statement (Р‘Р°РЅРєРѕРІСЃРєР°СЏ РІС‹РїРёСЃРєР°) - 1C Style
     
     Represents a bank statement uploaded from bank.
     Contains multiple lines (transactions).
@@ -1350,8 +1427,20 @@ class BankStatement(BaseDocument):
         related_name='statements',
         verbose_name=_('Bank Account')
     )
+    currency = models.ForeignKey(
+        Currency,
+        on_delete=models.PROTECT,
+        related_name='bank_statements',
+        null=True,
+        blank=True
+    )
     
     statement_date = models.DateField(_('Statement Date'))
+    SOURCE_CHOICES = [
+        ('manual', _('Manual')),
+        ('imported', _('Imported')),
+    ]
+    source = models.CharField(_('Source'), max_length=20, choices=SOURCE_CHOICES, default='manual')
     
     # Balances
     opening_balance = models.DecimalField(
@@ -1392,6 +1481,13 @@ class BankStatement(BaseDocument):
     # Statistics
     lines_count = models.IntegerField(_('Lines Count'), default=0)
     matched_count = models.IntegerField(_('Matched Lines'), default=0)
+    is_balanced = models.BooleanField(_('Is Balanced'), default=True)
+    accounting_balance_difference = models.DecimalField(
+        _('Accounting Balance Difference'),
+        max_digits=15,
+        decimal_places=2,
+        default=0
+    )
     
     @classmethod
     def get_document_prefix(cls):
@@ -1415,11 +1511,62 @@ class BankStatement(BaseDocument):
         
         calculated_closing = self.opening_balance + self.total_receipts - self.total_payments
         self.closing_balance = calculated_closing.quantize(Decimal('0.01'))
+        self.update_reconciliation()
         
         self.save(update_fields=[
             'total_receipts', 'total_payments', 'closing_balance',
-            'lines_count', 'matched_count'
+            'lines_count', 'matched_count',
+            'is_balanced', 'accounting_balance_difference'
         ])
+
+    def save(self, *args, **kwargs):
+        if self.bank_account_id and not self.currency_id:
+            self.currency = self.bank_account.currency
+        return super().save(*args, **kwargs)
+
+    @classmethod
+    def get_previous_statement(cls, tenant, bank_account_id, statement_date):
+        return cls.objects.filter(
+            tenant=tenant,
+            bank_account_id=bank_account_id,
+            statement_date__lt=statement_date
+        ).order_by('-statement_date', '-id').first()
+
+    @classmethod
+    def get_latest_statement(cls, tenant, bank_account_id):
+        return cls.objects.filter(
+            tenant=tenant,
+            bank_account_id=bank_account_id,
+        ).order_by('-statement_date', '-id').first()
+
+    def calculate_accounting_balance(self):
+        """
+        Accounting balance as of statement date.
+        Note: currently account-level (1030), not per individual bank account analytics.
+        """
+        from decimal import Decimal
+        from django.db.models import Sum
+        from accounting.models import AccountingEntry
+
+        debit_total = AccountingEntry.objects.filter(
+            tenant=self.tenant,
+            date__date__lte=self.statement_date,
+            debit_account__code__startswith='1030'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+        credit_total = AccountingEntry.objects.filter(
+            tenant=self.tenant,
+            date__date__lte=self.statement_date,
+            credit_account__code__startswith='1030'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+        return (debit_total - credit_total).quantize(Decimal('0.01'))
+
+    def update_reconciliation(self):
+        from decimal import Decimal
+        accounting_balance = self.calculate_accounting_balance()
+        self.accounting_balance_difference = (self.closing_balance - accounting_balance).quantize(Decimal('0.01'))
+        self.is_balanced = self.accounting_balance_difference == 0
     
     def __str__(self):
         return f"Statement #{self.number} - {self.bank_account} ({self.statement_date})"
@@ -1432,7 +1579,7 @@ class BankStatement(BaseDocument):
 
 class BankStatementLine(models.Model):
     """
-    Bank Statement Line (Строка банковской выписки)
+    Bank Statement Line (РЎС‚СЂРѕРєР° Р±Р°РЅРєРѕРІСЃРєРѕР№ РІС‹РїРёСЃРєРё)
     
     Individual transaction from bank statement.
     """
@@ -1440,6 +1587,27 @@ class BankStatementLine(models.Model):
         ('unmatched', _('Unmatched')),
         ('matched', _('Matched')),
         ('ignored', _('Ignored')),
+    ]
+    OPERATION_CUSTOMER_PAYMENT = 'CUSTOMER_PAYMENT'
+    OPERATION_SUPPLIER_PAYMENT = 'SUPPLIER_PAYMENT'
+    OPERATION_TAX_PAYMENT = 'TAX_PAYMENT'
+    OPERATION_BANK_FEE = 'BANK_FEE'
+    OPERATION_TRANSFER_INTERNAL = 'TRANSFER_INTERNAL'
+    OPERATION_SALARY_PAYMENT = 'SALARY_PAYMENT'
+    OPERATION_ACCOUNTABLE = 'ACCOUNTABLE'
+    OPERATION_LOAN_RETURN = 'LOAN_RETURN'
+    OPERATION_OTHER = 'OTHER'
+
+    OPERATION_TYPE_CHOICES = [
+        (OPERATION_CUSTOMER_PAYMENT, _('Customer Payment')),
+        (OPERATION_SUPPLIER_PAYMENT, _('Supplier Payment')),
+        (OPERATION_TAX_PAYMENT, _('Tax Payment')),
+        (OPERATION_BANK_FEE, _('Bank Fee')),
+        (OPERATION_TRANSFER_INTERNAL, _('Internal Transfer')),
+        (OPERATION_SALARY_PAYMENT, _('Salary Payment')),
+        (OPERATION_ACCOUNTABLE, _('Accountable Person')),
+        (OPERATION_LOAN_RETURN, _('Loan Return')),
+        (OPERATION_OTHER, _('Other')),
     ]
     
     statement = models.ForeignKey(
@@ -1451,6 +1619,7 @@ class BankStatementLine(models.Model):
     
     # Transaction details
     transaction_date = models.DateField(_('Transaction Date'))
+    bank_document_number = models.CharField(_('Bank Document Number'), max_length=100, blank=True)
     
     # Amounts
     debit_amount = models.DecimalField(
@@ -1475,6 +1644,13 @@ class BankStatementLine(models.Model):
     
     # Description
     description = models.TextField(_('Description'), blank=True)
+    payment_purpose = models.TextField(_('Payment Purpose'), blank=True)
+    operation_type = models.CharField(
+        _('Operation Type'),
+        max_length=30,
+        choices=OPERATION_TYPE_CHOICES,
+        default=OPERATION_OTHER
+    )
     counterparty_name = models.CharField(
         _('Counterparty Name'),
         max_length=255,
@@ -1489,6 +1665,14 @@ class BankStatementLine(models.Model):
         blank=True,
         related_name='bank_statement_lines',
         verbose_name=_('Counterparty')
+    )
+    contract = models.ForeignKey(
+        Contract,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='bank_statement_lines',
+        verbose_name=_('Contract')
     )
     
     # Generic relation to matched document
@@ -1529,6 +1713,81 @@ class BankStatementLine(models.Model):
     def transaction_type(self):
         """Return 'INCOMING' or 'OUTGOING'"""
         return 'INCOMING' if self.debit_amount > 0 else 'OUTGOING'
+
+    @classmethod
+    def detect_operation_type(cls, description, transaction_type):
+        """Best-effort operation type detection by payment description keywords."""
+        if not description:
+            return cls.OPERATION_OTHER
+
+        text = str(description).lower()
+
+        if transaction_type == 'OUTGOING':
+            if any(key in text for key in ['комис', 'fee', 'service charge']):
+                return cls.OPERATION_BANK_FEE
+            if any(key in text for key in ['налог', 'tax', 'ндс', 'vat']):
+                return cls.OPERATION_TAX_PAYMENT
+            if any(key in text for key in ['подотчет', 'accountable']):
+                return cls.OPERATION_ACCOUNTABLE
+            if any(key in text for key in ['зарплат', 'salary']):
+                return cls.OPERATION_SALARY_PAYMENT
+            if any(key in text for key in ['перевод', 'transfer', 'между счетами', 'internal']):
+                return cls.OPERATION_TRANSFER_INTERNAL
+            if any(key in text for key in ['поставщик', 'supplier']):
+                return cls.OPERATION_SUPPLIER_PAYMENT
+        else:
+            if any(key in text for key in ['займ', 'loan']):
+                return cls.OPERATION_LOAN_RETURN
+            if any(key in text for key in ['покупател', 'customer', 'оплата']):
+                return cls.OPERATION_CUSTOMER_PAYMENT
+
+        return cls.OPERATION_OTHER
+
+    def get_operation_semantics(self):
+        """Resolve operation semantics by code for current tenant."""
+        if not self.operation_type:
+            return None
+        return BankOperationType.objects.filter(
+            tenant=self.statement.tenant,
+            code=self.operation_type,
+            is_active=True
+        ).select_related('debit_account', 'credit_account').first()
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        if self.debit_amount > 0 and self.credit_amount > 0:
+            raise ValidationError(_("Only one of debit_amount or credit_amount can be greater than zero."))
+
+        if self.debit_amount <= 0 and self.credit_amount <= 0:
+            raise ValidationError(_("Either debit_amount or credit_amount must be greater than zero."))
+
+        if self.operation_type:
+            incoming_only = {self.OPERATION_CUSTOMER_PAYMENT, self.OPERATION_LOAN_RETURN}
+            outgoing_only = {
+                self.OPERATION_SUPPLIER_PAYMENT,
+                self.OPERATION_TAX_PAYMENT,
+                self.OPERATION_BANK_FEE,
+                self.OPERATION_TRANSFER_INTERNAL,
+                self.OPERATION_SALARY_PAYMENT,
+                self.OPERATION_ACCOUNTABLE,
+            }
+
+            if self.operation_type in incoming_only and self.transaction_type != 'INCOMING':
+                raise ValidationError(_("Selected operation type is only allowed for incoming transactions."))
+
+            if self.operation_type in outgoing_only and self.transaction_type != 'OUTGOING':
+                raise ValidationError(_("Selected operation type is only allowed for outgoing transactions."))
+
+            semantics = self.get_operation_semantics()
+            if semantics and semantics.requires_counterparty and not (self.counterparty_id or self.counterparty_name):
+                raise ValidationError(_("Counterparty is required for selected operation type."))
+
+    def save(self, *args, **kwargs):
+        if not self.operation_type or self.operation_type == self.OPERATION_OTHER:
+            self.operation_type = self.detect_operation_type(self.description, self.transaction_type)
+        self.full_clean()
+        return super().save(*args, **kwargs)
     
     def create_payment_document(self, user, counterparty=None, contract=None, auto_post=False):
         """
@@ -1553,6 +1812,8 @@ class BankStatementLine(models.Model):
             raise ValueError(_("Payment document already created for this line"))
         
         with transaction.atomic():
+            operation_semantics = self.get_operation_semantics()
+
             # Get or create counterparty
             if not counterparty:
                 if self.counterparty:
@@ -1565,19 +1826,50 @@ class BankStatementLine(models.Model):
                     ).first()
                     
                     if not counterparty:
+                        inferred_type = (
+                            'CUSTOMER'
+                            if self.operation_type in [self.OPERATION_CUSTOMER_PAYMENT, self.OPERATION_LOAN_RETURN]
+                            or self.transaction_type == 'INCOMING'
+                            else 'SUPPLIER'
+                        )
                         # Create new counterparty
                         counterparty = Counterparty.objects.create(
                             tenant=self.statement.tenant,
                             name=self.counterparty_name,
-                            type='CUSTOMER' if self.transaction_type == 'INCOMING' else 'SUPPLIER',
-                            created_by=user
+                            inn=f"AUTO-{timezone.now().strftime('%Y%m%d%H%M%S%f')}",
+                            type=inferred_type
                         )
                 else:
-                    raise ValueError(_("Counterparty is required"))
+                    fallback_name_map = {
+                        self.OPERATION_TAX_PAYMENT: _("Tax Authority"),
+                        self.OPERATION_BANK_FEE: _("Bank Fees"),
+                        self.OPERATION_TRANSFER_INTERNAL: _("Internal Transfer"),
+                        self.OPERATION_SALARY_PAYMENT: _("Employees"),
+                    }
+                    fallback_name = fallback_name_map.get(self.operation_type)
+                    if operation_semantics and operation_semantics.requires_counterparty and not fallback_name:
+                        raise ValueError(_("Counterparty is required"))
+                    if fallback_name:
+                        counterparty = Counterparty.objects.create(
+                            tenant=self.statement.tenant,
+                            name=fallback_name,
+                            inn=f"AUTO-{timezone.now().strftime('%Y%m%d%H%M%S%f')}",
+                            type='SUPPLIER'
+                        )
+
+            if not counterparty:
+                counterparty = Counterparty.objects.create(
+                    tenant=self.statement.tenant,
+                    name=_("Undefined Counterparty"),
+                    inn=f"AUTO-{timezone.now().strftime('%Y%m%d%H%M%S%f')}",
+                    type='SUPPLIER'
+                )
             
             # Get contract or create default
             if not contract:
-                if self.counterparty:
+                if self.contract_id:
+                    contract = self.contract
+                elif self.counterparty:
                     contract = Contract.objects.filter(
                         tenant=self.statement.tenant,
                         counterparty=counterparty
@@ -1602,11 +1894,13 @@ class BankStatementLine(models.Model):
                 counterparty=counterparty,
                 contract=contract,
                 bank_account=self.statement.bank_account,
+                bank_operation_type=operation_semantics,
                 currency=currency,
                 rate=Decimal('1'),  # TODO: Get actual rate
                 amount=self.amount,
                 payment_type=self.transaction_type,
-                purpose=self.description or _("Payment from bank statement"),
+                purpose=self.payment_purpose or self.description or _("Payment from bank statement"),
+                basis=self.bank_document_number,
                 date=timezone.now(),
                 number=None  # Auto-generated
             )
@@ -1634,9 +1928,9 @@ class BankStatementLine(models.Model):
 
 class CashOrder(BaseDocument):
     """
-    Cash Order (Кассовый ордер).
-    PKO - Incoming (Приходный кассовый ордер)
-    RKO - Outgoing (Расходный кассовый ордер)
+    Cash Order (РљР°СЃСЃРѕРІС‹Р№ РѕСЂРґРµСЂ).
+    PKO - Incoming (РџСЂРёС…РѕРґРЅС‹Р№ РєР°СЃСЃРѕРІС‹Р№ РѕСЂРґРµСЂ)
+    RKO - Outgoing (Р Р°СЃС…РѕРґРЅС‹Р№ РєР°СЃСЃРѕРІС‹Р№ РѕСЂРґРµСЂ)
     """
     TYPE_INCOMING = 'incoming'
     TYPE_OUTGOING = 'outgoing'
@@ -1651,6 +1945,28 @@ class CashOrder(BaseDocument):
     amount = models.DecimalField(_('Amount'), max_digits=15, decimal_places=2)
     purpose = models.TextField(_('Purpose'), help_text="Reason for cash transaction")
     basis = models.CharField(_('Basis Document'), max_length=255, blank=True, help_text="Reference document number")
+    cash_desk = models.CharField(_('Cash Desk'), max_length=100, default='Main Cash Desk')
+    cash_flow_item = models.ForeignKey(
+        'directories.CashFlowItem',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cash_orders'
+    )
+    debit_account = models.ForeignKey(
+        'accounting.ChartOfAccounts',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='cash_orders_debit'
+    )
+    credit_account = models.ForeignKey(
+        'accounting.ChartOfAccounts',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='cash_orders_credit'
+    )
     
     # Optional link to counterparty if exists
     counterparty = models.ForeignKey(Counterparty, on_delete=models.SET_NULL, null=True, blank=True, related_name='cash_orders')
@@ -1690,7 +2006,7 @@ class CashOrder(BaseDocument):
 
     def post(self, user=None):
         """
-        Post cash order (1C-style проведение).
+        Post cash order (1C-style РїСЂРѕРІРµРґРµРЅРёРµ).
         Creates accounting entries: Debit 50 (Cash) / Credit 62 (Receivables) for incoming
         or Debit 60 (Payables) / Credit 50 (Cash) for outgoing.
         """
@@ -1709,44 +2025,58 @@ class CashOrder(BaseDocument):
             # Get accounts
             acc_50 = ChartOfAccounts.objects.get(tenant=self.tenant, code='50')  # Cash
             
-            if self.order_type == self.TYPE_INCOMING:
+            if self.debit_account_id and self.credit_account_id:
+                acc_debit = self.debit_account
+                acc_credit = self.credit_account
+            elif self.order_type == self.TYPE_INCOMING:
                 # PKO: Debit 50 (Cash) / Credit 62 (Receivables) or 76 (Other)
                 try:
                     acc_credit = ChartOfAccounts.objects.get(tenant=self.tenant, code='62')
                 except ChartOfAccounts.DoesNotExist:
                     acc_credit = ChartOfAccounts.objects.get(tenant=self.tenant, code='76')
-                
-                AccountingEntry.objects.create(
-                    tenant=self.tenant,
-                    period=self.date.replace(day=1),
-                    date=self.date,
-                    content_type=ContentType.objects.get_for_model(self),
-                    object_id=self.id,
-                    debit_account=acc_50,
-                    credit_account=acc_credit,
-                    amount=self.amount,
-                    currency=self.currency,
-                    description=f"PKO #{self.number} - {self.purpose}"
-                )
+                acc_debit = acc_50
             else:
                 # RKO: Debit 60 (Payables) or 76 (Other) / Credit 50 (Cash)
                 try:
                     acc_debit = ChartOfAccounts.objects.get(tenant=self.tenant, code='60')
                 except ChartOfAccounts.DoesNotExist:
                     acc_debit = ChartOfAccounts.objects.get(tenant=self.tenant, code='76')
-                
-                AccountingEntry.objects.create(
+                acc_credit = acc_50
+
+            if self.order_type == self.TYPE_OUTGOING and getattr(acc_credit, 'code', '').startswith('50'):
+                from decimal import Decimal
+                from django.db.models import Sum
+                debit_total = AccountingEntry.objects.filter(
                     tenant=self.tenant,
-                    period=self.date.replace(day=1),
-                    date=self.date,
-                    content_type=ContentType.objects.get_for_model(self),
-                    object_id=self.id,
-                    debit_account=acc_debit,
-                    credit_account=acc_50,
-                    amount=self.amount,
-                    currency=self.currency,
-                    description=f"RKO #{self.number} - {self.purpose}"
-                )
+                    date__date__lte=self.date.date(),
+                    debit_account__code__startswith='50'
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                credit_total = AccountingEntry.objects.filter(
+                    tenant=self.tenant,
+                    date__date__lte=self.date.date(),
+                    credit_account__code__startswith='50'
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                available_cash = debit_total - credit_total
+                if self.amount > available_cash:
+                    raise ValidationError(
+                        _("Insufficient cash balance. Available: %(available)s, required: %(required)s") % {
+                            'available': available_cash,
+                            'required': self.amount,
+                        }
+                    )
+
+            AccountingEntry.objects.create(
+                tenant=self.tenant,
+                period=self.date.replace(day=1),
+                date=self.date,
+                content_type=ContentType.objects.get_for_model(self),
+                object_id=self.id,
+                debit_account=acc_debit,
+                credit_account=acc_credit,
+                amount=self.amount,
+                currency=self.currency,
+                description=f"{'PKO' if self.order_type == self.TYPE_INCOMING else 'RKO'} #{self.number} - {self.purpose}"
+            )
             
             # Update document status
             self.status = self.STATUS_POSTED
@@ -1756,7 +2086,7 @@ class CashOrder(BaseDocument):
     
     def unpost(self):
         """
-        Unpost document (1C-style отмена проведения).
+        Unpost document (1C-style РѕС‚РјРµРЅР° РїСЂРѕРІРµРґРµРЅРёСЏ).
         Deletes all accounting entries created by this document.
         """
         from django.db import transaction
@@ -1793,12 +2123,12 @@ class CashOrder(BaseDocument):
 
 
 # ============================================================================
-# PAYROLL (Зарплата)
+# PAYROLL (Р—Р°СЂРїР»Р°С‚Р°)
 # ============================================================================
 
 class PayrollDocument(BaseDocument):
     """
-    Payroll Document (Начисление зарплаты).
+    Payroll Document (РќР°С‡РёСЃР»РµРЅРёРµ Р·Р°СЂРїР»Р°С‚С‹).
     
     Accrues salary to employees.
     Debit 26/44 (Expenses) / Credit 70 (Payroll Payable)
@@ -1894,7 +2224,7 @@ class PayrollDocumentLine(models.Model):
 
 
 # ============================================================================
-# PRODUCTION (Производство)
+# PRODUCTION (РџСЂРѕРёР·РІРѕРґСЃС‚РІРѕ)
 # ============================================================================
 
 class ProductionDocument(BaseDocument):
@@ -2093,7 +2423,7 @@ class ProductionMaterialLine(models.Model):
 
 class OpeningBalanceDocument(BaseDocument):
     """
-    Ввод начальных остатков (Entering Opening Balances).
+    Р’РІРѕРґ РЅР°С‡Р°Р»СЊРЅС‹С… РѕСЃС‚Р°С‚РєРѕРІ (Entering Opening Balances).
     
     Acts as the bridge between the old system (1C) and this ERP.
     All balances are entered against the auxiliary account "000".
@@ -2122,12 +2452,12 @@ class OpeningBalanceDocument(BaseDocument):
         Post opening balances.
         
         Stock:
-        - Дт 41 "Товары" Кт 000 "Вспомогательный"
+        - Р”С‚ 41 "РўРѕРІР°СЂС‹" РљС‚ 000 "Р’СЃРїРѕРјРѕРіР°С‚РµР»СЊРЅС‹Р№"
         - Create StockBatches (date = 2026-01-01 usually)
         
         Settlements:
-        - Receivable: Дт 62 Кт 000
-        - Payable: Дт 000 Кт 60
+        - Receivable: Р”С‚ 62 РљС‚ 000
+        - Payable: Р”С‚ 000 РљС‚ 60
         """
         from django.db import transaction
         from django.utils import timezone
@@ -2261,3 +2591,5 @@ class OpeningBalanceSettlementLine(models.Model):
     ]
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     amount = models.DecimalField(_('Amount'), max_digits=15, decimal_places=2)
+
+

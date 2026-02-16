@@ -4,7 +4,7 @@ API Serializers for directories app.
 from rest_framework import serializers
 from directories.models import (
     Currency, ExchangeRate, Counterparty, ContactPerson,
-    Contract, Warehouse, Item, ItemPackage, BankAccount, Employee, ItemCategory,
+    Contract, Warehouse, Item, ItemPackage, BankAccount, BankExchangeSettings, BankOperationType, Employee, ItemCategory,
     Department, Project,
 )
 
@@ -184,12 +184,20 @@ class ItemCreateUpdateSerializer(serializers.ModelSerializer):
 class BankAccountSerializer(serializers.ModelSerializer):
     """Serializer for BankAccount model."""
     currency_code = serializers.CharField(source='currency.code', read_only=True)
+    account_type_display = serializers.CharField(source='get_account_type_display', read_only=True)
+    accounting_account_code = serializers.CharField(source='accounting_account.code', read_only=True)
     
     class Meta:
         model = BankAccount
         fields = [
             'id', 'name', 'bank_name', 'account_number',
-            'currency', 'currency_code', 'is_active'
+            'account_type', 'account_type_display',
+            'bik', 'correspondent_account', 'swift_code',
+            'currency', 'currency_code',
+            'accounting_account', 'accounting_account_code',
+            'is_active', 'is_default', 'opening_date',
+            'overdraft_allowed', 'overdraft_limit', 'minimum_balance',
+            'comment',
         ]
 
 
@@ -197,8 +205,88 @@ class BankAccountCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating bank accounts."""
     class Meta:
         model = BankAccount
-        fields = ['name', 'bank_name', 'account_number', 'currency', 'is_active']
+        fields = [
+            'name', 'bank_name', 'account_number',
+            'account_type',
+            'bik', 'correspondent_account', 'swift_code',
+            'currency', 'accounting_account',
+            'is_active', 'is_default', 'opening_date',
+            'overdraft_allowed', 'overdraft_limit', 'minimum_balance',
+            'comment',
+        ]
     
+    def create(self, validated_data):
+        tenant = self.context['request'].user.tenant
+        if not tenant:
+            raise serializers.ValidationError({"tenant": "User does not belong to any tenant."})
+        validated_data['tenant'] = tenant
+        return super().create(validated_data)
+
+    def validate(self, attrs):
+        account_type = attrs.get('account_type') or getattr(self.instance, 'account_type', 'settlement')
+        swift = attrs.get('swift_code') or getattr(self.instance, 'swift_code', '')
+        if account_type == 'foreign' and not swift:
+            raise serializers.ValidationError({'swift_code': 'SWIFT is required for foreign currency accounts.'})
+        return attrs
+
+
+class BankExchangeSettingsSerializer(serializers.ModelSerializer):
+    """Serializer for BankExchangeSettings."""
+    bank_account_name = serializers.CharField(source='bank_account.name', read_only=True)
+    bank_account_number = serializers.CharField(source='bank_account.account_number', read_only=True)
+
+    class Meta:
+        model = BankExchangeSettings
+        fields = [
+            'id',
+            'bank_account', 'bank_account_name', 'bank_account_number',
+            'exchange_format', 'bank_program_name', 'encoding',
+            'auto_create_counterparties', 'new_counterparty_group_name',
+            'auto_detect_bank_fees',
+            'auto_post_incoming', 'auto_post_outgoing', 'show_form_before_import',
+            'export_payment_orders', 'export_payment_claims',
+            'validate_document_number', 'validate_exchange_security',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and getattr(request.user, 'tenant', None):
+            self.fields['bank_account'].queryset = BankAccount.objects.filter(tenant=request.user.tenant)
+
+    def create(self, validated_data):
+        tenant = self.context['request'].user.tenant
+        if not tenant:
+            raise serializers.ValidationError({"tenant": "User does not belong to any tenant."})
+        validated_data['tenant'] = tenant
+        return super().create(validated_data)
+
+
+class BankOperationTypeSerializer(serializers.ModelSerializer):
+    """Serializer for bank operation type semantics."""
+    debit_account_code = serializers.CharField(source='debit_account.code', read_only=True)
+    credit_account_code = serializers.CharField(source='credit_account.code', read_only=True)
+
+    class Meta:
+        model = BankOperationType
+        fields = [
+            'id', 'code', 'name',
+            'debit_account', 'debit_account_code',
+            'credit_account', 'credit_account_code',
+            'requires_counterparty', 'requires_contract', 'requires_tax',
+            'auto_create_payment', 'is_active'
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and getattr(request.user, 'tenant', None):
+            tenant = request.user.tenant
+            self.fields['debit_account'].queryset = self.fields['debit_account'].queryset.filter(tenant=tenant)
+            self.fields['credit_account'].queryset = self.fields['credit_account'].queryset.filter(tenant=tenant)
+
     def create(self, validated_data):
         tenant = self.context['request'].user.tenant
         if not tenant:

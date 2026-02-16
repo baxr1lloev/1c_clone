@@ -1,19 +1,18 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useHotkeys } from "react-hotkeys-hook"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { CommandBar, CommandBarAction } from "@/components/ui/command-bar"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import api from "@/lib/api"
-import { PaymentDocument, PaymentType } from "@/types"
+import { PaymentDocument } from "@/types"
 import {
     PiFloppyDiskBold,
     PiCheckCircleBold,
@@ -30,13 +29,29 @@ import { ReferenceSelector } from "@/components/ui/reference-selector"
 import { Badge } from "@/components/ui/badge"
 import { DocumentPostings } from "@/components/documents/document-postings"
 import { DocumentHistoryPanel } from "@/components/documents/document-history-panel"
+import type { Currency } from "@/types"
 
 interface PaymentDocumentFormProps {
     mode: 'create' | 'edit'
     initialData?: PaymentDocument
+    initialType?: 'INCOMING' | 'OUTGOING'
 }
 
-export function PaymentDocumentForm({ initialData, mode }: PaymentDocumentFormProps) {
+type BankOperationTypeOption = {
+    id: number;
+    code: string;
+    debit_account: number;
+    credit_account: number;
+};
+
+type PostingPreview = {
+    debit_account: { id: number; code: string; name: string };
+    credit_account: { id: number; code: string; name: string };
+    amount: number | string;
+    payment_type: string;
+};
+
+export function PaymentDocumentForm({ initialData, mode, initialType = 'INCOMING' }: PaymentDocumentFormProps) {
     const t = useTranslations('documents')
     const tc = useTranslations('common')
     const tf = useTranslations('fields')
@@ -48,12 +63,56 @@ export function PaymentDocumentForm({ initialData, mode }: PaymentDocumentFormPr
     const [formData, setFormData] = useState<Partial<PaymentDocument>>(initialData || {
         date: new Date().toISOString(),
         status: 'draft',
-        payment_type: 'INCOMING', // Default to Incoming
+        payment_type: initialType, // Default to Incoming
         currency: 1, // Default ID for USD
         rate: 1,
         amount: 0,
+        vat_amount: 0,
+        payment_priority: 5,
+        payment_kind: 'other',
         purpose: ""
     })
+
+    const { data: currencies = [] } = useQuery<Currency[]>({
+        queryKey: ['payment-form-currencies'],
+        queryFn: async () => {
+            try {
+                const res = await api.get('/directories/currencies/') as unknown as { results?: Currency[] } | Currency[];
+                return Array.isArray(res) ? res : res.results || [];
+            } catch {
+                return [];
+            }
+        },
+        initialData: []
+    });
+
+    const { data: postingPreview } = useQuery<PostingPreview | null>({
+        queryKey: [
+            'payment-posting-preview',
+            formData.bank_operation_type,
+            formData.debit_account,
+            formData.credit_account,
+            formData.payment_type,
+            formData.counterparty,
+            formData.amount,
+        ],
+        queryFn: async () => {
+            try {
+                const payload = {
+                    bank_operation_type: formData.bank_operation_type || null,
+                    debit_account: formData.debit_account || null,
+                    credit_account: formData.credit_account || null,
+                    payment_type: formData.payment_type || 'INCOMING',
+                    counterparty: formData.counterparty || null,
+                    amount: formData.amount || 0,
+                };
+                return await api.post('/documents/payments/posting-preview/', payload) as PostingPreview;
+            } catch {
+                return null;
+            }
+        },
+        enabled: Boolean(formData.amount && (formData.payment_type || formData.debit_account || formData.credit_account || formData.bank_operation_type)),
+    });
 
     const isPosted = initialData?.is_posted ?? (formData.status === 'posted');
     const canEdit = mode === 'create' ? true : (!isPosted && (initialData?.can_edit ?? true));
@@ -63,7 +122,7 @@ export function PaymentDocumentForm({ initialData, mode }: PaymentDocumentFormPr
 
     // Actions
     const saveMutation = useMutation({
-        mutationFn: async (data: any) => {
+        mutationFn: async (data: Partial<PaymentDocument>) => {
             if (mode === 'create') return api.post('/documents/payments/', data);
             return api.put(`/documents/payments/${initialData!.id}/`, data);
         },
@@ -72,7 +131,7 @@ export function PaymentDocumentForm({ initialData, mode }: PaymentDocumentFormPr
             queryClient.invalidateQueries({ queryKey: ['payment-documents'] });
             if (mode === 'create') router.push('/documents/payments');
         },
-        onError: (err) => {
+        onError: (err: unknown) => {
             const { title, description } = mapApiError(err);
             toast.error(title, { description });
         }
@@ -84,7 +143,7 @@ export function PaymentDocumentForm({ initialData, mode }: PaymentDocumentFormPr
             setFormData({ ...formData, status: 'posted' });
             toast.success(t('postedSuccessfully'));
         },
-        onError: (err: any) => {
+        onError: (err: unknown) => {
             setFormData({ ...formData, status: 'draft' });
             const { title, description } = mapApiError(err);
             toast.error(title, { description });
@@ -272,12 +331,14 @@ export function PaymentDocumentForm({ initialData, mode }: PaymentDocumentFormPr
                                         disabled={!canEdit}
                                     />
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                        <span className="text-lg font-bold text-muted-foreground">USD</span>
-                                    </div>
+                                    <span className="text-lg font-bold text-muted-foreground">
+                                        {currencies.find((c) => c.id === formData.currency)?.code || 'CUR'}
+                                    </span>
                                 </div>
                             </div>
+                        </div>
 
-                            <div className="col-span-12 md:col-span-4 space-y-4">
+                        <div className="col-span-12 md:col-span-4 space-y-4">
                                 <div className="space-y-1">
                                     <Label className="text-xs">Exchange Rate</Label>
                                     <Input
@@ -301,6 +362,151 @@ export function PaymentDocumentForm({ initialData, mode }: PaymentDocumentFormPr
                                 </div>
                             </div>
                         </div>
+                        <div className="pt-4 border-t grid grid-cols-12 gap-4 items-start">
+                            <div className="col-span-12 md:col-span-4 space-y-1">
+                                <Label className="text-xs">Currency</Label>
+                                <select
+                                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                                    value={formData.currency || ''}
+                                    onChange={(e) => setFormData({ ...formData, currency: Number(e.target.value) })}
+                                    disabled={!canEdit}
+                                >
+                                    {currencies.map((c) => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-span-12 md:col-span-4 space-y-1">
+                                <Label className="text-xs">VAT Amount</Label>
+                                <Input
+                                    type="number"
+                                    className="h-9 font-mono text-right"
+                                    value={formData.vat_amount || 0}
+                                    onChange={(e) => setFormData({ ...formData, vat_amount: parseFloat(e.target.value) || 0 })}
+                                    disabled={!canEdit}
+                                />
+                            </div>
+                            <div className="col-span-12 md:col-span-4 space-y-1">
+                                <Label className="text-xs">Payment Priority</Label>
+                                <Input
+                                    type="number"
+                                    className="h-9 font-mono text-right"
+                                    value={formData.payment_priority || 5}
+                                    onChange={(e) => setFormData({ ...formData, payment_priority: parseInt(e.target.value || '5') })}
+                                    disabled={!canEdit}
+                                />
+                            </div>
+                            <div className="col-span-12 md:col-span-4 space-y-1">
+                                <Label className="text-xs">Payment Kind</Label>
+                                <select
+                                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                                    value={formData.payment_kind || 'other'}
+                                    onChange={(e) => setFormData({ ...formData, payment_kind: e.target.value as NonNullable<PaymentDocument['payment_kind']> })}
+                                    disabled={!canEdit}
+                                >
+                                    <option value="other">Other</option>
+                                    <option value="supplier">Supplier</option>
+                                    <option value="tax">Tax</option>
+                                    <option value="salary">Salary</option>
+                                </select>
+                            </div>
+                            <div className="col-span-12 md:col-span-8 space-y-1">
+                                <Label className="text-xs">Basis</Label>
+                                <Input
+                                    className="h-9"
+                                    value={formData.basis || ''}
+                                    onChange={(e) => setFormData({ ...formData, basis: e.target.value })}
+                                    disabled={!canEdit}
+                                />
+                            </div>
+                            <div className="col-span-12 md:col-span-6 space-y-1">
+                                <Label className="text-xs">Cash Flow Item</Label>
+                                <ReferenceSelector
+                                    value={formData.cash_flow_item as number}
+                                    onSelect={(val) => setFormData({ ...formData, cash_flow_item: val as number })}
+                                    apiEndpoint="/directories/cash-flow-items/"
+                                    placeholder="Select DDS item..."
+                                    disabled={!canEdit}
+                                    className="h-9"
+                                />
+                            </div>
+                            <div className="col-span-12 md:col-span-6 space-y-1">
+                                <Label className="text-xs">Bank Operation Type</Label>
+                                <ReferenceSelector
+                                    value={formData.bank_operation_type as number}
+                                    onSelect={(val, item) => {
+                                        const op = item as BankOperationTypeOption | undefined;
+                                        const next: Partial<PaymentDocument> = {
+                                            ...formData,
+                                            bank_operation_type: val as number,
+                                        };
+
+                                        if (op) {
+                                            next.debit_account = op.debit_account;
+                                            next.credit_account = op.credit_account;
+                                            if (['CUSTOMER_PAYMENT', 'LOAN_RETURN'].includes(op.code)) {
+                                                next.payment_type = 'INCOMING';
+                                            } else {
+                                                next.payment_type = 'OUTGOING';
+                                            }
+                                        }
+
+                                        setFormData(next);
+                                    }}
+                                    apiEndpoint="/directories/bank-operation-types/"
+                                    placeholder="Select operation type..."
+                                    displayField="name"
+                                    disabled={!canEdit}
+                                    className="h-9"
+                                />
+                            </div>
+                            <div className="col-span-12 md:col-span-6 space-y-1">
+                                <Label className="text-xs">Debit Account</Label>
+                                <ReferenceSelector
+                                    value={formData.debit_account as number}
+                                    onSelect={(val) => setFormData({ ...formData, debit_account: val as number })}
+                                    apiEndpoint="/accounting/chart-of-accounts/"
+                                    placeholder="Debit account..."
+                                    displayField="code"
+                                    secondaryField="name"
+                                    disabled={!canEdit || Boolean(formData.bank_operation_type)}
+                                    className="h-9"
+                                />
+                            </div>
+                            <div className="col-span-12 md:col-span-6 space-y-1">
+                                <Label className="text-xs">Credit Account</Label>
+                                <ReferenceSelector
+                                    value={formData.credit_account as number}
+                                    onSelect={(val) => setFormData({ ...formData, credit_account: val as number })}
+                                    apiEndpoint="/accounting/chart-of-accounts/"
+                                    placeholder="Credit account..."
+                                    displayField="code"
+                                    secondaryField="name"
+                                    disabled={!canEdit || Boolean(formData.bank_operation_type)}
+                                    className="h-9"
+                                />
+                            </div>
+                            <div className="col-span-12">
+                                <div className="rounded-md border bg-muted/20 p-3">
+                                    <p className="text-xs font-semibold mb-2">Posting Preview</p>
+                                    {postingPreview ? (
+                                        <div className="text-sm space-y-1">
+                                            <div>
+                                                Дт {postingPreview.debit_account.code} ({postingPreview.debit_account.name})
+                                            </div>
+                                            <div>
+                                                Кт {postingPreview.credit_account.code} ({postingPreview.credit_account.name})
+                                            </div>
+                                            <div className="font-mono">
+                                                Amount: {Number(postingPreview.amount || 0).toFixed(2)}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-xs text-muted-foreground">
+                                            Select operation type or accounts to preview postings.
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* Purpose */}
@@ -313,6 +519,7 @@ export function PaymentDocumentForm({ initialData, mode }: PaymentDocumentFormPr
                             onChange={e => setFormData({ ...formData, purpose: e.target.value })}
                             disabled={!canEdit}
                         />
+                        <p className="text-xs text-muted-foreground">VAT is informational at this stage unless tax posting templates are configured.</p>
                     </div>
                 </div>
             </TabsContent>

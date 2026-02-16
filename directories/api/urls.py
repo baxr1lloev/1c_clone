@@ -13,6 +13,8 @@ from .viewsets import (
     ItemViewSet,
     ItemCategoryViewSet,
     BankAccountViewSet,
+    BankExchangeSettingsViewSet,
+    BankOperationTypeViewSet,
     EmployeeViewSet,
     DepartmentViewSet,
     ProjectViewSet,
@@ -29,6 +31,8 @@ router.register(r'warehouses', WarehouseViewSet, basename='warehouse')
 router.register(r'items', ItemViewSet, basename='item')
 router.register(r'categories', ItemCategoryViewSet, basename='category')
 router.register(r'bank-accounts', BankAccountViewSet, basename='bank-account')
+router.register(r'bank-exchange-settings', BankExchangeSettingsViewSet, basename='bank-exchange-settings')
+router.register(r'bank-operation-types', BankOperationTypeViewSet, basename='bank-operation-type')
 router.register(r'employees', EmployeeViewSet, basename='employee')
 router.register(r'departments', DepartmentViewSet, basename='department')
 router.register(r'projects', ProjectViewSet, basename='project')

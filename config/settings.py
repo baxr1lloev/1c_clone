@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import importlib.util
 from pathlib import Path
 
 # ── Env-var helpers ──────────────────────────────────
@@ -81,10 +82,17 @@ INSTALLED_APPS = [
     'audit_log',
 ]
 
+HAS_WHITENOISE = importlib.util.find_spec('whitenoise') is not None
+
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Must be first!
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files in production
+]
+
+if HAS_WHITENOISE:
+    MIDDLEWARE.append('whitenoise.middleware.WhiteNoiseMiddleware')  # Serve static files in production
+
+MIDDLEWARE += [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',  # Added for I18N
     'django.middleware.common.CommonMiddleware',
@@ -198,7 +206,10 @@ LOCALE_PATHS = [
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+if HAS_WHITENOISE:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

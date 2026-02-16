@@ -45,6 +45,34 @@ interface PurchaseDocumentFormProps {
     mode: 'create' | 'edit'
 }
 
+function formatBaseQuantity(value: number): string {
+    if (!Number.isFinite(value)) return '0';
+    return value.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 3,
+    });
+}
+
+// Helper: Transform DB Line (Base) to UI Line (Package)
+const toUiLine = (line: PurchaseDocumentLine): PurchaseDocumentLine => {
+    const coef = Number(line.coefficient) || 1;
+    return {
+        ...line,
+        quantity: Number(line.quantity) / coef,
+        price: Number(line.price) * coef,
+    }
+}
+
+// Helper: Transform UI Line (Package) to DB Line (Base)
+const toDbLine = (line: PurchaseDocumentLine): PurchaseDocumentLine => {
+    const coef = Number(line.coefficient) || 1;
+    return {
+        ...line,
+        quantity: Number(line.quantity) * coef,
+        price: Number(line.price) / coef,
+    }
+}
+
 // Helper component to fetch item details for the Unit cell
 function UnitCell({ row, activeCell, isPosted, onUpdate }: { row: any, activeCell: any, isPosted: boolean, onUpdate: (updates: Partial<PurchaseDocumentLine>) => void }) {
     const itemId = row.original.item;
@@ -116,7 +144,7 @@ function BaseQtyCell({ row, activeCell, isPosted, onUpdate }: { row: any, active
         staleTime: 60000 // Cache for a bit
     });
 
-    const baseUnitName = item?.unit || '';
+    const baseUnitName = item?.unit || item?.base_unit || '';
 
     return (
         <div className="flex gap-1">
@@ -133,7 +161,7 @@ function BaseQtyCell({ row, activeCell, isPosted, onUpdate }: { row: any, active
             />
             <div className="flex flex-col justify-center px-1 border-l border-dashed min-w-[3rem]">
                 <span className="text-[9px] text-muted-foreground leading-none">Base</span>
-                <span className="text-[10px] font-mono text-muted-foreground text-right font-bold">{baseQty.toFixed(0)} <span className="text-[8px] font-normal">{baseUnitName}</span></span>
+                <span className="text-[10px] font-mono text-muted-foreground text-right font-bold">{formatBaseQuantity(baseQty)} <span className="text-[8px] font-normal">{baseUnitName}</span></span>
             </div>
         </div>
     )
@@ -164,8 +192,19 @@ export function PurchaseDocumentForm({ initialData, mode }: PurchaseDocumentForm
     const isPeriodClosed = false; // closingDate not available in store yet
     const isPosted = formData.status === 'posted' || isPeriodClosed;
 
-    // Lines State
-    const [lines, setLines] = useState<PurchaseDocumentLine[]>(initialData?.lines || [])
+    // Lines State (UI Units)
+    const [lines, setLines] = useState<PurchaseDocumentLine[]>(
+        initialData?.lines?.map(toUiLine) || []
+    )
+
+    // Prepare Payload for Save/Post
+    const preparePayload = () => {
+        const dbLines = lines.map(toDbLine);
+        return {
+            ...formData,
+            lines: dbLines
+        };
+    }
 
     // Actions
     const saveMutation = useMutation({
@@ -220,7 +259,7 @@ export function PurchaseDocumentForm({ initialData, mode }: PurchaseDocumentForm
     })
 
     // Shortcuts
-    useHotkeys('ctrl+s', (e) => { e.preventDefault(); if (!isPosted) saveMutation.mutate({ ...formData, lines }); }, { enableOnFormTags: true }, [formData, lines, isPosted]);
+    useHotkeys('ctrl+s', (e) => { e.preventDefault(); if (!isPosted) saveMutation.mutate(preparePayload()); }, { enableOnFormTags: true }, [formData, lines, isPosted]);
     useHotkeys('ctrl+enter', (e) => { e.preventDefault(); if (!isPosted && initialData?.id) postMutation.mutate(); }, { enableOnFormTags: true }, [isPosted, initialData]);
     useHotkeys('esc', (e) => { e.preventDefault(); router.back(); }, { enableOnFormTags: true }, []);
 
@@ -236,16 +275,16 @@ export function PurchaseDocumentForm({ initialData, mode }: PurchaseDocumentForm
         ...(!isPosted ? [{
             label: tc('save'),
             icon: <PiFloppyDiskBold />,
-            onClick: () => saveMutation.mutate({ ...formData, lines }),
+            onClick: () => saveMutation.mutate(preparePayload()),
             shortcut: 'Ctrl+S',
             variant: 'secondary' as const
         }] : []),
         ...(!isPosted ? [{
             label: tc('saveAndClose'),
-            onClick: () => {
-                saveMutation.mutate({ ...formData, lines });
-                router.push('/documents/purchases');
-            },
+                onClick: () => {
+                    saveMutation.mutate(preparePayload());
+                    router.push('/documents/purchases');
+                },
             variant: 'outline' as const
         }] : []),
         ...(isPosted ? [{

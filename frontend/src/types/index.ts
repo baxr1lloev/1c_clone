@@ -281,9 +281,43 @@ export interface BankAccount extends BaseModel {
   name: string;
   bank_name: string;
   account_number: string;
+  account_type?: 'settlement' | 'foreign' | 'deposit';
+  account_type_display?: string;
+  bik?: string;
+  correspondent_account?: string;
+  swift_code?: string;
   currency: number;
+  currency_code?: string;
   currency_detail?: Currency;
+  accounting_account?: number | null;
+  accounting_account_code?: string;
+  is_default?: boolean;
+  opening_date?: string | null;
+  overdraft_allowed?: boolean;
+  overdraft_limit?: number;
+  minimum_balance?: number;
+  comment?: string;
   is_active: boolean;
+}
+
+export interface BankExchangeSettings extends BaseModel {
+  tenant?: number;
+  bank_account: number;
+  bank_account_name?: string;
+  bank_account_number?: string;
+  exchange_format: 'CSV' | 'CLIENT_BANK_1C' | 'ISO20022' | 'API';
+  bank_program_name?: string;
+  encoding: 'WINDOWS-1251' | 'DOS-866' | 'UTF-8';
+  auto_create_counterparties: boolean;
+  new_counterparty_group_name?: string;
+  auto_detect_bank_fees: boolean;
+  auto_post_incoming: boolean;
+  auto_post_outgoing: boolean;
+  show_form_before_import: boolean;
+  export_payment_orders: boolean;
+  export_payment_claims: boolean;
+  validate_document_number: boolean;
+  validate_exchange_security: boolean;
 }
 
 export type PaymentType = 'INCOMING' | 'OUTGOING';
@@ -291,22 +325,38 @@ export type PaymentType = 'INCOMING' | 'OUTGOING';
 export interface PaymentDocument extends BaseDocument {
   payment_type: PaymentType;
   counterparty: number;
+  counterparty_name?: string;
   counterparty_detail?: Counterparty;
   contract: number | null;
   contract_detail?: Contract;
 
   bank_account: number | null;
+  bank_account_name?: string;
   bank_account_detail?: BankAccount;
 
   // Added missing field from mock data
   payment_method?: string;
 
   currency: number;
+  currency_code?: string;
   currency_detail?: Currency;
   rate: number;
 
   amount: number;
+  vat_amount?: number;
   purpose: string;
+  basis?: string;
+  cash_flow_item?: number | null;
+  cash_flow_item_name?: string;
+  debit_account?: number | null;
+  debit_account_code?: string;
+  credit_account?: number | null;
+  credit_account_code?: string;
+  payment_priority?: number;
+  payment_kind?: 'supplier' | 'tax' | 'salary' | 'other';
+  bank_operation_type?: number | null;
+  bank_operation_type_code?: string;
+  bank_operation_type_name?: string;
 
   // UX Flags
   status_display?: string;
@@ -819,8 +869,15 @@ export interface CashOrder extends BaseDocument {
   amount: number;
   currency: number;
   currency_code?: string;
+  cash_desk?: string;
   purpose: string;
   basis?: string;
+  cash_flow_item?: number | null;
+  cash_flow_item_name?: string;
+  debit_account?: number | null;
+  debit_account_code?: string;
+  credit_account?: number | null;
+  credit_account_code?: string;
 
   // UX Flags
   status_display?: string;

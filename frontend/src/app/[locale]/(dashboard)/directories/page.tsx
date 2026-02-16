@@ -10,7 +10,9 @@ import {
     PiCurrencyDollarBold,
     PiHandshakeBold,
     PiPackageBold,
-    PiTagBold
+    PiTagBold,
+    PiBankBold,
+    PiArrowsClockwiseBold,
 } from 'react-icons/pi';
 
 export default function DirectoriesPage() {
@@ -22,6 +24,8 @@ export default function DirectoriesPage() {
         { name: 'Counterparties', icon: PiHandshakeBold, path: '/directories/counterparties', description: 'Manage customers and suppliers' },
         { name: 'Warehouses', icon: PiWarehouseBold, path: '/directories/warehouses', description: 'Manage storage locations' },
         { name: 'Currencies', icon: PiCurrencyDollarBold, path: '/directories/currencies', description: 'Manage currencies and exchange rates' },
+        { name: 'Bank Accounts', icon: PiBankBold, path: '/directories/bank-accounts', description: 'Manage settlement, foreign and deposit accounts' },
+        { name: 'Bank Exchange Settings', icon: PiArrowsClockwiseBold, path: '/directories/bank-exchange-settings', description: 'Configure import/export from bank systems' },
         { name: 'Categories', icon: PiTagBold, path: '/directories/categories', description: 'Manage item categories' },
         { name: 'Contacts', icon: PiUsersBold, path: '/directories/contacts', description: 'Manage contact persons' },
     ];

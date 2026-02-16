@@ -601,7 +601,9 @@ class PurchaseDocumentViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocum
 class PaymentDocumentViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocumentProtectionMixin, PeriodEnforcementMixin, DocumentPostingsMixin, viewsets.ModelViewSet):
     """API endpoint for payment documents."""
     queryset = PaymentDocument.objects.select_related(
-        'counterparty', 'contract', 'currency'
+        'counterparty', 'contract', 'currency',
+        'bank_account', 'bank_operation_type',
+        'debit_account', 'credit_account', 'cash_flow_item',
     ).all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
@@ -613,6 +615,67 @@ class PaymentDocumentViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocume
         if self.action in ['create', 'update', 'partial_update']:
             return PaymentDocumentCreateUpdateSerializer
         return PaymentDocumentSerializer
+
+    @action(detail=False, methods=['post'], url_path='posting-preview')
+    def posting_preview(self, request):
+        """
+        Return resolved debit/credit template for guided UX preview.
+        """
+        from accounting.models import ChartOfAccounts
+        from directories.models import BankOperationType, Counterparty
+
+        tenant = request.user.tenant
+        bank_operation_type_id = request.data.get('bank_operation_type')
+        debit_id = request.data.get('debit_account')
+        credit_id = request.data.get('credit_account')
+        payment_type = request.data.get('payment_type', 'INCOMING')
+        counterparty_id = request.data.get('counterparty')
+        amount = request.data.get('amount')
+
+        debit = None
+        credit = None
+
+        if bank_operation_type_id:
+            op = BankOperationType.objects.filter(tenant=tenant, id=bank_operation_type_id, is_active=True).first()
+            if not op:
+                return Response({'error': 'Bank operation type not found'}, status=status.HTTP_400_BAD_REQUEST)
+            debit = op.debit_account
+            credit = op.credit_account
+        elif debit_id and credit_id:
+            debit = ChartOfAccounts.objects.filter(tenant=tenant, id=debit_id).first()
+            credit = ChartOfAccounts.objects.filter(tenant=tenant, id=credit_id).first()
+        else:
+            try:
+                acc_bank = ChartOfAccounts.objects.get(tenant=tenant, code='1030')
+                if payment_type == 'INCOMING':
+                    partner_code = '1210'
+                else:
+                    partner_code = '3310'
+
+                if counterparty_id:
+                    cp = Counterparty.objects.filter(tenant=tenant, id=counterparty_id).first()
+                    if cp and payment_type == 'INCOMING':
+                        partner_code = '1210'
+                    elif cp and payment_type == 'OUTGOING':
+                        partner_code = '3310'
+
+                acc_partner = ChartOfAccounts.objects.get(tenant=tenant, code=partner_code)
+                if payment_type == 'INCOMING':
+                    debit, credit = acc_bank, acc_partner
+                else:
+                    debit, credit = acc_partner, acc_bank
+            except ChartOfAccounts.DoesNotExist:
+                return Response({'error': 'Default accounts not configured (1030/1210/3310).'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not debit or not credit:
+            return Response({'error': 'Unable to resolve posting accounts.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            'debit_account': {'id': debit.id, 'code': debit.code, 'name': debit.name},
+            'credit_account': {'id': credit.id, 'code': credit.code, 'name': credit.name},
+            'amount': amount,
+            'payment_type': payment_type,
+        })
     
     @action(detail=True, methods=['post'])
     def post_document(self, request, pk=None):
@@ -834,7 +897,7 @@ class InventoryDocumentViewSet(TenantFilterMixin, PostedDocumentProtectionMixin,
 class BankStatementViewSet(TenantFilterMixin, viewsets.ModelViewSet):
     """API endpoint for bank statements."""
     queryset = BankStatement.objects.select_related(
-        'bank_account'
+        'bank_account', 'currency'
     ).prefetch_related('lines').all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
@@ -857,6 +920,63 @@ class BankStatementViewSet(TenantFilterMixin, viewsets.ModelViewSet):
             statement.can_unpost = statement.status == 'posted'
             statement.period_is_closed = False  # TODO: Implement period closing logic
         return qs
+
+    @action(detail=False, methods=['get'], url_path='suggest-opening-balance')
+    def suggest_opening_balance(self, request):
+        """Suggest opening balance and reconciliation hints for a new statement."""
+        from decimal import Decimal
+        from datetime import datetime
+        from accounting.models import AccountingEntry
+        from django.db.models import Sum
+
+        bank_account_id = request.query_params.get('bank_account')
+        statement_date_raw = request.query_params.get('statement_date')
+
+        if not bank_account_id or not statement_date_raw:
+            return Response({'error': 'bank_account and statement_date are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            statement_date = datetime.strptime(statement_date_raw, '%Y-%m-%d').date()
+            bank_account_id_int = int(bank_account_id)
+        except (ValueError, TypeError):
+            return Response({'error': 'Invalid bank_account or statement_date'}, status=status.HTTP_400_BAD_REQUEST)
+
+        previous = BankStatement.get_previous_statement(request.user.tenant, bank_account_id_int, statement_date)
+        latest = BankStatement.get_latest_statement(request.user.tenant, bank_account_id_int)
+
+        opening_balance = previous.closing_balance if previous else Decimal('0')
+        opening_locked = previous is not None
+
+        continuity_warning = None
+        if previous and (statement_date - previous.statement_date).days > 1:
+            continuity_warning = f"Gap detected: previous statement date is {previous.statement_date}"
+
+        can_create_for_date = True
+        if latest and statement_date < latest.statement_date:
+            can_create_for_date = False
+
+        debit_total = AccountingEntry.objects.filter(
+            tenant=request.user.tenant,
+            date__date__lte=statement_date,
+            debit_account__code__startswith='1030'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        credit_total = AccountingEntry.objects.filter(
+            tenant=request.user.tenant,
+            date__date__lte=statement_date,
+            credit_account__code__startswith='1030'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        accounting_balance = debit_total - credit_total
+
+        return Response({
+            'opening_balance': opening_balance,
+            'opening_balance_locked': opening_locked,
+            'previous_statement_date': previous.statement_date if previous else None,
+            'previous_statement_closing_balance': previous.closing_balance if previous else None,
+            'latest_statement_date': latest.statement_date if latest else None,
+            'continuity_warning': continuity_warning,
+            'can_create_for_date': can_create_for_date,
+            'accounting_balance': accounting_balance,
+        })
     
     @action(detail=False, methods=['post'], url_path='upload')
     def upload(self, request):
@@ -865,6 +985,7 @@ class BankStatementViewSet(TenantFilterMixin, viewsets.ModelViewSet):
         Expects: file, bank_account, statement_date, opening_balance
         """
         from decimal import Decimal
+        from datetime import datetime
         import csv
         import io
         
@@ -888,13 +1009,27 @@ class BankStatementViewSet(TenantFilterMixin, viewsets.ModelViewSet):
             from django.utils import timezone
             number = f"BS-{timezone.now().strftime('%Y%m%d-%H%M%S')}"
             
+            statement_date_obj = datetime.strptime(statement_date, '%Y-%m-%d').date()
+            previous = BankStatement.get_previous_statement(request.user.tenant, bank_account.id, statement_date_obj)
+            latest = BankStatement.get_latest_statement(request.user.tenant, bank_account.id)
+            if latest and statement_date_obj < latest.statement_date:
+                return Response(
+                    {'error': f'Cannot create statement older than latest existing statement date ({latest.statement_date})'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if previous:
+                opening_balance = previous.closing_balance
+
             statement = BankStatement.objects.create(
                 tenant=request.user.tenant,
                 created_by=request.user,
                 number=number,
                 date=timezone.now(),
                 statement_date=statement_date,
+                source='imported',
                 bank_account=bank_account,
+                currency=bank_account.currency,
                 opening_balance=opening_balance,
                 file=file
             )
@@ -915,7 +1050,13 @@ class BankStatementViewSet(TenantFilterMixin, viewsets.ModelViewSet):
                 BankStatementLine.objects.create(
                     statement=statement,
                     transaction_date=row.get('date', statement_date),
+                    bank_document_number=row.get('document_number', ''),
                     description=row.get('description', ''),
+                    payment_purpose=row.get('purpose', row.get('description', '')),
+                    operation_type=BankStatementLine.detect_operation_type(
+                        row.get('description', ''),
+                        'INCOMING' if debit > 0 else 'OUTGOING'
+                    ),
                     counterparty_name=row.get('counterparty', ''),
                     debit_amount=debit,
                     credit_amount=credit,
@@ -943,11 +1084,22 @@ class BankStatementViewSet(TenantFilterMixin, viewsets.ModelViewSet):
             )
         
         try:
+            statement.recalculate_totals()
+            if not statement.is_balanced:
+                return Response(
+                    {
+                        'error': (
+                            f"Cannot post unbalanced statement. "
+                            f"Accounting difference: {statement.accounting_balance_difference}"
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             from django.utils import timezone
             statement.status = 'posted'
             statement.posted_at = timezone.now()
             statement.posted_by = request.user
-            statement.save()
+            statement.save(update_fields=['status', 'posted_at', 'posted_by'])
             
             serializer = self.get_serializer(statement)
             return Response(serializer.data)
@@ -995,7 +1147,13 @@ class BankStatementViewSet(TenantFilterMixin, viewsets.ModelViewSet):
         try:
             transaction_date = request.data.get('transaction_date', statement.statement_date)
             description = request.data.get('description', '')
+            payment_purpose = request.data.get('payment_purpose', '')
+            bank_document_number = request.data.get('bank_document_number', '')
             counterparty_name = request.data.get('counterparty_name', '')
+            operation_type = request.data.get('operation_type', '')
+            contract_id = request.data.get('contract')
+            if contract_id in ['', None]:
+                contract_id = None
             debit_amount = Decimal(request.data.get('debit_amount', '0') or '0')
             credit_amount = Decimal(request.data.get('credit_amount', '0') or '0')
             
@@ -1007,8 +1165,12 @@ class BankStatementViewSet(TenantFilterMixin, viewsets.ModelViewSet):
             line = BankStatementLine.objects.create(
                 statement=statement,
                 transaction_date=transaction_date,
+                bank_document_number=bank_document_number,
                 description=description,
+                payment_purpose=payment_purpose,
+                operation_type=operation_type,
                 counterparty_name=counterparty_name,
+                contract_id=contract_id,
                 debit_amount=debit_amount,
                 credit_amount=credit_amount,
                 balance=new_balance
@@ -1045,8 +1207,16 @@ class BankStatementViewSet(TenantFilterMixin, viewsets.ModelViewSet):
                 line.transaction_date = request.data['transaction_date']
             if 'description' in request.data:
                 line.description = request.data['description']
+            if 'payment_purpose' in request.data:
+                line.payment_purpose = request.data['payment_purpose']
+            if 'bank_document_number' in request.data:
+                line.bank_document_number = request.data['bank_document_number']
             if 'counterparty_name' in request.data:
                 line.counterparty_name = request.data['counterparty_name']
+            if 'operation_type' in request.data:
+                line.operation_type = request.data['operation_type']
+            if 'contract' in request.data:
+                line.contract_id = request.data['contract']
             if 'debit_amount' in request.data:
                 line.debit_amount = Decimal(request.data['debit_amount'] or '0')
             if 'credit_amount' in request.data:

@@ -356,6 +356,11 @@ class PaymentDocumentSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payment_type_display = serializers.CharField(source='get_payment_type_display', read_only=True)
     currency_code = serializers.CharField(source='currency.code', read_only=True)
+    cash_flow_item_name = serializers.CharField(source='cash_flow_item.name', read_only=True)
+    debit_account_code = serializers.CharField(source='debit_account.code', read_only=True)
+    credit_account_code = serializers.CharField(source='credit_account.code', read_only=True)
+    bank_operation_type_code = serializers.CharField(source='bank_operation_type.code', read_only=True)
+    bank_operation_type_name = serializers.CharField(source='bank_operation_type.name', read_only=True)
     
     # Document Chain (1C-style)
     base_document_display = serializers.CharField(source='get_base_document_display', read_only=True, allow_null=True)
@@ -372,9 +377,13 @@ class PaymentDocumentSerializer(serializers.ModelSerializer):
             'id', 'number', 'date', 'status', 'status_display', 'comment',
             'counterparty', 'counterparty_name', 'contract',
             'bank_account', 'bank_account_name',
+            'bank_operation_type', 'bank_operation_type_code', 'bank_operation_type_name',
+            'debit_account', 'debit_account_code', 'credit_account', 'credit_account_code',
             'amount', 'currency', 'currency_code', 'rate',
+            'vat_amount',
             'payment_type', 'payment_type_display',
-            'purpose',
+            'purpose', 'basis', 'cash_flow_item', 'cash_flow_item_name',
+            'payment_priority', 'payment_kind',
             'created_at', 'updated_at', 'posted_at',
             # Document Chain
             'base_document_display', 'base_document_url',
@@ -384,13 +393,86 @@ class PaymentDocumentSerializer(serializers.ModelSerializer):
 
 class PaymentDocumentCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating payment documents."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request and getattr(request.user, 'tenant', None):
+            tenant = request.user.tenant
+            self.fields['counterparty'].queryset = self.fields['counterparty'].queryset.filter(tenant=tenant)
+            self.fields['contract'].queryset = self.fields['contract'].queryset.filter(tenant=tenant)
+            self.fields['bank_account'].queryset = self.fields['bank_account'].queryset.filter(tenant=tenant)
+            self.fields['bank_operation_type'].queryset = self.fields['bank_operation_type'].queryset.filter(tenant=tenant, is_active=True)
+            self.fields['cash_flow_item'].queryset = self.fields['cash_flow_item'].queryset.filter(tenant=tenant)
+            self.fields['debit_account'].queryset = self.fields['debit_account'].queryset.filter(tenant=tenant)
+            self.fields['credit_account'].queryset = self.fields['credit_account'].queryset.filter(tenant=tenant)
+            self.fields['currency'].queryset = self.fields['currency'].queryset
+
     class Meta:
         model = PaymentDocument
         fields = [
             'number', 'date', 'comment',
-            'counterparty', 'contract', 'bank_account', 
-            'amount', 'currency', 'rate', 'payment_type', 'purpose'
+            'counterparty', 'contract', 'bank_account', 'bank_operation_type',
+            'amount', 'currency', 'rate', 'vat_amount',
+            'payment_type', 'purpose', 'basis', 'cash_flow_item',
+            'debit_account', 'credit_account',
+            'payment_priority', 'payment_kind',
         ]
+
+    def validate(self, attrs):
+        instance = getattr(self, 'instance', None)
+        amount = attrs.get('amount', getattr(instance, 'amount', None))
+        bank_account = attrs.get('bank_account', getattr(instance, 'bank_account', None))
+        currency = attrs.get('currency', getattr(instance, 'currency', None))
+        debit_account = attrs.get('debit_account', getattr(instance, 'debit_account', None))
+        credit_account = attrs.get('credit_account', getattr(instance, 'credit_account', None))
+        bank_operation_type = attrs.get('bank_operation_type', getattr(instance, 'bank_operation_type', None))
+        counterparty = attrs.get('counterparty', getattr(instance, 'counterparty', None))
+        contract = attrs.get('contract', getattr(instance, 'contract', None))
+        cash_flow_item = attrs.get('cash_flow_item', getattr(instance, 'cash_flow_item', None))
+
+        if amount is None or amount <= 0:
+            raise serializers.ValidationError({'amount': 'Amount must be greater than zero.'})
+
+        if bank_account and currency and bank_account.currency_id != currency.id:
+            raise serializers.ValidationError({'currency': 'Currency must match selected bank account currency.'})
+
+        if (debit_account and not credit_account) or (credit_account and not debit_account):
+            raise serializers.ValidationError({'debit_account': 'Debit and credit accounts must both be set or both be empty.'})
+
+        if debit_account and credit_account and debit_account.id == credit_account.id:
+            raise serializers.ValidationError({'credit_account': 'Debit and credit accounts cannot be the same.'})
+
+        if bank_operation_type:
+            if not debit_account:
+                attrs['debit_account'] = bank_operation_type.debit_account
+                debit_account = attrs['debit_account']
+            if not credit_account:
+                attrs['credit_account'] = bank_operation_type.credit_account
+                credit_account = attrs['credit_account']
+
+            if debit_account.id != bank_operation_type.debit_account_id:
+                raise serializers.ValidationError({'debit_account': 'Debit account does not match selected operation type template.'})
+            if credit_account.id != bank_operation_type.credit_account_id:
+                raise serializers.ValidationError({'credit_account': 'Credit account does not match selected operation type template.'})
+
+            if bank_operation_type.requires_counterparty and not counterparty:
+                raise serializers.ValidationError({'counterparty': 'Counterparty is required for selected operation type.'})
+            if bank_operation_type.requires_contract and not contract:
+                raise serializers.ValidationError({'contract': 'Contract is required for selected operation type.'})
+
+            if bank_operation_type.code == 'BANK_FEE' and not cash_flow_item:
+                raise serializers.ValidationError({'cash_flow_item': 'Cash flow item is required for BANK_FEE operation type.'})
+            if bank_operation_type.code == 'CUSTOMER_PAYMENT' and not counterparty:
+                raise serializers.ValidationError({'counterparty': 'Counterparty is required for CUSTOMER_PAYMENT operation type.'})
+
+        # Extra safety for posted docs even if route protection is bypassed.
+        if instance and instance.status == 'posted':
+            if 'currency' in attrs and attrs['currency'].id != instance.currency_id:
+                raise serializers.ValidationError({'currency': 'Cannot change currency for a posted document.'})
+            if 'bank_account' in attrs and attrs['bank_account'] and attrs['bank_account'].id != instance.bank_account_id:
+                raise serializers.ValidationError({'bank_account': 'Cannot change bank account for a posted document.'})
+
+        return attrs
     
     def create(self, validated_data):
         validated_data['tenant'] = self.context['request'].user.tenant
@@ -701,6 +783,7 @@ class InventoryDocumentCreateUpdateSerializer(serializers.ModelSerializer):
 class BankStatementLineSerializer(serializers.ModelSerializer):
     """Serializer for BankStatementLine."""
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    operation_type_display = serializers.CharField(source='get_operation_type_display', read_only=True)
     amount = serializers.DecimalField(max_digits=15, decimal_places=2, read_only=True)
     transaction_type = serializers.CharField(read_only=True)
     created_payment_document_number = serializers.CharField(
@@ -708,13 +791,15 @@ class BankStatementLineSerializer(serializers.ModelSerializer):
         read_only=True, 
         allow_null=True
     )
+    contract_number = serializers.CharField(source='contract.number', read_only=True)
     
     class Meta:
         model = BankStatementLine
         fields = [
-            'id', 'transaction_date', 'description', 'counterparty_name',
+            'id', 'transaction_date', 'bank_document_number', 'description', 'payment_purpose', 'counterparty_name',
             'debit_amount', 'credit_amount', 'balance', 'amount', 'transaction_type',
-            'status', 'status_display', 'counterparty', 'matched_document_type', 
+            'operation_type', 'operation_type_display',
+            'status', 'status_display', 'counterparty', 'contract', 'contract_number', 'matched_document_type', 
             'matched_document_id', 'created_payment_document', 'created_payment_document_number',
             'created_at', 'updated_at'
         ]
@@ -725,16 +810,20 @@ class BankStatementListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for bank statement list."""
     bank_account_name = serializers.CharField(source='bank_account.bank_name', read_only=True)
     bank_account_number = serializers.CharField(source='bank_account.account_number', read_only=True)
+    currency_code = serializers.CharField(source='currency.code', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     matching_percentage = serializers.SerializerMethodField()
+    unmatched_count = serializers.SerializerMethodField()
     
     class Meta:
         model = BankStatement
         fields = [
             'id', 'number', 'date', 'statement_date', 'status', 'status_display',
+            'source', 'is_balanced', 'accounting_balance_difference',
             'bank_account_name', 'bank_account_number',
+            'currency', 'currency_code',
             'opening_balance', 'closing_balance', 'total_receipts', 'total_payments',
-            'lines_count', 'matched_count', 'matching_percentage',
+            'lines_count', 'matched_count', 'unmatched_count', 'matching_percentage',
             'created_at', 'updated_at'
         ]
     
@@ -744,14 +833,19 @@ class BankStatementListSerializer(serializers.ModelSerializer):
             return 0
         return round((obj.matched_count / obj.lines_count) * 100)
 
+    def get_unmatched_count(self, obj):
+        return max((obj.lines_count or 0) - (obj.matched_count or 0), 0)
+
 
 class BankStatementDetailSerializer(serializers.ModelSerializer):
     """Full serializer for bank statement detail."""
     bank_account_name = serializers.CharField(source='bank_account.bank_name', read_only=True)
     bank_account_number = serializers.CharField(source='bank_account.account_number', read_only=True)
+    currency_code = serializers.CharField(source='currency.code', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     lines = BankStatementLineSerializer(many=True, read_only=True)
     matching_percentage = serializers.SerializerMethodField()
+    unmatched_count = serializers.SerializerMethodField()
     
     # Permissions
     can_post = serializers.BooleanField(read_only=True)
@@ -762,9 +856,11 @@ class BankStatementDetailSerializer(serializers.ModelSerializer):
         model = BankStatement
         fields = [
             'id', 'number', 'date', 'statement_date', 'status', 'status_display', 'comment',
+            'source', 'is_balanced', 'accounting_balance_difference',
             'bank_account', 'bank_account_name', 'bank_account_number',
+            'currency', 'currency_code',
             'opening_balance', 'closing_balance', 'total_receipts', 'total_payments',
-            'lines_count', 'matched_count', 'matching_percentage',
+            'lines_count', 'matched_count', 'unmatched_count', 'matching_percentage',
             'file', 'lines',
             'created_at', 'updated_at', 'posted_at',
             'can_post', 'can_unpost', 'period_is_closed'
@@ -776,6 +872,9 @@ class BankStatementDetailSerializer(serializers.ModelSerializer):
             return 0
         return round((obj.matched_count / obj.lines_count) * 100)
 
+    def get_unmatched_count(self, obj):
+        return max((obj.lines_count or 0) - (obj.matched_count or 0), 0)
+
 
 class BankStatementCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating bank statements."""
@@ -783,15 +882,44 @@ class BankStatementCreateUpdateSerializer(serializers.ModelSerializer):
         model = BankStatement
         fields = [
             'number', 'date', 'statement_date', 'comment',
-            'bank_account', 'opening_balance', 'closing_balance', 'file'
+            'source', 'bank_account', 'currency', 'opening_balance', 'closing_balance', 'file'
         ]
+
+    def validate(self, attrs):
+        tenant = self.context['request'].user.tenant
+        bank_account = attrs.get('bank_account') or getattr(self.instance, 'bank_account', None)
+        statement_date = attrs.get('statement_date') or getattr(self.instance, 'statement_date', None)
+
+        if not bank_account or not statement_date:
+            return attrs
+
+        latest = BankStatement.get_latest_statement(tenant, bank_account.id)
+        if latest:
+            current_id = getattr(self.instance, 'id', None)
+            if latest.id != current_id and statement_date < latest.statement_date:
+                raise serializers.ValidationError({
+                    'statement_date': f"Cannot create statement older than latest existing statement date ({latest.statement_date})."
+                })
+
+        return attrs
     
     def create(self, validated_data):
         from django.utils import timezone
+        validated_data['source'] = validated_data.get('source') or 'manual'
         validated_data['tenant'] = self.context['request'].user.tenant
         validated_data['created_by'] = self.context['request'].user
         if 'date' not in validated_data:
             validated_data['date'] = timezone.now()
+
+        previous = BankStatement.get_previous_statement(
+            validated_data['tenant'],
+            validated_data['bank_account'].id,
+            validated_data['statement_date']
+        )
+        if not validated_data.get('currency'):
+            validated_data['currency'] = validated_data['bank_account'].currency
+        if previous:
+            validated_data['opening_balance'] = previous.closing_balance
         # Number will be auto-generated by BaseDocument.save()
         return super().create(validated_data)
 

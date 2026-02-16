@@ -4,9 +4,8 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useHotkeys } from "react-hotkeys-hook"
-import { useQueryClient, useMutation } from "@tanstack/react-query"
+import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query"
 import { CommandBar, CommandBarAction } from "@/components/ui/command-bar"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -20,8 +19,7 @@ import {
     PiPrinterBold,
     PiXBold,
     PiArrowUpRightBold,
-    PiArrowDownLeftBold,
-    PiMoneyBold
+    PiArrowDownLeftBold
 } from "react-icons/pi"
 import { cn } from "@/lib/utils"
 import { mapApiError } from "@/lib/error-mapper"
@@ -29,6 +27,7 @@ import { PrintPreviewDialog } from "@/components/documents/print-preview-dialog"
 import { ReferenceSelector } from "@/components/ui/reference-selector"
 import { Badge } from "@/components/ui/badge"
 import { DocumentPostings } from "@/components/documents/document-postings"
+import type { Currency } from "@/types"
 
 interface CashOrderFormProps {
     mode: 'create' | 'edit'
@@ -53,9 +52,23 @@ export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: C
         amount: 0,
         purpose: "",
         basis: "",
+        cash_desk: "Main Cash Desk",
         counterparty_name: "",
         counterparty: null
     })
+
+    const { data: currencies = [] } = useQuery<Currency[]>({
+        queryKey: ['cash-order-form-currencies'],
+        queryFn: async () => {
+            try {
+                const res = await api.get('/directories/currencies/') as unknown as { results?: Currency[] } | Currency[];
+                return Array.isArray(res) ? res : res.results || [];
+            } catch {
+                return [];
+            }
+        },
+        initialData: []
+    });
 
     const isPosted = initialData?.is_posted ?? (formData.status === 'posted');
     const canEdit = mode === 'create' ? true : (!isPosted && (initialData?.can_edit ?? true));
@@ -65,7 +78,7 @@ export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: C
 
     // Actions
     const saveMutation = useMutation({
-        mutationFn: async (data: any) => {
+        mutationFn: async (data: Partial<CashOrder>) => {
             const payload = {
                 ...data,
                 // Ensure counterparty_name is set if counterparty ID is not
@@ -75,11 +88,11 @@ export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: C
             if (mode === 'create') return api.post('/documents/cash-orders/', payload);
             return api.put(`/documents/cash-orders/${initialData!.id}/`, payload);
         },
-        onSuccess: (response) => {
+        onSuccess: (response: { id: number }) => {
             toast.success(tc('savedSuccessfully'));
             queryClient.invalidateQueries({ queryKey: ['cash-orders'] });
             if (mode === 'create') {
-                router.push(`/documents/cash-orders/${response.data.id}`);
+                router.push(`/documents/cash-orders/${response.id}`);
             }
         },
         onError: (err) => {
@@ -94,7 +107,7 @@ export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: C
             setFormData({ ...formData, status: 'posted' });
             toast.success(t('postedSuccessfully'));
         },
-        onError: (err: any) => {
+        onError: (err: unknown) => {
             setFormData({ ...formData, status: 'draft' });
             const { title, description } = mapApiError(err);
             toast.error(title, { description });
@@ -111,7 +124,7 @@ export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: C
             setFormData({ ...formData, status: 'draft' });
             toast.success(t('unpostedSuccessfully'));
         },
-        onError: (err: any) => {
+        onError: () => {
             setFormData({ ...formData, status: 'posted' });
             toast.error("Failed to unpost");
         },
@@ -282,10 +295,69 @@ export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: C
                                     />
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                                         <span className="text-lg font-bold text-muted-foreground">
-                                            {initialData?.currency_code || 'USD'}
+                                            {currencies.find((c) => c.id === formData.currency)?.code || initialData?.currency_code || 'CUR'}
                                         </span>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                        <div className="pt-4 border-t grid grid-cols-12 gap-4 items-start">
+                            <div className="col-span-12 md:col-span-4 space-y-1">
+                                <Label className="text-xs">Currency</Label>
+                                <select
+                                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                                    value={formData.currency || ''}
+                                    onChange={(e) => setFormData({ ...formData, currency: Number(e.target.value) })}
+                                    disabled={!canEdit}
+                                >
+                                    {currencies.map((c) => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="col-span-12 md:col-span-8 space-y-1">
+                                <Label className="text-xs">Cash Desk</Label>
+                                <Input
+                                    className="h-9"
+                                    value={formData.cash_desk || ''}
+                                    onChange={(e) => setFormData({ ...formData, cash_desk: e.target.value })}
+                                    disabled={!canEdit}
+                                />
+                            </div>
+                            <div className="col-span-12 md:col-span-6 space-y-1">
+                                <Label className="text-xs">Cash Flow Item</Label>
+                                <ReferenceSelector
+                                    value={formData.cash_flow_item as number}
+                                    onSelect={(val) => setFormData({ ...formData, cash_flow_item: val as number })}
+                                    apiEndpoint="/directories/cash-flow-items/"
+                                    placeholder="Select DDS item..."
+                                    disabled={!canEdit}
+                                    className="h-9"
+                                />
+                            </div>
+                            <div className="col-span-12 md:col-span-6 space-y-1">
+                                <Label className="text-xs">Debit Account</Label>
+                                <ReferenceSelector
+                                    value={formData.debit_account as number}
+                                    onSelect={(val) => setFormData({ ...formData, debit_account: val as number })}
+                                    apiEndpoint="/accounting/chart-of-accounts/"
+                                    placeholder="Debit account..."
+                                    displayField="code"
+                                    secondaryField="name"
+                                    disabled={!canEdit}
+                                    className="h-9"
+                                />
+                            </div>
+                            <div className="col-span-12 md:col-span-6 space-y-1">
+                                <Label className="text-xs">Credit Account</Label>
+                                <ReferenceSelector
+                                    value={formData.credit_account as number}
+                                    onSelect={(val) => setFormData({ ...formData, credit_account: val as number })}
+                                    apiEndpoint="/accounting/chart-of-accounts/"
+                                    placeholder="Credit account..."
+                                    displayField="code"
+                                    secondaryField="name"
+                                    disabled={!canEdit}
+                                    className="h-9"
+                                />
                             </div>
                         </div>
                     </div>

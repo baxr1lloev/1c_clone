@@ -10,7 +10,7 @@ from django.db.models import Sum
 
 from directories.models import (
     Currency, ExchangeRate, Counterparty, Contract, Warehouse, Item, BankAccount, Employee,
-    Department, Project,
+    Department, Project, BankOperationType, BankExchangeSettings,
 )
 from .serializers import (
     CurrencySerializer,
@@ -24,7 +24,10 @@ from .serializers import (
     WarehouseCreateUpdateSerializer,
     ItemSerializer,
     ItemCreateUpdateSerializer,
+    BankAccountSerializer,
     BankAccountCreateUpdateSerializer,
+    BankExchangeSettingsSerializer,
+    BankOperationTypeSerializer,
     EmployeeSerializer,
     ItemCategorySerializer,
     DepartmentSerializer,
@@ -564,7 +567,7 @@ class ItemViewSet(TenantFilterMixin, viewsets.ModelViewSet):
 
 class BankAccountViewSet(TenantFilterMixin, viewsets.ModelViewSet):
     """API endpoint for bank accounts."""
-    queryset = BankAccount.objects.select_related('currency').all()
+    queryset = BankAccount.objects.select_related('currency', 'accounting_account').all()
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['currency', 'is_active']
@@ -574,6 +577,26 @@ class BankAccountViewSet(TenantFilterMixin, viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update']:
             return BankAccountCreateUpdateSerializer
         return BankAccountSerializer
+
+
+class BankOperationTypeViewSet(TenantFilterMixin, viewsets.ModelViewSet):
+    """API endpoint for bank operation semantics."""
+    queryset = BankOperationType.objects.select_related('debit_account', 'credit_account').all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = BankOperationTypeSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['is_active', 'requires_counterparty', 'requires_contract', 'requires_tax']
+    search_fields = ['code', 'name']
+
+
+class BankExchangeSettingsViewSet(TenantFilterMixin, viewsets.ModelViewSet):
+    """API endpoint for bank exchange settings."""
+    queryset = BankExchangeSettings.objects.select_related('bank_account').all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = BankExchangeSettingsSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['exchange_format', 'encoding', 'auto_create_counterparties']
+    search_fields = ['bank_program_name', 'bank_account__name', 'bank_account__account_number']
 
 
 class EmployeeViewSet(TenantFilterMixin, viewsets.ModelViewSet):

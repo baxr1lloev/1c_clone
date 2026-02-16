@@ -29,7 +29,9 @@ class CashOrderViewSet(TenantFilterMixin, viewsets.ModelViewSet):
     ViewSet for Cash Orders (PKO/RKO).
     Provides CRUD operations and post/unpost actions.
     """
-    queryset = CashOrder.objects.all().select_related('currency', 'counterparty')
+    queryset = CashOrder.objects.all().select_related(
+        'currency', 'counterparty', 'cash_flow_item', 'debit_account', 'credit_account'
+    )
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status', 'order_type', 'date']
     search_fields = ['number', 'counterparty_name', 'purpose']

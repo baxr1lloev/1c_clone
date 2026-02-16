@@ -1,4 +1,3 @@
-import { useState } from "react"
 import {
     Select,
     SelectContent,
@@ -29,8 +28,6 @@ interface UnitSelectorProps {
 
 const defaultUnits: ItemUnit[] = [
     { id: null, name: 'pcs', coefficient: 1 }, // Base Unit
-    { id: 2, name: 'box', coefficient: 12 },
-    { id: 3, name: 'pack', coefficient: 6 },
 ]
 
 export function UnitSelector({ value, onChange, units = defaultUnits, baseUnit = 'pcs', disabled }: UnitSelectorProps) {
