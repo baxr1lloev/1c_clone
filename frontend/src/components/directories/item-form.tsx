@@ -76,7 +76,13 @@ const defaultFormData: ItemFormData = {
     sale_price: 0,
     category: CATEGORY_NONE,
     is_active: true,
-    units: []
+    units: [
+        {
+            name: '',
+            coefficient: 1,
+            is_default: true,
+        },
+    ]
 };
 
 export function ItemForm({ initialData, mode }: ItemFormProps) {
@@ -277,6 +283,9 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                 <div>
                     <h1 className="text-2xl font-bold">{mode === 'create' ? t('addItem') : formData.name}</h1>
                     <p className="text-muted-foreground">{mode === 'create' ? 'Create a new product or service card' : 'Edit item details'}</p>
+                    {mode === 'create' ? (
+                        <p className="text-xs text-amber-400 mt-1">UI version: item-form-packaging-v2</p>
+                    ) : null}
                 </div>
 
                 <div className="grid gap-6 border p-6 rounded-lg bg-card">
@@ -335,14 +344,14 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                     <div className="space-y-3 border-t pt-4">
                         <div className="flex items-center justify-between">
                             <div className="space-y-1">
-                                <Label>{t('packaging')}</Label>
+                                <Label>{t('packaging')} / Packaging</Label>
                                 <p className="text-xs text-muted-foreground">
                                     {t('packagingHint', { unit: formData.base_unit || 'pcs' })}
                                 </p>
                             </div>
                             <Button type="button" variant="outline" size="sm" onClick={addPackage}>
                                 <PiPlusBold className="mr-1" />
-                                {tc('add')}
+                                {tc('add')} / Упаковка
                             </Button>
                         </div>
 
