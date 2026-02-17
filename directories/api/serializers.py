@@ -146,13 +146,20 @@ class ItemSerializer(serializers.ModelSerializer):
     """Serializer for Item model."""
     item_type_display = serializers.CharField(source='get_item_type_display', read_only=True)
     packages = ItemPackageSerializer(many=True, read_only=True)
+    units = ItemPackageSerializer(many=True, read_only=True, source='packages')
+    base_unit = serializers.CharField(source='unit', read_only=True)
+    type = serializers.SerializerMethodField()
+    sale_price = serializers.DecimalField(source='selling_price', max_digits=15, decimal_places=2, read_only=True)
     
     class Meta:
         model = Item
         fields = [
-            'id', 'name', 'sku', 'item_type', 'item_type_display',
-            'unit', 'purchase_price', 'selling_price', 'packages'
+            'id', 'name', 'sku', 'item_type', 'item_type_display', 'type',
+            'unit', 'base_unit', 'purchase_price', 'selling_price', 'sale_price', 'packages', 'units'
         ]
+
+    def get_type(self, obj):
+        return 'goods' if obj.item_type == 'GOODS' else 'service'
 
 
 class ItemCreateUpdateSerializer(serializers.ModelSerializer):
@@ -162,10 +169,11 @@ class ItemCreateUpdateSerializer(serializers.ModelSerializer):
         allow_null=True,
         required=False,
     )
+    packages = ItemPackageSerializer(many=True, required=False)
 
     class Meta:
         model = Item
-        fields = ['name', 'sku', 'item_type', 'unit', 'purchase_price', 'selling_price', 'category']
+        fields = ['name', 'sku', 'item_type', 'unit', 'purchase_price', 'selling_price', 'category', 'packages']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -174,11 +182,55 @@ class ItemCreateUpdateSerializer(serializers.ModelSerializer):
             self.fields['category'].queryset = ItemCategory.objects.filter(tenant=request.user.tenant)
 
     def create(self, validated_data):
+        packages_data = validated_data.pop('packages', [])
         tenant = self.context['request'].user.tenant
         if not tenant:
             raise serializers.ValidationError({"tenant": "User does not belong to any tenant."})
         validated_data['tenant'] = tenant
-        return super().create(validated_data)
+        item = super().create(validated_data)
+        self._sync_packages(item, packages_data)
+        return item
+
+    def update(self, instance, validated_data):
+        packages_data = validated_data.pop('packages', serializers.empty)
+        item = super().update(instance, validated_data)
+        if packages_data is not serializers.empty:
+            self._sync_packages(item, packages_data)
+        return item
+
+    def validate_packages(self, value):
+        if not value:
+            return value
+
+        default_count = 0
+        for pkg in value:
+            coefficient = pkg.get('coefficient')
+            if coefficient is None or coefficient <= 0:
+                raise serializers.ValidationError("Package coefficient must be greater than 0.")
+            if pkg.get('is_default'):
+                default_count += 1
+
+        if default_count > 1:
+            raise serializers.ValidationError("Only one default package is allowed.")
+
+        return value
+
+    def _sync_packages(self, item, packages_data):
+        if packages_data is None:
+            return
+
+        item.packages.all().delete()
+        if not packages_data:
+            return
+
+        has_default = any(pkg.get('is_default') for pkg in packages_data)
+        for index, pkg in enumerate(packages_data):
+            ItemPackage.objects.create(
+                item=item,
+                name=pkg['name'],
+                coefficient=pkg['coefficient'],
+                is_default=pkg.get('is_default', False) or (index == 0 and not has_default),
+            )
 
 
 class BankAccountSerializer(serializers.ModelSerializer):

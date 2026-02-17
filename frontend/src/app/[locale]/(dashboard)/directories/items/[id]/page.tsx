@@ -1,13 +1,13 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { useTranslations } from 'next-intl';
 import api from '@/lib/api';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/data-table/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { LinkableCell } from '@/components/ui/linkable-cell';
@@ -24,6 +24,17 @@ interface Item {
     purchase_price: number;
     sale_price: number;
     is_active: boolean;
+    created_at?: string;
+    updated_at?: string;
+    packages?: ItemPackage[];
+    units?: ItemPackage[];
+}
+
+interface ItemPackage {
+    id: number;
+    name: string;
+    coefficient: number;
+    is_default?: boolean;
 }
 
 interface StockBalance {
@@ -41,24 +52,34 @@ interface RelatedDocument {
     total: number;
 }
 
+type LinkableDocumentType = 'sales-document' | 'purchase-document' | 'payment-document' | 'transfer-document';
+
+const toLinkableDocumentType = (type: string): LinkableDocumentType => {
+    const normalized = type.toLowerCase();
+    if (normalized.includes('purchase')) return 'purchase-document';
+    if (normalized.includes('payment')) return 'payment-document';
+    if (normalized.includes('transfer')) return 'transfer-document';
+    return 'sales-document';
+};
+
 export default function ItemDetailPage() {
     const params = useParams();
-    const t = useTranslations();
+    const router = useRouter();
     const id = parseInt(params.id as string);
 
-    const { data: item, isLoading } = useQuery({
+    const { data: item, isLoading } = useQuery<Item>({
         queryKey: ['item', id],
-        queryFn: () => api.get(`/api/items/${id}/`),
+        queryFn: () => api.get(`/directories/items/${id}/`),
     });
 
-    const { data: balancesData } = useQuery({
+    const { data: balancesData } = useQuery<{ balances: StockBalance[] }>({
         queryKey: ['item', id, 'balances'],
-        queryFn: () => api.get(`/api/items/${id}/balances/`),
+        queryFn: () => api.get(`/directories/items/${id}/balances/`),
     });
 
-    const { data: documentsData } = useQuery({
+    const { data: documentsData } = useQuery<{ documents: RelatedDocument[] }>({
         queryKey: ['item', id, 'documents'],
-        queryFn: () => api.get(`/api/items/${id}/documents/`),
+        queryFn: () => api.get(`/directories/items/${id}/documents/`),
     });
 
     const breadcrumbs = [
@@ -118,7 +139,7 @@ export default function ItemDetailPage() {
             cell: ({ row }) => (
                 <LinkableCell
                     id={row.original.id}
-                    type={row.original.type as any}
+                    type={toLinkableDocumentType(row.original.type)}
                     label={row.original.number}
                 />
             ),
@@ -140,6 +161,9 @@ export default function ItemDetailPage() {
                     <p className="text-muted-foreground">SKU: {item?.sku}</p>
                 </div>
                 <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => router.push(`/directories/items/${id}/edit`)}>
+                        Edit
+                    </Button>
                     <CopyLinkButton entityType="item" entityId={id} />
                     <Badge variant={item?.is_active ? 'default' : 'secondary'}>
                         {item?.is_active ? 'Active' : 'Inactive'}
@@ -176,6 +200,23 @@ export default function ItemDetailPage() {
                             <div>
                                 <p className="text-sm text-muted-foreground">Base Unit</p>
                                 <p className="font-medium">{item?.base_unit}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Packaging</p>
+                                {(() => {
+                                    const units = item?.units || item?.packages || [];
+                                    if (!units.length) return <p className="font-medium">-</p>;
+                                    return (
+                                        <div className="space-y-1">
+                                            {units.map((unit) => (
+                                                <p key={unit.id} className="font-medium">
+                                                    {unit.name} = {unit.coefficient} {item?.base_unit}
+                                                    {unit.is_default ? ' (default)' : ''}
+                                                </p>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                             <div>
                                 <p className="text-sm text-muted-foreground">Purchase Price</p>

@@ -44,7 +44,7 @@ const defaultForm: AccountForm = {
   bank_name: '',
   account_number: '',
   account_type: 'settlement',
-  currency: 1,
+  currency: 0,
   accounting_account: null,
   bik: '',
   correspondent_account: '',
@@ -63,6 +63,26 @@ function extractResults<T>(payload: PaginatedResponse<T> | T[]): T[] {
   return payload?.results || [];
 }
 
+function getErrorMessage(error: unknown, fallback: string) {
+  const err = error as {
+    message?: string;
+    response?: {
+      data?: Record<string, string[] | string | undefined> | string;
+      status?: number;
+    };
+  };
+  const responseData = err?.response?.data;
+  if (typeof responseData === 'string' && responseData.trim()) return responseData;
+  if (responseData && typeof responseData === 'object') {
+    const detail = (responseData as { detail?: string }).detail;
+    if (typeof detail === 'string' && detail.trim()) return detail;
+    const first = Object.values(responseData)[0];
+    if (Array.isArray(first) && first[0]) return String(first[0]);
+    if (typeof first === 'string' && first.trim()) return first;
+  }
+  return err?.message || fallback;
+}
+
 export default function BankAccountsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -71,18 +91,35 @@ export default function BankAccountsPage() {
   const [selected, setSelected] = useState<BankAccount | null>(null);
   const [formData, setFormData] = useState<AccountForm>(defaultForm);
 
-  const { data: bankAccounts = [], isLoading, refetch } = useQuery<BankAccount[]>({
+  const {
+    data: bankAccounts = [],
+    isLoading,
+    isError: isBankAccountsError,
+    error: bankAccountsError,
+    refetch,
+  } = useQuery<BankAccount[]>({
     queryKey: ['bank-accounts'],
     queryFn: async () => extractResults(await api.get('/directories/bank-accounts/')),
   });
 
-  const { data: currencies = [] } = useQuery<Currency[]>({
+  const {
+    data: currencies = [],
+    isError: isCurrenciesError,
+    error: currenciesError,
+    refetch: refetchCurrencies,
+  } = useQuery<Currency[]>({
     queryKey: ['bank-accounts-currencies'],
     queryFn: async () => extractResults(await api.get('/directories/currencies/')),
     initialData: [],
   });
+  const hasCurrencies = currencies.length > 0;
 
-  const { data: accounts = [] } = useQuery<ChartOfAccountOption[]>({
+  const {
+    data: accounts = [],
+    isError: isAccountsError,
+    error: accountsError,
+    refetch: refetchAccounts,
+  } = useQuery<ChartOfAccountOption[]>({
     queryKey: ['bank-accounts-coa'],
     queryFn: async () => extractResults(await api.get('/accounting/chart-of-accounts/')),
     initialData: [],
@@ -92,6 +129,12 @@ export default function BankAccountsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async (data: AccountForm) => {
+      if (!hasCurrencies) {
+        throw new Error('No currencies configured. Add or load currencies first.');
+      }
+      if (!data.currency || !currencies.some((c) => c.id === data.currency)) {
+        throw new Error('Please select a valid currency');
+      }
       const payload = {
         ...data,
         accounting_account: data.accounting_account || null,
@@ -101,14 +144,42 @@ export default function BankAccountsPage() {
       if (selected?.id) return api.put(`/directories/bank-accounts/${selected.id}/`, payload);
       return api.post('/directories/bank-accounts/', payload);
     },
-    onSuccess: () => {
+    onSuccess: async (saved) => {
+      const savedAccount = saved as BankAccount | undefined;
+      if (savedAccount?.id) {
+        queryClient.setQueryData<BankAccount[]>(['bank-accounts'], (current = []) => {
+          const existingIndex = current.findIndex((item) => item.id === savedAccount.id);
+          if (existingIndex >= 0) {
+            const next = [...current];
+            next[existingIndex] = { ...next[existingIndex], ...savedAccount };
+            return next;
+          }
+          return [savedAccount, ...current];
+        });
+      }
+      await queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
+      await refetch();
       toast.success(selected ? 'Bank account updated' : 'Bank account created');
-      queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
       setIsFormOpen(false);
       setSelected(null);
       setFormData(defaultForm);
     },
-    onError: () => toast.error('Failed to save bank account'),
+    onError: (error: unknown) => {
+      const err = error as {
+        response?: { data?: Record<string, string[] | string> | string };
+        message?: string;
+      };
+      const responseData = err?.response?.data;
+      let message = err?.message || 'Failed to save bank account';
+      if (typeof responseData === 'string') {
+        message = responseData;
+      } else if (responseData && typeof responseData === 'object') {
+        const first = Object.values(responseData)[0];
+        if (Array.isArray(first)) message = first[0] || message;
+        else if (typeof first === 'string') message = first;
+      }
+      toast.error(message);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -122,10 +193,127 @@ export default function BankAccountsPage() {
     onError: () => toast.error('Failed to delete bank account'),
   });
 
+  const bootstrapCurrenciesMutation = useMutation({
+    mutationFn: async () =>
+      api.post('/directories/currencies/add_from_classifier/', {
+        codes: ['USD', 'EUR', 'RUB', 'UZS'],
+      }),
+    onSuccess: async (res) => {
+      const count = Number((res as { count?: number } | undefined)?.count || 0);
+      await queryClient.invalidateQueries({ queryKey: ['bank-accounts-currencies'] });
+      toast.success(count > 0 ? `Added ${count} currencies` : 'Currencies are already loaded');
+    },
+    onError: (error: unknown) => {
+      const err = error as { message?: string; response?: { data?: { detail?: string } } };
+      toast.error(err?.response?.data?.detail || err?.message || 'Failed to load currencies');
+    },
+  });
+
+  const createDemoAccountsMutation = useMutation({
+    mutationFn: async () => {
+      let availableCurrencies = currencies;
+      if (availableCurrencies.length === 0) {
+        await api.post('/directories/currencies/add_from_classifier/', {
+          codes: ['USD', 'EUR', 'RUB', 'UZS'],
+        });
+        availableCurrencies = extractResults<Currency>(await api.get('/directories/currencies/'));
+      }
+
+      if (availableCurrencies.length === 0) {
+        throw new Error('No currencies available. Create currencies first.');
+      }
+
+      const existingAccounts = extractResults<BankAccount>(await api.get('/directories/bank-accounts/'));
+      const existingNumbers = new Set(existingAccounts.map((a) => a.account_number));
+      const hasDefault = existingAccounts.some((a) => a.is_default);
+
+      const resolveCurrency = (code: string) => (
+        availableCurrencies.find((currency) => currency.code === code)?.id || availableCurrencies[0].id
+      );
+
+      const templates = [
+        {
+          name: 'Main UZS Account',
+          bank_name: 'National Bank',
+          account_number: '20208000900123456001',
+          account_type: 'settlement' as const,
+          currency: resolveCurrency('UZS'),
+          bik: '00450',
+          correspondent_account: '30101810300000000450',
+          swift_code: '',
+          is_default: !hasDefault,
+        },
+        {
+          name: 'Main USD Account',
+          bank_name: 'International Trade Bank',
+          account_number: 'UZ77004001123456789001',
+          account_type: 'foreign' as const,
+          currency: resolveCurrency('USD'),
+          bik: '00451',
+          correspondent_account: '30101810300000000451',
+          swift_code: 'ITBUUZ22',
+          is_default: false,
+        },
+      ];
+
+      let created = 0;
+      for (const template of templates) {
+        if (existingNumbers.has(template.account_number)) continue;
+        await api.post('/directories/bank-accounts/', {
+          ...template,
+          accounting_account: null,
+          is_active: true,
+          opening_date: null,
+          overdraft_allowed: false,
+          overdraft_limit: 0,
+          minimum_balance: 0,
+          comment: 'Auto-created demo account',
+        });
+        created += 1;
+      }
+
+      return { created, skipped: templates.length - created };
+    },
+    onSuccess: async (res) => {
+      const created = Number((res as { created?: number })?.created || 0);
+      const skipped = Number((res as { skipped?: number })?.skipped || 0);
+      await queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['bank-accounts-currencies'] });
+      if (created > 0) {
+        toast.success(`Created ${created} bank account(s)`);
+      } else {
+        toast.success(`All demo accounts already exist (${skipped} skipped)`);
+      }
+    },
+    onError: (error: unknown) => {
+      const err = error as { message?: string; response?: { data?: Record<string, string[] | string> | string } };
+      const responseData = err?.response?.data;
+      let message = err?.message || 'Failed to create demo bank accounts';
+      if (typeof responseData === 'string') {
+        message = responseData;
+      } else if (responseData && typeof responseData === 'object') {
+        const first = Object.values(responseData)[0];
+        if (Array.isArray(first)) message = first[0] || message;
+        else if (typeof first === 'string') message = first;
+      }
+      toast.error(message);
+    },
+  });
+
   const openCreate = () => {
+    if (isBankAccountsError || isCurrenciesError) {
+      toast.error('Cannot open form while reference data is not loaded');
+      return;
+    }
     setSelected(null);
-    setFormData(defaultForm);
+    setFormData({
+      ...defaultForm,
+      currency: currencies[0]?.id || 0,
+    });
     setIsFormOpen(true);
+    if (!hasCurrencies) {
+      toast.error('No currencies configured. Add currency first.');
+    }
   };
 
   const openEdit = (item: BankAccount) => {
@@ -215,9 +403,42 @@ export default function BankAccountsPage() {
           <Button variant="outline" onClick={() => router.push('/directories/bank-exchange-settings')}>
             Exchange Settings
           </Button>
+          <Button
+            variant="secondary"
+            onClick={() => createDemoAccountsMutation.mutate()}
+            disabled={createDemoAccountsMutation.isPending}
+          >
+            {createDemoAccountsMutation.isPending ? 'Creating...' : 'Create Demo Accounts'}
+          </Button>
           <Button onClick={openCreate}>+ Add Bank Account</Button>
         </div>
       </div>
+
+      {(isBankAccountsError || isCurrenciesError || isAccountsError) ? (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm space-y-2">
+          <p className="font-medium">Failed to load Bank and Cash reference data.</p>
+          {isBankAccountsError ? (
+            <p>Bank accounts: {getErrorMessage(bankAccountsError, 'Load failed')}</p>
+          ) : null}
+          {isCurrenciesError ? (
+            <p>Currencies: {getErrorMessage(currenciesError, 'Load failed')}</p>
+          ) : null}
+          {isAccountsError ? (
+            <p>Chart of accounts: {getErrorMessage(accountsError, 'Load failed')}</p>
+          ) : null}
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button type="button" variant="outline" size="sm" onClick={() => refetch()}>
+              Retry bank accounts
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => refetchCurrencies()}>
+              Retry currencies
+            </Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => refetchAccounts()}>
+              Retry chart of accounts
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <DataTable
         columns={columns}
@@ -272,9 +493,37 @@ export default function BankAccountsPage() {
                   className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                   value={formData.currency}
                   onChange={(e) => setFormData({ ...formData, currency: Number(e.target.value) })}
+                  disabled={!hasCurrencies}
                 >
+                  {!hasCurrencies ? <option value="">No currencies</option> : null}
                   {currencies.map((c) => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
                 </select>
+                {!hasCurrencies ? (
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span>
+                      {isCurrenciesError
+                        ? `Currencies load error: ${getErrorMessage(currenciesError, 'Request failed')}`
+                        : 'Create or load currencies to continue.'}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => bootstrapCurrenciesMutation.mutate()}
+                      disabled={bootstrapCurrenciesMutation.isPending}
+                    >
+                      {bootstrapCurrenciesMutation.isPending ? 'Loading...' : 'Load standard currencies'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => router.push('/directories/currencies')}
+                    >
+                      Open currencies
+                    </Button>
+                  </div>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <Label>Accounting Account</Label>
@@ -343,7 +592,9 @@ export default function BankAccountsPage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Saving...' : 'Save'}</Button>
+              <Button type="submit" disabled={saveMutation.isPending || !hasCurrencies}>
+                {saveMutation.isPending ? 'Saving...' : 'Save'}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

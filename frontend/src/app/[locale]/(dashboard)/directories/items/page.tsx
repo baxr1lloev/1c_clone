@@ -4,24 +4,21 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, SortingState } from '@tanstack/react-table';
 import api from '@/lib/api';
 import { DataTable } from '@/components/data-table/data-table';
 import { ReferenceLink } from '@/components/ui/reference-link';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { StatusBar } from '@/components/ui/status-bar';
 import { GroupBySelector } from '@/components/data-table/group-by-selector';
 import { SavedViews, SavedView } from '@/components/data-table/saved-views';
 import { HelpPanel } from '@/components/layout/help-panel';
 import { ColumnCustomization } from '@/components/data-table/column-customization';
 import { CommandBar, CommandBarAction } from '@/components/ui/command-bar';
-import { PiPlusBold, PiMagnifyingGlassBold, PiUploadBold, PiDownloadBold, PiPencilBold, PiTrashBold } from 'react-icons/pi';
+import { PiPlusBold, PiPencilBold } from 'react-icons/pi';
 import type { Item, PaginatedResponse } from '@/types';
 
 export default function ItemsPage() {
-  const t = useTranslations('directories');
-  const tf = useTranslations('fields');
   const tc = useTranslations('common');
   const router = useRouter();
   const [searchValue, setSearchValue] = useState('');
@@ -29,7 +26,7 @@ export default function ItemsPage() {
   const [activeFilter, setActiveFilter] = useState<string>('all');
   const [groupBy, setGroupBy] = useState<string | null>(null);
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
-  const [sorting, setSorting] = useState<any>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['items'],
@@ -41,7 +38,7 @@ export default function ItemsPage() {
 
   // Actions
   const handleCreate = () => router.push('/directories/items/new');
-  const handleEdit = (item: Item) => router.push(`/directories/items/${item.id}`);
+  const handleEdit = (item: Item) => router.push(`/directories/items/${item.id}/edit`);
   const handleView = (item: Item) => router.push(`/directories/items/${item.id}`);
 
   // Load saved view
@@ -127,6 +124,21 @@ export default function ItemsPage() {
       cell: ({ row }) => {
         const price = row.getValue('sale_price') as number;
         return price ? `$${price.toFixed(2)}` : '-';
+      },
+    },
+    {
+      accessorKey: 'base_unit',
+      header: 'Base Unit',
+      cell: ({ row }) => row.original.base_unit || row.original.unit || '-',
+    },
+    {
+      id: 'packages',
+      header: 'Packaging',
+      cell: ({ row }) => {
+        const units = row.original.units || row.original.packages || [];
+        if (!units.length) return '-';
+        const defaultUnit = units.find((u) => u.is_default) || units[0];
+        return `${units.length} (${defaultUnit.name})`;
       },
     },
   ];

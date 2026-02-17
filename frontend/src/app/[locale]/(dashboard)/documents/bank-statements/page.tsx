@@ -40,8 +40,24 @@ type BankAccountOption = {
 type RowCell<T> = { row: { original: T } };
 
 function getErrorMessage(error: unknown, fallback: string) {
-    const err = error as { response?: { data?: { error?: string } }; message?: string } | undefined;
-    return err?.response?.data?.error || err?.message || fallback;
+    const err = error as {
+        response?: {
+            data?: Record<string, string[] | string | undefined> | string;
+        };
+        message?: string;
+    } | undefined;
+
+    const responseData = err?.response?.data;
+    if (typeof responseData === 'string' && responseData.trim()) return responseData;
+    if (responseData && typeof responseData === 'object') {
+        const detail = (responseData as { detail?: string; error?: string }).detail
+            || (responseData as { detail?: string; error?: string }).error;
+        if (typeof detail === 'string' && detail.trim()) return detail;
+        const first = Object.values(responseData)[0];
+        if (Array.isArray(first) && first[0]) return String(first[0]);
+        if (typeof first === 'string' && first.trim()) return first;
+    }
+    return err?.message || fallback;
 }
 
 export default function BankStatementsPage() {
@@ -60,24 +76,36 @@ export default function BankStatementsPage() {
         queryFn: BankStatementService.getAll,
     });
 
-    const { data: bankAccounts = [], isLoading: isBankAccountsLoading } = useQuery<BankAccountOption[]>({
-        queryKey: ['bank-accounts'],
+    const {
+        data: bankAccounts = [],
+        isLoading: isBankAccountsLoading,
+        isFetching: isBankAccountsFetching,
+        isError: isBankAccountsError,
+        error: bankAccountsError,
+        refetch: refetchBankAccounts,
+    } = useQuery<BankAccountOption[]>({
+        queryKey: ['bank-accounts', 'statement-form'],
         queryFn: async () => {
             const res = await api.get('/directories/bank-accounts/');
             if (Array.isArray(res)) return res;
             return res?.results || [];
         },
-        initialData: [],
     });
 
-    const { data: exchangeSettings = [], isLoading: isExchangeSettingsLoading } = useQuery<Array<{ id: number }>>({
-        queryKey: ['bank-exchange-settings'],
+    const {
+        data: exchangeSettings = [],
+        isLoading: isExchangeSettingsLoading,
+        isFetching: isExchangeSettingsFetching,
+        isError: isExchangeSettingsError,
+        error: exchangeSettingsError,
+        refetch: refetchExchangeSettings,
+    } = useQuery<Array<{ id: number }>>({
+        queryKey: ['bank-exchange-settings', 'statement-form'],
         queryFn: async () => {
             const res = await api.get('/directories/bank-exchange-settings/');
             if (Array.isArray(res)) return res;
             return res?.results || [];
         },
-        initialData: [],
     });
 
     const { data: openingHint } = useQuery({
@@ -86,8 +114,10 @@ export default function BankStatementsPage() {
         enabled: Boolean(bankAccount && statementDate),
     });
 
-    const noBankAccounts = !isBankAccountsLoading && bankAccounts.length === 0;
-    const noExchangeSettings = !isExchangeSettingsLoading && exchangeSettings.length === 0;
+    const bankAccountsReady = !isBankAccountsLoading && !isBankAccountsFetching && !isBankAccountsError;
+    const exchangeSettingsReady = !isExchangeSettingsLoading && !isExchangeSettingsFetching && !isExchangeSettingsError;
+    const noBankAccounts = bankAccountsReady && bankAccounts.length === 0;
+    const noExchangeSettings = exchangeSettingsReady && exchangeSettings.length === 0;
 
     const openingBalanceLocked = Boolean(openingHint?.opening_balance_locked);
 
@@ -107,6 +137,14 @@ export default function BankStatementsPage() {
     };
 
     const validateBeforeSubmit = () => {
+        if (isBankAccountsError) {
+            toast.error(getErrorMessage(bankAccountsError, 'Failed to load bank accounts'));
+            return false;
+        }
+        if (!bankAccountsReady) {
+            toast.error('Bank accounts are still loading, please wait');
+            return false;
+        }
         if (noBankAccounts) {
             toast.error('Create a bank account first');
             router.push('/directories/bank-accounts');
@@ -267,6 +305,10 @@ export default function BankStatementsPage() {
                     <Dialog
                         open={openCreate}
                         onOpenChange={(next) => {
+                            if (next && isBankAccountsError) {
+                                toast.error(getErrorMessage(bankAccountsError, 'Failed to load bank accounts'));
+                                return;
+                            }
                             if (next && noBankAccounts) {
                                 toast.error('Create bank account first');
                                 router.push('/directories/bank-accounts');
@@ -279,12 +321,7 @@ export default function BankStatementsPage() {
                         }}
                     >
                         <DialogTrigger asChild>
-                            <Button className="gap-2" onClick={() => {
-                                if (noBankAccounts) {
-                                    toast.error('Create bank account first');
-                                    router.push('/directories/bank-accounts');
-                                }
-                            }}>
+                            <Button className="gap-2">
                                 <PiPlusBold className="h-4 w-4" />
                                 Create statement
                             </Button>
@@ -346,6 +383,10 @@ export default function BankStatementsPage() {
                     <Dialog
                         open={openUpload}
                         onOpenChange={(next) => {
+                            if (next && isBankAccountsError) {
+                                toast.error(getErrorMessage(bankAccountsError, 'Failed to load bank accounts'));
+                                return;
+                            }
                             if (next && noBankAccounts) {
                                 toast.error('Create bank account first');
                                 router.push('/directories/bank-accounts');
@@ -419,6 +460,28 @@ export default function BankStatementsPage() {
                     </Dialog>
                 </div>
             </div>
+
+            {(isBankAccountsError || isExchangeSettingsError) ? (
+                <Card className="border-destructive/40 bg-destructive/10">
+                    <CardHeader className="pb-2"><CardTitle className="text-base">Bank and Cash data failed to load</CardTitle></CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                        {isBankAccountsError ? (
+                            <p>Bank accounts: {getErrorMessage(bankAccountsError, 'Load failed')}</p>
+                        ) : null}
+                        {isExchangeSettingsError ? (
+                            <p>Exchange settings: {getErrorMessage(exchangeSettingsError, 'Load failed')}</p>
+                        ) : null}
+                        <div className="flex flex-wrap gap-2">
+                            <Button variant="outline" onClick={() => refetchBankAccounts()}>
+                                Retry bank accounts
+                            </Button>
+                            <Button variant="outline" onClick={() => refetchExchangeSettings()}>
+                                Retry exchange settings
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            ) : null}
 
             {(noBankAccounts || noExchangeSettings) ? (
                 <Card className="border-dashed">

@@ -15,7 +15,7 @@ import {
 import { DataTable } from '@/components/data-table/data-table';
 import { ColumnDef } from '@tanstack/react-table';
 import { CommandBar, CommandBarAction } from '@/components/ui/command-bar';
-import { PiPlusBold, PiFolderPlusBold } from 'react-icons/pi';
+import { PiPlusBold, PiFolderPlusBold, PiPencilBold } from 'react-icons/pi';
 import { CategoryFormDialog } from '@/components/directories/category-form-dialog';
 
 interface Category {
@@ -31,6 +31,10 @@ interface Item {
     sku: string;
     category: number;
     selling_price: number;
+    base_unit?: string;
+    unit?: string;
+    units?: Array<{ id: number; name: string; coefficient: number; is_default?: boolean }>;
+    packages?: Array<{ id: number; name: string; coefficient: number; is_default?: boolean }>;
 }
 
 export default function ItemCategoriesPage() {
@@ -90,6 +94,7 @@ export default function ItemCategoriesPage() {
     });
 
     const handleNewItem = () => router.push('/directories/items/new');
+    const handleEditItem = (item: Item) => router.push(`/directories/items/${item.id}/edit`);
     const handleNewGroup = () => {
         setCategoryDialogParent(selectedCategory?.id ?? null);
         setCategoryDialogParentName(selectedCategory?.name ?? null);
@@ -104,12 +109,30 @@ export default function ItemCategoriesPage() {
             header: 'Price',
             cell: ({ row }) => <span className="font-mono">{Number(row.original.selling_price).toFixed(2)}</span>
         },
+        {
+            id: 'unit',
+            header: 'Unit',
+            cell: ({ row }) => row.original.base_unit || row.original.unit || '-',
+        },
+        {
+            id: 'packages',
+            header: 'Packaging',
+            cell: ({ row }) => {
+                const units = row.original.units || row.original.packages || [];
+                if (!units.length) return '-';
+                const defaultUnit = units.find((u) => u.is_default) || units[0];
+                return `${units.length} (${defaultUnit.name})`;
+            },
+        },
     ];
 
     const mainActions: CommandBarAction[] = [
         { label: 'New Item', icon: <PiPlusBold />, onClick: handleNewItem, shortcut: 'Ins' },
         { label: 'New Group', icon: <PiFolderPlusBold />, onClick: handleNewGroup, variant: 'outline' },
     ];
+    const selectionActions: CommandBarAction[] = selectedItem ? [
+        { label: 'Edit Item', icon: <PiPencilBold />, onClick: () => handleEditItem(selectedItem) },
+    ] : [];
 
     return (
         <div className="h-[calc(100vh-4rem)] flex flex-col">
@@ -122,7 +145,7 @@ export default function ItemCategoriesPage() {
                         onClick={() => createSampleMutation.mutate()}
                         disabled={createSampleMutation.isPending}
                     >
-                        {createSampleMutation.isPending ? 'Creating…' : 'Create sample items'}
+                        {createSampleMutation.isPending ? 'Creating...' : 'Create sample items'}
                     </Button>
                     <Button size="sm" variant="outline">Import</Button>
                     <Button size="sm" variant="outline">Export</Button>
@@ -177,10 +200,11 @@ export default function ItemCategoriesPage() {
                         data={items || []}
                         isLoading={isLoading}
                         onRowClick={setSelectedItem}
+                        onRowDoubleClick={handleEditItem}
                         commandBar={
                             <CommandBar
                                 mainActions={mainActions}
-                                selectionActions={[]}
+                                selectionActions={selectionActions}
                                 onSearch={() => { }}
                             />
                         }

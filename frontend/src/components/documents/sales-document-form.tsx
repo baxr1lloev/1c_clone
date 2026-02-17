@@ -527,6 +527,40 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
                 const baseQty = Number(row.original.quantity || 0) * coef;
 
                 return (
+                    onChange = {(unitId, coefficient) => {
+        const newLines = [...lines];
+        const oldCoef = Number(newLines[row.index].coefficient) || 1;
+        const currentPrice = Number(newLines[row.index].price) || 0;
+        // Recalculate Price: BasePrice = Price / OldCoef. NewPrice = BasePrice * NewCoef
+        // This ensures 1 Box ($100) -> 1 Pc ($10).
+        const newPrice = (currentPrice / oldCoef) * coefficient;
+
+        let newLine = {
+            ...newLines[row.index],
+            package: unitId,
+            coefficient: coefficient,
+            price: parseFloat(newPrice.toFixed(2)) // Round to 2 decimals for UI
+        };
+        newLines[row.index] = recalculateLine(newLine);
+        setLines(newLines);
+    }
+}
+disabled = {!canEdit}
+                        />
+                    </div >
+                )
+            }
+        },
+{
+    accessorKey: 'quantity',
+        header: tf('quantity'),
+            cell: ({ row }) => {
+                const item = row.original.item;
+                const { data: itemData } = useItemDetails(item);
+                const coef = Number(row.original.coefficient) || 1;
+                const baseQty = Number(row.original.quantity || 0) * coef;
+
+                return (
                     <div className="flex gap-1 h-full items-center">
                         <Input
                             type="number"
@@ -541,88 +575,83 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
                             }}
                         />
                         <div className="flex flex-col justify-center px-1 border-l border-dashed min-w-[3rem]">
-                                <span className="text-[9px] text-muted-foreground leading-none">Base</span>
-                                <span className="text-[10px] font-mono text-muted-foreground text-right font-bold">
+                            <span className="text-[9px] text-muted-foreground leading-none">{tsf('base')}</span>
+                            <span className="text-[10px] font-mono text-muted-foreground text-right font-bold">
                                 {formatBaseQuantity(baseQty)} <span className="text-[8px] font-normal">{itemData?.base_unit || itemData?.unit || 'pcs'}</span>
-                                </span>
-                            </div>
+                            </span>
                         </div>
+                    </div>
+            header: tf('price'),
+                    cell: ({ row }) => (
+                        <Input
+                            type="number"
+                            disabled={isPosted}
+                            className="h-8 w-full text-right border-transparent focus:border-primary bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background"
+                            value={row.original.price}
+                            onChange={(e) => {
+                                const newLines = [...lines];
+                                let newLine = { ...newLines[row.index], price: parseFloat(e.target.value) };
+                                newLines[row.index] = recalculateLine(newLine);
+                                setLines(newLines);
+                            }}
+                        />
+                    )
+            },
+            {
+                id: 'amount',
+                header: tf('amount'),
+                cell: ({ row }) => <span className="font-mono font-bold block text-right px-2">
+                    {(Number(row.original.amount) || 0).toFixed(2)}
+                </span>
+            },
+            {
+                id: 'vat_rate',
+                header: tsf('vatPercent'),
+                cell: ({ row }) => (
+                    <select
+                        className="h-8 w-full bg-transparent border-none text-right px-2 text-xs"
+                        disabled={!canEdit}
+                        value={row.original.vat_rate ?? 20}
+                        onChange={(e) => {
+                            const newLines = [...lines];
+                            let newLine = { ...newLines[row.index], vat_rate: parseInt(e.target.value) };
+                            newLines[row.index] = recalculateLine(newLine);
+                            setLines(newLines);
+                        }}
+                    >
+                        <option value="0">0%</option>
+                        <option value="12">12%</option>
+                        <option value="20">20%</option>
+                    </select>
+                )
+            },
+            {
+                id: 'vat_amount',
+                header: tsf('vatSum'),
+                cell: ({ row }) => <span className="font-mono text-muted-foreground block text-right px-2 text-xs">
+                    {(Number(row.original.vat_amount) || 0).toFixed(2)}
+                </span>
+            },
+            {
+                id: 'total_line',
+                header: tc('total'),
+                cell: ({ row }) => <span className="font-mono font-bold block text-right px-2">
+                    {(Number(row.original.total_with_vat) || 0).toFixed(2)}
+                </span>
+            },
+            {
+                id: 'actions',
+                cell: ({ row }) => !isPosted && (
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-destructive"
+                        onClick={() => setLines(lines.filter((_, i) => i !== row.index))}
+                    >
+                        <PiTrashBold className="h-4 w-4" />
+                    </Button>
                 )
             }
-        },
-        {
-            id: 'price',
-            header: tf('price'),
-            cell: ({ row }) => (
-                <Input
-                    type="number"
-                    disabled={isPosted}
-                    className="h-8 w-full text-right border-transparent focus:border-primary bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background"
-                    value={row.original.price}
-                    onChange={(e) => {
-                        const newLines = [...lines];
-                        let newLine = { ...newLines[row.index], price: parseFloat(e.target.value) };
-                        newLines[row.index] = recalculateLine(newLine);
-                        setLines(newLines);
-                    }}
-                />
-            )
-        },
-        {
-            id: 'amount',
-            header: tf('amount'),
-            cell: ({ row }) => <span className="font-mono font-bold block text-right px-2">
-                {(Number(row.original.amount) || 0).toFixed(2)}
-            </span>
-        },
-        {
-            id: 'vat_rate',
-            header: tsf('vatPercent'),
-            cell: ({ row }) => (
-                <select
-                    className="h-8 w-full bg-transparent border-none text-right px-2 text-xs"
-                    disabled={!canEdit}
-                    value={row.original.vat_rate ?? 20}
-                    onChange={(e) => {
-                        const newLines = [...lines];
-                        let newLine = { ...newLines[row.index], vat_rate: parseInt(e.target.value) };
-                        newLines[row.index] = recalculateLine(newLine);
-                        setLines(newLines);
-                    }}
-                >
-                    <option value="0">0%</option>
-                    <option value="12">12%</option>
-                    <option value="20">20%</option>
-                </select>
-            )
-        },
-        {
-            id: 'vat_amount',
-            header: tsf('vatSum'),
-            cell: ({ row }) => <span className="font-mono text-muted-foreground block text-right px-2 text-xs">
-                {(Number(row.original.vat_amount) || 0).toFixed(2)}
-            </span>
-        },
-        {
-            id: 'total_line',
-            header: tc('total'),
-            cell: ({ row }) => <span className="font-mono font-bold block text-right px-2">
-                {(Number(row.original.total_with_vat) || 0).toFixed(2)}
-            </span>
-        },
-        {
-            id: 'actions',
-            cell: ({ row }) => !isPosted && (
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-destructive"
-                    onClick={() => setLines(lines.filter((_, i) => i !== row.index))}
-                >
-                    <PiTrashBold className="h-4 w-4" />
-                </Button>
-            )
-        }
     ];
 
     return (

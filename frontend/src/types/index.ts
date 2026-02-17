@@ -123,6 +123,7 @@ export interface ItemUnit {
   id: number;
   name: string;
   coefficient: number; // e.g. 1 Box = 12 Base Units
+  is_default?: boolean;
 }
 
 export interface Item extends BaseModel {
@@ -131,8 +132,11 @@ export interface Item extends BaseModel {
   name: string;
   description: string;
   type: ItemType;
+  item_type?: 'GOODS' | 'SERVICE';
   base_unit: string; // Immutable, e.g. "pcs", "kg"
   units: ItemUnit[]; // Available packages
+  packages?: ItemUnit[]; // API compatibility (backend field name)
+  unit?: string; // API compatibility (legacy/base unit)
 
   // 1C Change: Prices should live in "Price Lists" (Registers), not here.
   // Keeping optional for legacy compatibility or "Default Price" UI.

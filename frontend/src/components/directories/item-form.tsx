@@ -13,12 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 import api from "@/lib/api"
-import { Item, ItemType } from "@/types"
+import { Item, ItemType, ItemUnit } from "@/types"
 import {
     PiFloppyDiskBold,
     PiCheckCircleBold,
     PiTrashBold,
-    PiArrowLeftBold
+    PiArrowLeftBold,
+    PiPlusBold
 } from "react-icons/pi"
 
 interface ItemFormProps {
@@ -26,12 +27,44 @@ interface ItemFormProps {
     mode: 'create' | 'edit';
 }
 
-type ItemFormData = Omit<Item, 'id' | 'tenant' | 'created_at' | 'updated_at'> & {
-    purchase_price?: number;
-    sale_price?: number;
+type ItemPackageFormData = {
+    id?: number;
+    name: string;
+    coefficient: number;
+    is_default: boolean;
+}
+
+type ItemFormData = {
+    sku: string;
+    name: string;
+    description: string;
+    type: ItemType;
+    base_unit: string;
+    purchase_price: number;
+    sale_price: number;
+    category: string;
+    is_active: boolean;
+    units: ItemPackageFormData[];
 };
 
 const CATEGORY_NONE = '__none__';
+
+const normalizePackages = (source: (ItemUnit | ItemPackageFormData)[] | undefined): ItemPackageFormData[] => {
+    if (!source?.length) return [];
+
+    return source.map((pkg) => ({
+        id: pkg.id,
+        name: pkg.name ?? '',
+        coefficient: Number(pkg.coefficient) || 1,
+        is_default: Boolean((pkg as ItemPackageFormData).is_default),
+    }));
+};
+
+const detectItemType = (initialData: Item): ItemType => {
+    if (initialData.type) return initialData.type;
+    if (initialData.item_type === 'SERVICE') return 'service';
+    return 'goods';
+};
 
 const defaultFormData: ItemFormData = {
     sku: '',
@@ -41,7 +74,7 @@ const defaultFormData: ItemFormData = {
     base_unit: 'pcs',
     purchase_price: 0,
     sale_price: 0,
-    category: CATEGORY_NONE as unknown as string,
+    category: CATEGORY_NONE,
     is_active: true,
     units: []
 };
@@ -56,15 +89,54 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
     const [formData, setFormData] = useState<ItemFormData>(initialData ? {
         sku: initialData.sku,
         name: initialData.name,
-        description: initialData.description,
-        type: initialData.type,
+        description: initialData.description ?? '',
+        type: detectItemType(initialData),
         purchase_price: initialData.purchase_price ?? 0,
         sale_price: initialData.sale_price ?? 0,
-        category: initialData.category != null ? String(initialData.category) : (CATEGORY_NONE as unknown as string),
-        is_active: initialData.is_active,
-        base_unit: initialData.base_unit ?? 'pcs',
-        units: initialData.units ?? []
+        category: initialData.category != null ? String(initialData.category) : CATEGORY_NONE,
+        is_active: initialData.is_active ?? true,
+        base_unit: initialData.base_unit ?? initialData.unit ?? 'pcs',
+        units: normalizePackages(initialData.units ?? initialData.packages)
     } : defaultFormData)
+
+    const addPackage = () => {
+        setFormData((prev) => ({
+            ...prev,
+            units: [
+                ...prev.units,
+                {
+                    name: '',
+                    coefficient: 1,
+                    is_default: prev.units.length === 0,
+                },
+            ],
+        }))
+    }
+
+    const updatePackage = (index: number, patch: Partial<ItemPackageFormData>) => {
+        setFormData((prev) => ({
+            ...prev,
+            units: prev.units.map((pkg, pkgIndex) => pkgIndex === index ? { ...pkg, ...patch } : pkg),
+        }))
+    }
+
+    const setDefaultPackage = (index: number) => {
+        setFormData((prev) => ({
+            ...prev,
+            units: prev.units.map((pkg, pkgIndex) => ({ ...pkg, is_default: pkgIndex === index })),
+        }))
+    }
+
+    const removePackage = (index: number) => {
+        setFormData((prev) => {
+            const nextPackages = prev.units.filter((_, pkgIndex) => pkgIndex !== index)
+            const hasDefault = nextPackages.some((pkg) => pkg.is_default)
+            if (!hasDefault && nextPackages.length > 0) {
+                nextPackages[0] = { ...nextPackages[0], is_default: true }
+            }
+            return { ...prev, units: nextPackages }
+        })
+    }
 
     const { data: categories = [] } = useQuery({
         queryKey: ['categories'],
@@ -83,10 +155,40 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
             if (!data.sku || !data.sku.trim()) {
                 throw new Error('SKU is required');
             }
-            
+
             const catVal = data.category;
             const categoryId = (catVal === '' || catVal === CATEGORY_NONE || catVal == null) ? null : Number(catVal);
             if (categoryId !== null && Number.isNaN(categoryId)) throw new Error('Invalid category');
+
+            const packages = data.units
+                .map((pkg) => ({
+                    name: pkg.name.trim(),
+                    coefficient: Number(pkg.coefficient),
+                    is_default: Boolean(pkg.is_default),
+                }))
+                .filter((pkg) => pkg.name.length > 0);
+
+            if (packages.some((pkg) => !Number.isFinite(pkg.coefficient) || pkg.coefficient <= 0)) {
+                throw new Error('Package coefficient must be greater than 0');
+            }
+
+            const seenNames = new Set<string>();
+            for (const pkg of packages) {
+                const key = pkg.name.toLowerCase();
+                if (seenNames.has(key)) {
+                    throw new Error(`Duplicate package name: ${pkg.name}`);
+                }
+                seenNames.add(key);
+            }
+
+            const defaultCount = packages.filter((pkg) => pkg.is_default).length;
+            if (defaultCount > 1) {
+                throw new Error('Only one default package is allowed');
+            }
+            if (packages.length > 0 && defaultCount === 0) {
+                packages[0].is_default = true;
+            }
+
             const payload = {
                 name: data.name.trim(),
                 sku: data.sku.trim(),
@@ -95,6 +197,7 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                 purchase_price: Number(data.purchase_price) || 0,
                 selling_price: Number(data.sale_price) || 0,
                 category: categoryId,
+                packages,
             };
             console.log('Sending payload:', payload);
             if (mode === 'edit' && initialData) {
@@ -107,9 +210,15 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
             queryClient.invalidateQueries({ queryKey: ['items'] });
             router.push('/directories/items');
         },
-        onError: (error: any) => {
-            console.error('Item save error:', error);
-            const errorMessage = error?.response?.data?.details || error?.response?.data || error?.message || 'Failed to save item';
+        onError: (error: unknown) => {
+            const err = error as {
+                response?: { data?: { details?: string } | string };
+                message?: string;
+            };
+            console.error('Item save error:', err);
+            const errorMessage = err?.response?.data && typeof err.response.data === 'object'
+                ? (err.response.data as { details?: string }).details ?? err.response.data
+                : err?.response?.data || err?.message || 'Failed to save item';
             const errorText = typeof errorMessage === 'string' ? errorMessage : JSON.stringify(errorMessage);
             toast.error(`Failed to save item: ${errorText}`);
         }
@@ -223,18 +332,84 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                         />
                     </div>
 
+                    <div className="space-y-3 border-t pt-4">
+                        <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                                <Label>{t('packaging')}</Label>
+                                <p className="text-xs text-muted-foreground">
+                                    {t('packagingHint', { unit: formData.base_unit || 'pcs' })}
+                                </p>
+                            </div>
+                            <Button type="button" variant="outline" size="sm" onClick={addPackage}>
+                                <PiPlusBold className="mr-1" />
+                                {tc('add')}
+                            </Button>
+                        </div>
+
+                        {formData.units.length === 0 && (
+                            <p className="text-sm text-muted-foreground">
+                                {t('noPackagesAdded')}
+                            </p>
+                        )}
+
+                        {formData.units.map((pkg, index) => (
+                            <div key={pkg.id ?? index} className="grid grid-cols-12 gap-2 items-end">
+                                <div className="col-span-5 space-y-1">
+                                    <Label className="text-xs">{t('packageName')}</Label>
+                                    <Input
+                                        value={pkg.name}
+                                        onChange={(e) => updatePackage(index, { name: e.target.value })}
+                                        placeholder="Box"
+                                    />
+                                </div>
+                                <div className="col-span-4 space-y-1">
+                                    <Label className="text-xs">{t('coefficient')}</Label>
+                                    <Input
+                                        type="number"
+                                        min="0.001"
+                                        step="0.001"
+                                        value={pkg.coefficient}
+                                        onChange={(e) => updatePackage(index, { coefficient: parseFloat(e.target.value) || 0 })}
+                                    />
+                                </div>
+                                <div className="col-span-2">
+                                    <Button
+                                        type="button"
+                                        variant={pkg.is_default ? "default" : "outline"}
+                                        size="sm"
+                                        className="w-full"
+                                        onClick={() => setDefaultPackage(index)}
+                                    >
+                                        {t('default')}
+                                    </Button>
+                                </div>
+                                <div className="col-span-1">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => removePackage(index)}
+                                        aria-label="Delete package"
+                                    >
+                                        <PiTrashBold />
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="category">{tf('category')}</Label>
                             <Select
                                 value={formData.category === '' || formData.category == null ? CATEGORY_NONE : String(formData.category)}
-                                onValueChange={(v) => setFormData({ ...formData, category: v === CATEGORY_NONE ? (CATEGORY_NONE as unknown as string) : v })}
+                                onValueChange={(v) => setFormData({ ...formData, category: v === CATEGORY_NONE ? CATEGORY_NONE : v })}
                             >
                                 <SelectTrigger id="category">
                                     <SelectValue placeholder={tf('category')} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value={CATEGORY_NONE}>{t('noCategory') ?? '—'}</SelectItem>
+                                    <SelectItem value={CATEGORY_NONE}>{t('noCategory') ?? '-'}</SelectItem>
                                     {categories.map((c: { id: number; name: string }) => (
                                         <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                                     ))}

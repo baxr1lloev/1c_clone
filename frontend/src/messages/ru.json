@@ -158,6 +158,13 @@
             "description": "Описание"
         },
         "noCategory": "Без категории",
+        "packaging": "Упаковка",
+        "packagingHint": "Например: 1 коробка = 12 {unit}",
+        "noPackagesAdded": "Упаковки не добавлены. Товар будет продаваться только в базовой единице измерения.",
+        "packageName": "Название",
+        "coefficient": "Коэффициент",
+        "default": "По умолчанию",
+        "baseQuantity": "Базовое",
         "addCurrency": "Добавить валюту",
         "addCounterparty": "Добавить контрагента",
         "addContract": "Добавить договор",

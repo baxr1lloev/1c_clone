@@ -21,12 +21,13 @@
   PiBankBold,
   PiScrollBold,
 } from "react-icons/pi";
+import type { IconType } from "react-icons";
 
 export interface NavItem {
   id: string; // Added for translation
   title: string; // Fallback
   href: string;
-  icon?: any;
+  icon: IconType;
   keywords?: string[];
   description?: string;
   children?: NavItem[];
@@ -35,7 +36,7 @@ export interface NavItem {
 export interface NavGroup {
   id: string;
   title: string; // Fallback
-  icon: any;
+  icon: IconType;
   items: NavItem[];
 }
 
@@ -132,7 +133,7 @@ export const navigationConfig: NavGroup[] = [
       {
         id: "nomenclature",
         title: "Nomenclature (Items)",
-        href: "/directories/categories",
+        href: "/directories/items",
         icon: PiPackageBold,
         keywords: ["РќРѕРјРµРЅРєР»Р°С‚СѓСЂР°", "РўРѕРІР°СЂС‹ РґР»СЏ РїСЂРѕРґР°Р¶Рё"],
       },
@@ -188,7 +189,7 @@ export const navigationConfig: NavGroup[] = [
       {
         id: "nomenclature",
         title: "Nomenclature",
-        href: "/directories/categories",
+        href: "/directories/items",
         icon: PiPackageBold,
         keywords: ["РќРѕРјРµРЅРєР»Р°С‚СѓСЂР°", "РЎРєР»Р°РґС‹"],
       },
