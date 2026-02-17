@@ -527,40 +527,6 @@ export function SalesDocumentForm({ initialData, mode }: SalesDocumentFormProps)
                 const baseQty = Number(row.original.quantity || 0) * coef;
 
                 return (
-                    onChange = {(unitId, coefficient) => {
-        const newLines = [...lines];
-        const oldCoef = Number(newLines[row.index].coefficient) || 1;
-        const currentPrice = Number(newLines[row.index].price) || 0;
-        // Recalculate Price: BasePrice = Price / OldCoef. NewPrice = BasePrice * NewCoef
-        // This ensures 1 Box ($100) -> 1 Pc ($10).
-        const newPrice = (currentPrice / oldCoef) * coefficient;
-
-        let newLine = {
-            ...newLines[row.index],
-            package: unitId,
-            coefficient: coefficient,
-            price: parseFloat(newPrice.toFixed(2)) // Round to 2 decimals for UI
-        };
-        newLines[row.index] = recalculateLine(newLine);
-        setLines(newLines);
-    }
-}
-disabled = {!canEdit}
-                        />
-                    </div >
-                )
-            }
-        },
-{
-    accessorKey: 'quantity',
-        header: tf('quantity'),
-            cell: ({ row }) => {
-                const item = row.original.item;
-                const { data: itemData } = useItemDetails(item);
-                const coef = Number(row.original.coefficient) || 1;
-                const baseQty = Number(row.original.quantity || 0) * coef;
-
-                return (
                     <div className="flex gap-1 h-full items-center">
                         <Input
                             type="number"
@@ -581,23 +547,25 @@ disabled = {!canEdit}
                             </span>
                         </div>
                     </div>
+        {
+            accessorKey: 'price',
             header: tf('price'),
-                    cell: ({ row }) => (
-                        <Input
-                            type="number"
-                            disabled={isPosted}
-                            className="h-8 w-full text-right border-transparent focus:border-primary bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background"
-                            value={row.original.price}
-                            onChange={(e) => {
-                                const newLines = [...lines];
-                                let newLine = { ...newLines[row.index], price: parseFloat(e.target.value) };
-                                newLines[row.index] = recalculateLine(newLine);
-                                setLines(newLines);
-                            }}
-                        />
-                    )
-            },
-            {
+            cell: ({ row }) => (
+                <Input
+                    type="number"
+                    disabled={isPosted}
+                    className="h-8 w-full text-right border-transparent focus:border-primary bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background"
+                    value={row.original.price}
+                    onChange={(e) => {
+                        const newLines = [...lines];
+                        let newLine = { ...newLines[row.index], price: parseFloat(e.target.value) };
+                        newLines[row.index] = recalculateLine(newLine);
+                        setLines(newLines);
+                    }}
+                />
+            )
+        },
+        {
                 id: 'amount',
                 header: tf('amount'),
                 cell: ({ row }) => <span className="font-mono font-bold block text-right px-2">
