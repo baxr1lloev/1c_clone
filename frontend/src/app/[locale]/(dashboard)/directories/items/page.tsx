@@ -122,8 +122,9 @@ export default function ItemsPage() {
       accessorKey: 'sale_price',
       header: 'Price',
       cell: ({ row }) => {
-        const price = row.getValue('sale_price') as number;
-        return price ? `$${price.toFixed(2)}` : '-';
+        const rawPrice = row.getValue('sale_price');
+        const price = typeof rawPrice === 'number' ? rawPrice : Number(rawPrice);
+        return Number.isFinite(price) ? `$${price.toFixed(2)}` : '-';
       },
     },
     {

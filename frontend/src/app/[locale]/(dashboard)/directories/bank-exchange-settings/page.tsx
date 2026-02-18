@@ -68,24 +68,24 @@ export default function BankExchangeSettingsPage() {
       return api.post('/directories/bank-exchange-settings/', data);
     },
     onSuccess: () => {
-      toast.success(selected ? 'Settings updated' : 'Settings created');
+      toast.success(selected ? 'Настройки обновлены' : 'Настройки созданы');
       queryClient.invalidateQueries({ queryKey: ['bank-exchange-settings'] });
       setIsFormOpen(false);
       setSelected(null);
       setFormData(defaultForm);
     },
-    onError: () => toast.error('Failed to save exchange settings'),
+    onError: () => toast.error('Не удалось сохранить настройки обмена'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => api.delete(`/directories/bank-exchange-settings/${id}/`),
     onSuccess: () => {
-      toast.success('Settings deleted');
+      toast.success('Настройки удалены');
       queryClient.invalidateQueries({ queryKey: ['bank-exchange-settings'] });
       setIsDeleteOpen(false);
       setSelected(null);
     },
-    onError: () => toast.error('Failed to delete settings'),
+    onError: () => toast.error('Не удалось удалить настройки'),
   });
 
   const openCreate = () => {
@@ -119,32 +119,32 @@ export default function BankExchangeSettingsPage() {
   };
 
   const columns: ColumnDef<BankExchangeSettings>[] = [
-    { accessorKey: 'bank_account_name', header: 'Bank Account' },
-    { accessorKey: 'exchange_format', header: 'Format' },
-    { accessorKey: 'encoding', header: 'Encoding' },
+    { accessorKey: 'bank_account_name', header: 'Банковский счет' },
+    { accessorKey: 'exchange_format', header: 'Формат' },
+    { accessorKey: 'encoding', header: 'Кодировка' },
     {
       id: 'automation',
-      header: 'Automation',
+      header: 'Автоматизация',
       cell: ({ row }) => (
         <div className="flex gap-2">
-          {row.original.auto_create_counterparties ? <Badge variant="secondary">Auto CP</Badge> : null}
-          {row.original.auto_detect_bank_fees ? <Badge variant="secondary">Fee Detect</Badge> : null}
-          {row.original.auto_post_incoming || row.original.auto_post_outgoing ? <Badge variant="secondary">Auto Post</Badge> : null}
+          {row.original.auto_create_counterparties ? <Badge variant="secondary">Авто контрагенты</Badge> : null}
+          {row.original.auto_detect_bank_fees ? <Badge variant="secondary">Авто комиссия</Badge> : null}
+          {row.original.auto_post_incoming || row.original.auto_post_outgoing ? <Badge variant="secondary">Авто проведение</Badge> : null}
         </div>
       ),
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: 'Действия',
       cell: ({ row }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon"><PiDotsThreeOutlineBold className="h-4 w-4" /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => openEdit(row.original)}><PiPencilBold className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openEdit(row.original)}><PiPencilBold className="mr-2 h-4 w-4" />Изменить</DropdownMenuItem>
             <DropdownMenuItem className="text-destructive" onClick={() => { setSelected(row.original); setIsDeleteOpen(true); }}>
-              <PiTrashBold className="mr-2 h-4 w-4" />Delete
+              <PiTrashBold className="mr-2 h-4 w-4" />Удалить
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -156,21 +156,21 @@ export default function BankExchangeSettingsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Bank Exchange Settings</h1>
-          <p className="text-muted-foreground">Configure import/export format, encoding and automation rules.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Настройки обмена с банком</h1>
+          <p className="text-muted-foreground">Настройка формата обмена, кодировки и правил автоматизации.</p>
         </div>
         <Button onClick={openCreate} disabled={noBankAccounts}>
-          + Add Settings
+          + Добавить настройки
         </Button>
       </div>
 
       {noBankAccounts && (
         <div className="rounded-lg border border-dashed p-4 bg-muted/20 flex items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            Create at least one bank account before adding exchange settings.
+            Перед настройкой обмена создайте хотя бы один банковский счет.
           </p>
           <Button variant="outline" onClick={() => router.push('/directories/bank-accounts')}>
-            Go to Bank Accounts
+            Перейти к банковским счетам
           </Button>
         </div>
       )}
@@ -180,15 +180,15 @@ export default function BankExchangeSettingsPage() {
         data={settings}
         isLoading={isLoading}
         searchColumn="bank_account_name"
-        searchPlaceholder="Search by bank account..."
+        searchPlaceholder="Поиск по банковскому счету..."
         onRefresh={() => refetch()}
       />
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-[820px]">
           <DialogHeader>
-            <DialogTitle>{selected ? 'Edit Exchange Settings' : 'New Exchange Settings'}</DialogTitle>
-            <DialogDescription>Set import and export behavior for selected bank account.</DialogDescription>
+            <DialogTitle>{selected ? 'Изменить настройки обмена' : 'Новые настройки обмена'}</DialogTitle>
+            <DialogDescription>Параметры импорта и экспорта для выбранного банковского счета.</DialogDescription>
           </DialogHeader>
           <form
             onSubmit={(e) => {
@@ -199,7 +199,7 @@ export default function BankExchangeSettingsPage() {
           >
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Bank Account</Label>
+                <Label>Банковский счет</Label>
                 <select
                   className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                   value={formData.bank_account}
@@ -212,7 +212,7 @@ export default function BankExchangeSettingsPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label>Format</Label>
+                <Label>Формат</Label>
                 <select
                   className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                   value={formData.exchange_format}
@@ -225,11 +225,11 @@ export default function BankExchangeSettingsPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label>Bank Program Name</Label>
+                <Label>Название программы банка</Label>
                 <Input value={formData.bank_program_name} onChange={(e) => setFormData({ ...formData, bank_program_name: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Encoding</Label>
+                <Label>Кодировка</Label>
                 <select
                   className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                   value={formData.encoding}
@@ -241,26 +241,26 @@ export default function BankExchangeSettingsPage() {
                 </select>
               </div>
               <div className="space-y-2 col-span-2">
-                <Label>Group For New Counterparties</Label>
+                <Label>Группа для новых контрагентов</Label>
                 <Input value={formData.new_counterparty_group_name} onChange={(e) => setFormData({ ...formData, new_counterparty_group_name: e.target.value })} />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="flex items-center gap-2"><Switch checked={formData.auto_create_counterparties} onCheckedChange={(v) => setFormData({ ...formData, auto_create_counterparties: v })} /><Label>Auto-create counterparties</Label></div>
-              <div className="flex items-center gap-2"><Switch checked={formData.auto_detect_bank_fees} onCheckedChange={(v) => setFormData({ ...formData, auto_detect_bank_fees: v })} /><Label>Auto-detect bank fees</Label></div>
-              <div className="flex items-center gap-2"><Switch checked={formData.auto_post_incoming} onCheckedChange={(v) => setFormData({ ...formData, auto_post_incoming: v })} /><Label>Auto-post incoming</Label></div>
-              <div className="flex items-center gap-2"><Switch checked={formData.auto_post_outgoing} onCheckedChange={(v) => setFormData({ ...formData, auto_post_outgoing: v })} /><Label>Auto-post outgoing</Label></div>
-              <div className="flex items-center gap-2"><Switch checked={formData.show_form_before_import} onCheckedChange={(v) => setFormData({ ...formData, show_form_before_import: v })} /><Label>Show form before import</Label></div>
-              <div className="flex items-center gap-2"><Switch checked={formData.export_payment_orders} onCheckedChange={(v) => setFormData({ ...formData, export_payment_orders: v })} /><Label>Export payment orders</Label></div>
-              <div className="flex items-center gap-2"><Switch checked={formData.export_payment_claims} onCheckedChange={(v) => setFormData({ ...formData, export_payment_claims: v })} /><Label>Export payment claims</Label></div>
-              <div className="flex items-center gap-2"><Switch checked={formData.validate_document_number} onCheckedChange={(v) => setFormData({ ...formData, validate_document_number: v })} /><Label>Validate document number</Label></div>
-              <div className="flex items-center gap-2"><Switch checked={formData.validate_exchange_security} onCheckedChange={(v) => setFormData({ ...formData, validate_exchange_security: v })} /><Label>Validate exchange security</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={formData.auto_create_counterparties} onCheckedChange={(v) => setFormData({ ...formData, auto_create_counterparties: v })} /><Label>Автосоздание контрагентов</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={formData.auto_detect_bank_fees} onCheckedChange={(v) => setFormData({ ...formData, auto_detect_bank_fees: v })} /><Label>Автоопределение комиссии банка</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={formData.auto_post_incoming} onCheckedChange={(v) => setFormData({ ...formData, auto_post_incoming: v })} /><Label>Автопроведение поступлений</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={formData.auto_post_outgoing} onCheckedChange={(v) => setFormData({ ...formData, auto_post_outgoing: v })} /><Label>Автопроведение списаний</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={formData.show_form_before_import} onCheckedChange={(v) => setFormData({ ...formData, show_form_before_import: v })} /><Label>Показывать форму перед импортом</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={formData.export_payment_orders} onCheckedChange={(v) => setFormData({ ...formData, export_payment_orders: v })} /><Label>Выгружать платежные поручения</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={formData.export_payment_claims} onCheckedChange={(v) => setFormData({ ...formData, export_payment_claims: v })} /><Label>Выгружать платежные требования</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={formData.validate_document_number} onCheckedChange={(v) => setFormData({ ...formData, validate_document_number: v })} /><Label>Проверять номер документа</Label></div>
+              <div className="flex items-center gap-2"><Switch checked={formData.validate_exchange_security} onCheckedChange={(v) => setFormData({ ...formData, validate_exchange_security: v })} /><Label>Проверять безопасность обмена</Label></div>
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Saving...' : 'Save'}</Button>
+              <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Отмена</Button>
+              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Сохранение...' : 'Сохранить'}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -269,18 +269,18 @@ export default function BankExchangeSettingsPage() {
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete exchange settings?</AlertDialogTitle>
+            <AlertDialogTitle>Удалить настройки обмена?</AlertDialogTitle>
             <AlertDialogDescription>
-              This removes exchange settings for {selected?.bank_account_name || 'selected account'}.
+              Будут удалены настройки обмена для {selected?.bank_account_name || 'выбранного счета'}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selected?.id && deleteMutation.mutate(selected.id)}
               className="bg-destructive text-destructive-foreground"
             >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              {deleteMutation.isPending ? 'Удаление...' : 'Удалить'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

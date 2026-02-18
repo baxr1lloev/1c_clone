@@ -54,6 +54,20 @@ interface RelatedDocument {
 
 type LinkableDocumentType = 'sales-document' | 'purchase-document' | 'payment-document' | 'transfer-document';
 
+const toFiniteNumber = (value: unknown): number | null => {
+    const numeric = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(numeric) ? numeric : null;
+};
+
+const formatNumber = (value: unknown, digits: number, fallback = '-'): string => {
+    const numeric = toFiniteNumber(value);
+    return numeric === null ? fallback : numeric.toFixed(digits);
+};
+
+const formatMoney = (value: unknown): string => {
+    return `$${formatNumber(value, 2, '0.00')}`;
+};
+
 const toLinkableDocumentType = (type: string): LinkableDocumentType => {
     const normalized = type.toLowerCase();
     if (normalized.includes('purchase')) return 'purchase-document';
@@ -112,12 +126,12 @@ export default function ItemDetailPage() {
         {
             accessorKey: 'quantity',
             header: 'Quantity',
-            cell: ({ row }) => row.original.quantity.toFixed(3),
+            cell: ({ row }) => formatNumber(row.original.quantity, 3, '0.000'),
         },
         {
             accessorKey: 'amount',
             header: 'Value',
-            cell: ({ row }) => `$${row.original.amount.toFixed(2)}`,
+            cell: ({ row }) => formatMoney(row.original.amount),
         },
     ];
 
@@ -147,7 +161,7 @@ export default function ItemDetailPage() {
         {
             accessorKey: 'total',
             header: 'Total',
-            cell: ({ row }) => `$${row.original.total?.toFixed(2) || '0.00'}`,
+            cell: ({ row }) => formatMoney(row.original.total),
         },
     ];
 
@@ -220,11 +234,11 @@ export default function ItemDetailPage() {
                             </div>
                             <div>
                                 <p className="text-sm text-muted-foreground">Purchase Price</p>
-                                <p className="font-medium">${item?.purchase_price?.toFixed(2)}</p>
+                                <p className="font-medium">{formatMoney(item?.purchase_price)}</p>
                             </div>
                             <div>
                                 <p className="text-sm text-muted-foreground">Sale Price</p>
-                                <p className="font-medium">${item?.sale_price?.toFixed(2)}</p>
+                                <p className="font-medium">{formatMoney(item?.sale_price)}</p>
                             </div>
                         </CardContent>
                     </Card>

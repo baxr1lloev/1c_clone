@@ -248,9 +248,9 @@ export function Sidebar() {
       {/* All Functions Command Dialog - Mounted check to prevent hydration mismatch */}
       {searchOpen && (
         <CommandDialog open={searchOpen} onOpenChange={setSearchOpen}>
-          <CommandInput placeholder="Type a command or search (e.g. 'Контрагент', 'НДС')..." />
+          <CommandInput placeholder="Введите команду или поиск (например, 'Контрагент', 'НДС')..." />
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>Ничего не найдено.</CommandEmpty>
             {navigationConfig.map((group) => (
               <CommandGroup key={group.id} heading={t(`${group.id}`)}>
                 {group.items.map((item) => (

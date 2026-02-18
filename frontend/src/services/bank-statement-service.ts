@@ -81,10 +81,14 @@ export interface OpeningBalanceSuggestion {
     accounting_balance: string;
 }
 
+type ListResponse<T> = T[] | { results?: T[] };
+
 export const BankStatementService = {
     getAll: async () => {
-        const response = await api.get<BankStatement[]>('/documents/bank-statements/');
-        return response;
+        const response = await api.get<ListResponse<BankStatement>>('/documents/bank-statements/');
+        if (Array.isArray(response)) return response;
+        if (response && Array.isArray(response.results)) return response.results;
+        return [];
     },
 
     getById: async (id: number | string) => {
@@ -103,6 +107,7 @@ export const BankStatementService = {
         bank_account: number;
         statement_date: string;
         opening_balance: string;
+        date?: string;
         comment?: string;
     }) => {
         const response = await api.post<BankStatementDetail>('/documents/bank-statements/', data);

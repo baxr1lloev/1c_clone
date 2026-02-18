@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { PiFileCsvBold, PiPlusBold, PiUploadBold } from 'react-icons/pi';
@@ -61,8 +62,15 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export default function BankStatementsPage() {
+    const locale = useLocale();
     const router = useRouter();
     const queryClient = useQueryClient();
+    const localePath = (path: string) => `/${locale}${path.startsWith('/') ? path : `/${path}`}`;
+    const isHydrated = useSyncExternalStore(
+        () => () => undefined,
+        () => true,
+        () => false
+    );
 
     const [openCreate, setOpenCreate] = useState(false);
     const [openUpload, setOpenUpload] = useState(false);
@@ -138,24 +146,24 @@ export default function BankStatementsPage() {
 
     const validateBeforeSubmit = () => {
         if (isBankAccountsError) {
-            toast.error(getErrorMessage(bankAccountsError, 'Failed to load bank accounts'));
+            toast.error(getErrorMessage(bankAccountsError, 'Не удалось загрузить банковские счета'));
             return false;
         }
         if (!bankAccountsReady) {
-            toast.error('Bank accounts are still loading, please wait');
+            toast.error('Банковские счета еще загружаются, подождите');
             return false;
         }
         if (noBankAccounts) {
-            toast.error('Create a bank account first');
-            router.push('/directories/bank-accounts');
+            toast.error('Сначала создайте банковский счет');
+            router.push(localePath('/directories/bank-accounts'));
             return false;
         }
         if (!bankAccount || !statementDate) {
-            toast.error('Fill required fields');
+            toast.error('Заполните обязательные поля');
             return false;
         }
         if (openingHint && !openingHint.can_create_for_date) {
-            toast.error(`Cannot create statement before ${openingHint.latest_statement_date}`);
+            toast.error(`Нельзя создать выписку раньше ${openingHint.latest_statement_date}`);
             return false;
         }
         return true;
@@ -168,57 +176,66 @@ export default function BankStatementsPage() {
                 bank_account: Number(bankAccount),
                 statement_date: statementDate,
                 opening_balance: resolveOpeningBalance(),
+                date: new Date().toISOString(),
             });
         },
         onSuccess: (data) => {
-            toast.success('Statement created');
+            toast.success('Выписка создана');
             setOpenCreate(false);
             resetForm();
             queryClient.invalidateQueries({ queryKey: ['bank-statements'] });
-            router.push(`/documents/bank-statements/${data.id}`);
+            if (data?.id) {
+                router.push(localePath(`/documents/bank-statements/${data.id}`));
+                return;
+            }
+            toast.error('Выписка создана, но в ответе нет ID. Обновите список.');
         },
-        onError: (error: unknown) => toast.error(getErrorMessage(error, 'Failed to create statement')),
+        onError: (error: unknown) => toast.error(getErrorMessage(error, 'Не удалось создать выписку')),
     });
 
     const uploadMutation = useMutation({
         mutationFn: async () => {
-            if (!file) throw new Error('Select file');
+            if (!file) throw new Error('Выберите файл');
             if (!validateBeforeSubmit()) throw new Error('Validation failed');
             return BankStatementService.upload(file, bankAccount, statementDate, resolveOpeningBalance());
         },
         onSuccess: (data) => {
-            toast.success('Statement uploaded');
+            toast.success('Выписка загружена');
             setOpenUpload(false);
             resetForm();
             queryClient.invalidateQueries({ queryKey: ['bank-statements'] });
-            router.push(`/documents/bank-statements/${data.id}`);
+            if (data?.id) {
+                router.push(localePath(`/documents/bank-statements/${data.id}`));
+                return;
+            }
+            toast.error('Выписка загружена, но в ответе нет ID. Обновите список.');
         },
-        onError: (error: unknown) => toast.error(getErrorMessage(error, 'Failed to upload statement')),
+        onError: (error: unknown) => toast.error(getErrorMessage(error, 'Не удалось загрузить выписку')),
     });
 
     const columns = [
         {
             accessorKey: 'number',
-            header: 'Number',
+            header: 'Номер',
             cell: ({ row }: RowCell<BankStatement>) => (
-                <Link href={`/ru/documents/bank-statements/${row.original.id}`} className="font-medium text-primary hover:underline">
+                <Link href={localePath(`/documents/bank-statements/${row.original.id}`)} className="font-medium text-primary hover:underline">
                     {row.original.number}
                 </Link>
             ),
         },
-        { accessorKey: 'statement_date', header: 'Statement Date' },
+        { accessorKey: 'statement_date', header: 'Дата выписки' },
         {
             accessorKey: 'source',
-            header: 'Source',
+            header: 'Источник',
             cell: ({ row }: RowCell<BankStatement>) => (
                 row.original.source === 'imported'
-                    ? <Badge variant="outline" className="border-0 bg-blue-100 text-blue-800">Imported</Badge>
-                    : <Badge variant="outline" className="border-0 bg-slate-100 text-slate-800">Manual</Badge>
+                    ? <Badge variant="outline" className="border-0 bg-blue-100 text-blue-800">Импорт</Badge>
+                    : <Badge variant="outline" className="border-0 bg-slate-100 text-slate-800">Ручная</Badge>
             ),
         },
         {
             accessorKey: 'bank_account_name',
-            header: 'Account',
+            header: 'Счет',
             cell: ({ row }: RowCell<BankStatement>) => (
                 <div className="flex flex-col">
                     <span>{row.original.bank_account_name}</span>
@@ -228,27 +245,27 @@ export default function BankStatementsPage() {
         },
         {
             accessorKey: 'opening_balance',
-            header: 'Opening',
+            header: 'Вх. остаток',
             cell: ({ row }: RowCell<BankStatement>) => formatMoney(row.original.opening_balance, row.original.currency_code),
         },
         {
             accessorKey: 'total_receipts',
-            header: 'Receipts',
+            header: 'Поступления',
             cell: ({ row }: RowCell<BankStatement>) => <span className="font-medium text-green-600">+{formatMoney(row.original.total_receipts, row.original.currency_code)}</span>,
         },
         {
             accessorKey: 'total_payments',
-            header: 'Payments',
+            header: 'Списания',
             cell: ({ row }: RowCell<BankStatement>) => <span className="font-medium text-red-600">-{formatMoney(row.original.total_payments, row.original.currency_code)}</span>,
         },
         {
             accessorKey: 'closing_balance',
-            header: 'Closing',
+            header: 'Исх. остаток',
             cell: ({ row }: RowCell<BankStatement>) => formatMoney(row.original.closing_balance, row.original.currency_code),
         },
         {
             accessorKey: 'accounting_balance_difference',
-            header: 'Difference',
+            header: 'Разница',
             cell: ({ row }: RowCell<BankStatement>) => {
                 const diff = Number(row.original.accounting_balance_difference || 0);
                 if (diff === 0) return <span className="text-green-600">0.00</span>;
@@ -261,20 +278,20 @@ export default function BankStatementsPage() {
         },
         {
             accessorKey: 'status',
-            header: 'Status',
+            header: 'Статус',
             cell: ({ row }: RowCell<BankStatement>) => {
                 const isBalanced = row.original.is_balanced !== false;
                 const unmatched = row.original.unmatched_count ?? Math.max((row.original.lines_count || 0) - (row.original.matched_count || 0), 0);
-                if (!isBalanced) return <Badge variant="outline" className="border-0 bg-red-100 text-red-800">Difference</Badge>;
-                if (unmatched > 0) return <Badge variant="outline" className="border-0 bg-orange-100 text-orange-800">Unmatched</Badge>;
-                if (row.original.status === 'posted') return <Badge variant="outline" className="border-0 bg-green-100 text-green-800">Posted</Badge>;
-                if (row.original.status === 'processing') return <Badge variant="outline" className="border-0 bg-blue-100 text-blue-800">Processing</Badge>;
-                return <Badge variant="outline" className="border-0 bg-slate-100 text-slate-800">Draft</Badge>;
+                if (!isBalanced) return <Badge variant="outline" className="border-0 bg-red-100 text-red-800">Есть разница</Badge>;
+                if (unmatched > 0) return <Badge variant="outline" className="border-0 bg-orange-100 text-orange-800">Не сопоставлено</Badge>;
+                if (row.original.status === 'posted') return <Badge variant="outline" className="border-0 bg-green-100 text-green-800">Проведена</Badge>;
+                if (row.original.status === 'processing') return <Badge variant="outline" className="border-0 bg-blue-100 text-blue-800">В обработке</Badge>;
+                return <Badge variant="outline" className="border-0 bg-slate-100 text-slate-800">Черновик</Badge>;
             },
         },
         {
             accessorKey: 'matching_percentage',
-            header: 'Matching',
+            header: 'Сопоставление',
             cell: ({ row }: RowCell<BankStatement>) => {
                 const percentage = row.original.matching_percentage || 0;
                 const matches = row.original.matched_count || 0;
@@ -293,25 +310,26 @@ export default function BankStatementsPage() {
         <div className="flex h-[calc(100vh-4rem)] flex-col space-y-4 p-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Bank Statements</h1>
-                    <p className="text-muted-foreground">Import and process statements from bank-client exchange</p>
+                    <h1 className="text-2xl font-bold tracking-tight">Банковские выписки</h1>
+                    <p className="text-muted-foreground">Загрузка и обработка выписок из банк-клиента</p>
                 </div>
                 <div className="flex gap-2">
-                    <Button className="gap-2" variant="outline" onClick={() => router.push('/documents/payments/new?type=INCOMING')}>
+                    <Button className="gap-2" variant="outline" onClick={() => router.push(localePath('/documents/payments/new?type=INCOMING'))}>
                         <PiPlusBold className="h-4 w-4" />
-                        New payment
+                        Новый платеж
                     </Button>
 
+                    {isHydrated ? (
                     <Dialog
                         open={openCreate}
                         onOpenChange={(next) => {
                             if (next && isBankAccountsError) {
-                                toast.error(getErrorMessage(bankAccountsError, 'Failed to load bank accounts'));
+                                toast.error(getErrorMessage(bankAccountsError, 'Не удалось загрузить банковские счета'));
                                 return;
                             }
                             if (next && noBankAccounts) {
-                                toast.error('Create bank account first');
-                                router.push('/directories/bank-accounts');
+                                toast.error('Сначала создайте банковский счет');
+                                router.push(localePath('/directories/bank-accounts'));
                                 return;
                             }
                             if (next && !statementDate) {
@@ -323,16 +341,16 @@ export default function BankStatementsPage() {
                         <DialogTrigger asChild>
                             <Button className="gap-2">
                                 <PiPlusBold className="h-4 w-4" />
-                                Create statement
+                                Создать выписку
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[540px]">
-                            <DialogHeader><DialogTitle>Create bank statement</DialogTitle></DialogHeader>
+                            <DialogHeader><DialogTitle>Создать банковскую выписку</DialogTitle></DialogHeader>
                             <div className="grid gap-4 py-2">
                                 <div className="grid gap-2">
-                                    <Label>Bank account *</Label>
+                                    <Label>Банковский счет *</Label>
                                     <Select value={bankAccount} onValueChange={(v) => { setBankAccount(v); setOpeningBalance(''); }}>
-                                        <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder="Выберите счет" /></SelectTrigger>
                                         <SelectContent>
                                             {bankAccounts.map((acc) => (
                                                 <SelectItem key={acc.id} value={String(acc.id)}>
@@ -344,11 +362,11 @@ export default function BankStatementsPage() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
-                                        <Label>Statement date *</Label>
+                                        <Label>Дата выписки *</Label>
                                         <Input type="date" value={statementDate} onChange={(e) => { setStatementDate(e.target.value); setOpeningBalance(''); }} />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label>Opening balance</Label>
+                                        <Label>Входящий остаток</Label>
                                         <Input
                                             type="number"
                                             step="0.01"
@@ -361,35 +379,42 @@ export default function BankStatementsPage() {
                                 {openingHint ? (
                                     <div className="space-y-1 rounded-md border bg-muted/40 p-3 text-sm">
                                         {openingHint.previous_statement_date ? (
-                                            <p>Previous statement: {openingHint.previous_statement_date}</p>
+                                            <p>Предыдущая выписка: {openingHint.previous_statement_date}</p>
                                         ) : null}
-                                        <p>Accounting balance: {Number(openingHint.accounting_balance || 0).toFixed(2)}</p>
+                                        <p>Учетный остаток: {Number(openingHint.accounting_balance || 0).toFixed(2)}</p>
                                         {openingHint.continuity_warning ? <p className="text-amber-600">{openingHint.continuity_warning}</p> : null}
                                         {!openingHint.can_create_for_date ? (
-                                            <p className="text-red-600">Cannot create statement before {openingHint.latest_statement_date}</p>
+                                            <p className="text-red-600">Нельзя создать выписку раньше {openingHint.latest_statement_date}</p>
                                         ) : null}
                                     </div>
                                 ) : null}
                             </div>
                             <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setOpenCreate(false)}>Cancel</Button>
+                                <Button variant="outline" onClick={() => setOpenCreate(false)}>Отмена</Button>
                                 <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
-                                    {createMutation.isPending ? 'Creating...' : 'Create'}
+                                    {createMutation.isPending ? 'Создание...' : 'Создать'}
                                 </Button>
                             </div>
                         </DialogContent>
                     </Dialog>
+                    ) : (
+                        <Button className="gap-2" disabled>
+                            <PiPlusBold className="h-4 w-4" />
+                            РЎРѕР·РґР°С‚СЊ РІС‹РїРёСЃРєСѓ
+                        </Button>
+                    )}
 
+                    {isHydrated ? (
                     <Dialog
                         open={openUpload}
                         onOpenChange={(next) => {
                             if (next && isBankAccountsError) {
-                                toast.error(getErrorMessage(bankAccountsError, 'Failed to load bank accounts'));
+                                toast.error(getErrorMessage(bankAccountsError, 'Не удалось загрузить банковские счета'));
                                 return;
                             }
                             if (next && noBankAccounts) {
-                                toast.error('Create bank account first');
-                                router.push('/directories/bank-accounts');
+                                toast.error('Сначала создайте банковский счет');
+                                router.push(localePath('/directories/bank-accounts'));
                                 return;
                             }
                             if (next && !statementDate) {
@@ -401,16 +426,16 @@ export default function BankStatementsPage() {
                         <DialogTrigger asChild>
                             <Button className="gap-2" variant="outline">
                                 <PiUploadBold className="h-4 w-4" />
-                                Upload statement
+                                Загрузить выписку
                             </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[540px]">
-                            <DialogHeader><DialogTitle>Upload statement</DialogTitle></DialogHeader>
+                            <DialogHeader><DialogTitle>Загрузить выписку</DialogTitle></DialogHeader>
                             <div className="grid gap-4 py-2">
                                 <div className="grid gap-2">
-                                    <Label>Bank account *</Label>
+                                    <Label>Банковский счет *</Label>
                                     <Select value={bankAccount} onValueChange={(v) => { setBankAccount(v); setOpeningBalance(''); }}>
-                                        <SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
+                                        <SelectTrigger><SelectValue placeholder="Выберите счет" /></SelectTrigger>
                                         <SelectContent>
                                             {bankAccounts.map((acc) => (
                                                 <SelectItem key={acc.id} value={String(acc.id)}>
@@ -422,11 +447,11 @@ export default function BankStatementsPage() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="grid gap-2">
-                                        <Label>Statement date *</Label>
+                                        <Label>Дата выписки *</Label>
                                         <Input type="date" value={statementDate} onChange={(e) => { setStatementDate(e.target.value); setOpeningBalance(''); }} />
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label>Opening balance</Label>
+                                        <Label>Входящий остаток</Label>
                                         <Input
                                             type="number"
                                             step="0.01"
@@ -437,10 +462,10 @@ export default function BankStatementsPage() {
                                     </div>
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label>Statement file (CSV/TXT/XLS)</Label>
+                                    <Label>Файл выписки (CSV/TXT/XLS)</Label>
                                     <label className="flex h-28 cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-800">
                                         <PiFileCsvBold className="mb-2 h-8 w-8 text-gray-500" />
-                                        <p className="text-sm text-gray-500">{file ? file.name : 'Click to choose file'}</p>
+                                        <p className="text-sm text-gray-500">{file ? file.name : 'Нажмите, чтобы выбрать файл'}</p>
                                         <input
                                             type="file"
                                             className="hidden"
@@ -451,32 +476,38 @@ export default function BankStatementsPage() {
                                 </div>
                             </div>
                             <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setOpenUpload(false)}>Cancel</Button>
+                                <Button variant="outline" onClick={() => setOpenUpload(false)}>Отмена</Button>
                                 <Button onClick={() => uploadMutation.mutate()} disabled={uploadMutation.isPending}>
-                                    {uploadMutation.isPending ? 'Uploading...' : 'Upload'}
+                                    {uploadMutation.isPending ? 'Загрузка...' : 'Загрузить'}
                                 </Button>
                             </div>
                         </DialogContent>
                     </Dialog>
+                    ) : (
+                        <Button className="gap-2" variant="outline" disabled>
+                            <PiUploadBold className="h-4 w-4" />
+                            Р—Р°РіСЂСѓР·РёС‚СЊ РІС‹РїРёСЃРєСѓ
+                        </Button>
+                    )}
                 </div>
             </div>
 
             {(isBankAccountsError || isExchangeSettingsError) ? (
                 <Card className="border-destructive/40 bg-destructive/10">
-                    <CardHeader className="pb-2"><CardTitle className="text-base">Bank and Cash data failed to load</CardTitle></CardHeader>
+                    <CardHeader className="pb-2"><CardTitle className="text-base">Не удалось загрузить данные раздела Банк и касса</CardTitle></CardHeader>
                     <CardContent className="space-y-3 text-sm">
                         {isBankAccountsError ? (
-                            <p>Bank accounts: {getErrorMessage(bankAccountsError, 'Load failed')}</p>
+                            <p>Банковские счета: {getErrorMessage(bankAccountsError, 'Ошибка загрузки')}</p>
                         ) : null}
                         {isExchangeSettingsError ? (
-                            <p>Exchange settings: {getErrorMessage(exchangeSettingsError, 'Load failed')}</p>
+                            <p>Настройки обмена: {getErrorMessage(exchangeSettingsError, 'Ошибка загрузки')}</p>
                         ) : null}
                         <div className="flex flex-wrap gap-2">
                             <Button variant="outline" onClick={() => refetchBankAccounts()}>
-                                Retry bank accounts
+                                Повторить загрузку счетов
                             </Button>
                             <Button variant="outline" onClick={() => refetchExchangeSettings()}>
-                                Retry exchange settings
+                                Повторить загрузку настроек
                             </Button>
                         </div>
                     </CardContent>
@@ -485,15 +516,15 @@ export default function BankStatementsPage() {
 
             {(noBankAccounts || noExchangeSettings) ? (
                 <Card className="border-dashed">
-                    <CardHeader className="pb-2"><CardTitle className="text-base">Setup before first statement</CardTitle></CardHeader>
+                    <CardHeader className="pb-2"><CardTitle className="text-base">Подготовка перед первой выпиской</CardTitle></CardHeader>
                     <CardContent className="space-y-3 text-sm">
-                        <p className="text-muted-foreground">For stable import flow, create bank account and exchange settings first.</p>
+                        <p className="text-muted-foreground">Для стабильной работы сначала создайте банковский счет и настройте обмен.</p>
                         <div className="flex flex-wrap gap-2">
                             {noBankAccounts ? (
-                                <Button onClick={() => router.push('/directories/bank-accounts')}>1. Create bank account</Button>
+                                <Button onClick={() => router.push(localePath('/directories/bank-accounts'))}>1. Создать банковский счет</Button>
                             ) : null}
                             {noExchangeSettings ? (
-                                <Button variant="outline" onClick={() => router.push('/directories/bank-exchange-settings')}>2. Configure exchange</Button>
+                                <Button variant="outline" onClick={() => router.push(localePath('/directories/bank-exchange-settings'))}>2. Настроить обмен с банком</Button>
                             ) : null}
                         </div>
                     </CardContent>
@@ -507,7 +538,7 @@ export default function BankStatementsPage() {
                         data={statements || []}
                         isLoading={isLoading}
                         searchColumn="number"
-                        searchPlaceholder="Search by number..."
+                        searchPlaceholder="Поиск по номеру..."
                     />
                 </CardContent>
             </Card>

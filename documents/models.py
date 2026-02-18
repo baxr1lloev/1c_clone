@@ -573,7 +573,16 @@ class SalesDocumentLine(models.Model):
              raise ValidationError(_("Cannot edit lines of a posted document."))
 
         from decimal import Decimal
-        
+
+        if self.package_id:
+            if self.package.item_id != self.item_id:
+                raise ValidationError(_("Selected package does not belong to selected item."))
+            if self.package.coefficient <= 0:
+                raise ValidationError(_("Package coefficient must be greater than zero."))
+            self.coefficient = self.package.coefficient
+        else:
+            self.coefficient = Decimal('1')
+
         # Helper to ensure Decimal
         def to_d(val):
             return Decimal(str(val)) if val is not None else Decimal('0')
@@ -582,6 +591,13 @@ class SalesDocumentLine(models.Model):
         price = to_d(self.price)
         discount = to_d(self.discount)
         vat_rate_val = to_d(self.vat_rate)
+
+        if qty <= 0:
+            raise ValidationError(_("Quantity must be greater than zero."))
+        if price < 0:
+            raise ValidationError(_("Price cannot be negative."))
+        if to_d(self.coefficient) <= 0:
+            raise ValidationError(_("Coefficient must be greater than zero."))
 
         # 1. Calculate Amount with Discount
         # Amount = Qty * Price * (1 - Discount/100)
@@ -816,6 +832,24 @@ class PurchaseDocumentLine(models.Model):
         if self.document.status != BaseDocument.STATUS_DRAFT:
              raise ValidationError(_('Cannot edit lines of a posted document.'))
 
+        from decimal import Decimal
+
+        if self.package_id:
+            if self.package.item_id != self.item_id:
+                raise ValidationError(_("Selected package does not belong to selected item."))
+            if self.package.coefficient <= 0:
+                raise ValidationError(_("Package coefficient must be greater than zero."))
+            self.coefficient = self.package.coefficient
+        else:
+            self.coefficient = Decimal('1')
+
+        if self.quantity <= 0:
+            raise ValidationError(_("Quantity must be greater than zero."))
+        if self.price < 0:
+            raise ValidationError(_("Price cannot be negative."))
+        if self.coefficient <= 0:
+            raise ValidationError(_("Coefficient must be greater than zero."))
+
         # Calculate Amounts
         self.amount = self.quantity * self.price
         self.vat_amount = self.amount * (self.vat_rate / 100)
@@ -823,7 +857,6 @@ class PurchaseDocumentLine(models.Model):
         
         # Base Currency (Snapshot)
         rate = self.document.rate or 1
-        from decimal import Decimal
         if not isinstance(rate, Decimal): rate = Decimal(str(rate))
         
         self.price_base = (self.price * rate).quantize(Decimal("0.01"))
@@ -1200,6 +1233,9 @@ class SalesOrder(BaseDocument):
         """Recalculate totals from lines"""
         if self.status not in [self.STATUS_DRAFT, self.STATUS_CONFIRMED]:
             return
+
+        from decimal import Decimal
+        from django.db.models import Sum
         
         agg = self.lines.aggregate(
             total=Sum('amount'),
@@ -1230,6 +1266,7 @@ class SalesOrder(BaseDocument):
         from django.db import transaction
         from django.utils import timezone
         from django.core.exceptions import ValidationError
+        from django.db.models import Sum
         from registers.models import StockReservation, StockBalance
         
         if not self.can_post:
@@ -1342,6 +1379,8 @@ class SalesOrder(BaseDocument):
                     document=sales_doc,
                     item=order_line.item,
                     quantity=order_line.quantity,
+                    package=order_line.package,
+                    coefficient=order_line.coefficient,
                     price=order_line.price,
                 )
             
@@ -1373,6 +1412,8 @@ class SalesOrderLine(models.Model):
     document = models.ForeignKey(SalesOrder, on_delete=models.CASCADE, related_name='lines')
     item = models.ForeignKey(Item, on_delete=models.PROTECT)
     quantity = models.DecimalField(_('Quantity'), max_digits=15, decimal_places=3)
+    package = models.ForeignKey('directories.ItemPackage', on_delete=models.SET_NULL, null=True, blank=True)
+    coefficient = models.DecimalField(_('Coefficient'), max_digits=10, decimal_places=3, default=1)
     price = models.DecimalField(_('Price'), max_digits=15, decimal_places=2)
     amount = models.DecimalField(_('Amount'), max_digits=15, decimal_places=2, default=0)
     
@@ -1382,12 +1423,29 @@ class SalesOrderLine(models.Model):
     
     def save(self, *args, **kwargs):
         from django.core.exceptions import ValidationError
+        from decimal import Decimal
         
         if self.document.status not in [BaseDocument.STATUS_DRAFT, SalesOrder.STATUS_CONFIRMED]:
             raise ValidationError(_("Cannot edit lines of a shipped or cancelled order."))
+
+        if self.package_id:
+            if self.package.item_id != self.item_id:
+                raise ValidationError(_("Selected package does not belong to selected item."))
+            if self.package.coefficient <= 0:
+                raise ValidationError(_("Package coefficient must be greater than zero."))
+            self.coefficient = self.package.coefficient
+        else:
+            self.coefficient = Decimal('1')
+
+        if self.quantity <= 0:
+            raise ValidationError(_("Quantity must be greater than zero."))
+        if self.price < 0:
+            raise ValidationError(_("Price cannot be negative."))
+        if self.coefficient <= 0:
+            raise ValidationError(_("Coefficient must be greater than zero."))
         
         # Calculate amounts
-        self.amount = self.quantity * self.price
+        self.amount = (self.quantity * self.price).quantize(Decimal('0.01'))
         
         rate = self.document.rate or 1
         self.price_base = (self.price * rate).quantize(Decimal('0.01'))

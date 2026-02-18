@@ -64,12 +64,15 @@ const toUiLine = (line: PurchaseDocumentLine): PurchaseDocumentLine => {
 }
 
 // Helper: Transform UI Line (Package) to DB Line (Base)
-const toDbLine = (line: PurchaseDocumentLine): PurchaseDocumentLine => {
+const toDbLine = (line: PurchaseDocumentLine) => {
     const coef = Number(line.coefficient) || 1;
     return {
-        ...line,
-        quantity: Number(line.quantity) * coef,
-        price: Number(line.price) / coef,
+        item: line.item,
+        quantity: (Number(line.quantity) || 0) * coef,
+        package: line.package ?? null,
+        coefficient: coef,
+        price: (Number(line.price) || 0) / coef,
+        vat_rate: Number(line.vat_rate) || 0,
     }
 }
 
@@ -151,13 +154,18 @@ function BaseQtyCell({ row, activeCell, isPosted, onUpdate }: { row: any, active
             <Input
                 id={`p-cell-${row.index}-quantity`}
                 type="number"
+                step="0.001"
+                min="0"
                 disabled={isPosted}
                 className={cn("h-8 w-20 text-right px-1 border-transparent focus:border-transparent focus:ring-0 rounded-none bg-transparent hover:bg-muted/10 transition-colors", activeCell?.row === row.index && activeCell?.col === 'quantity' && "bg-white ring-2 ring-primary z-20 relative font-bold")}
                 value={row.original.quantity}
                 // onKeyDown handled in parent
                 onFocus={(e) => e.target.select()}
                 onClick={(e) => e.currentTarget.select()}
-                onChange={(e) => onUpdate(parseFloat(e.target.value))}
+                onChange={(e) => {
+                    const value = parseFloat(e.target.value);
+                    onUpdate(Number.isFinite(value) ? value : 0);
+                }}
             />
             <div className="flex flex-col justify-center px-1 border-l border-dashed min-w-[3rem]">
                 <span className="text-[9px] text-muted-foreground leading-none">Base</span>

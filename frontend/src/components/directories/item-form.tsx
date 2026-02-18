@@ -48,6 +48,20 @@ type ItemFormData = {
 };
 
 const CATEGORY_NONE = '__none__';
+const CUSTOM_UNIT_VALUE = '__custom__';
+const BASE_UNIT_OPTIONS = [
+    { value: 'pcs', label: 'pcs (шт)' },
+    { value: 'm3', label: 'm3 (куб.м)' },
+    { value: 'm2', label: 'm2 (кв.м)' },
+    { value: 'kg', label: 'kg (кг)' },
+    { value: 't', label: 't (тонна)' },
+    { value: 'l', label: 'l (литр)' },
+    { value: 'm', label: 'm (метр)' },
+    { value: 'pack', label: 'pack (упак.)' },
+    { value: 'box', label: 'box (коробка)' },
+];
+
+const isKnownBaseUnit = (unit: string): boolean => BASE_UNIT_OPTIONS.some((option) => option.value === unit);
 
 const normalizePackages = (source: (ItemUnit | ItemPackageFormData)[] | undefined): ItemPackageFormData[] => {
     if (!source?.length) return [];
@@ -104,6 +118,7 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
         base_unit: initialData.base_unit ?? initialData.unit ?? 'pcs',
         units: normalizePackages(initialData.units ?? initialData.packages)
     } : defaultFormData)
+    const isCustomBaseUnit = formData.base_unit.trim().length > 0 && !isKnownBaseUnit(formData.base_unit.trim());
 
     const addPackage = () => {
         setFormData((prev) => ({
@@ -161,6 +176,9 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
             if (!data.sku || !data.sku.trim()) {
                 throw new Error('SKU is required');
             }
+            if (!data.base_unit || !data.base_unit.trim()) {
+                throw new Error('Base unit is required');
+            }
 
             const catVal = data.category;
             const categoryId = (catVal === '' || catVal === CATEGORY_NONE || catVal == null) ? null : Number(catVal);
@@ -199,7 +217,7 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                 name: data.name.trim(),
                 sku: data.sku.trim(),
                 item_type: data.type === 'goods' ? 'GOODS' : 'SERVICE',
-                unit: data.base_unit || 'pcs',
+                unit: data.base_unit.trim(),
                 purchase_price: Number(data.purchase_price) || 0,
                 selling_price: Number(data.sale_price) || 0,
                 category: categoryId,
@@ -296,7 +314,8 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                                 id="sku"
                                 value={formData.sku}
                                 onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-                                placeholder="PROD-001"
+                                onFocus={(e) => e.currentTarget.select()}
+                                placeholder="Например: ITEM-001"
                                 required
                                 className="font-mono"
                             />
@@ -324,7 +343,8 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                             id="name"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            placeholder="Product Name"
+                            onFocus={(e) => e.currentTarget.select()}
+                            placeholder="Введите наименование"
                             required
                             className="font-bold"
                         />
@@ -336,7 +356,8 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                             id="description"
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            placeholder="Product description"
+                            onFocus={(e) => e.currentTarget.select()}
+                            placeholder="Описание (необязательно)"
                             rows={3}
                         />
                     </div>
@@ -368,7 +389,8 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                                     <Input
                                         value={pkg.name}
                                         onChange={(e) => updatePackage(index, { name: e.target.value })}
-                                        placeholder="Box"
+                                        onFocus={(e) => e.currentTarget.select()}
+                                        placeholder="Например: Коробка"
                                     />
                                 </div>
                                 <div className="col-span-4 space-y-1">
@@ -378,6 +400,7 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                                         min="0.001"
                                         step="0.001"
                                         value={pkg.coefficient}
+                                        onFocus={(e) => e.currentTarget.select()}
                                         onChange={(e) => updatePackage(index, { coefficient: parseFloat(e.target.value) || 0 })}
                                     />
                                 </div>
@@ -427,13 +450,42 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="unit">{tf('unit')}</Label>
-                            <Input
-                                id="unit"
-                                value={formData.base_unit}
-                                onChange={(e) => setFormData({ ...formData, base_unit: e.target.value })}
-                                placeholder="pcs"
-                                required
-                            />
+                            <Select
+                                value={
+                                    formData.base_unit === ''
+                                        ? CUSTOM_UNIT_VALUE
+                                        : (isCustomBaseUnit ? CUSTOM_UNIT_VALUE : formData.base_unit)
+                                }
+                                onValueChange={(value) => {
+                                    if (value === CUSTOM_UNIT_VALUE) {
+                                        setFormData({ ...formData, base_unit: '' });
+                                        return;
+                                    }
+                                    setFormData({ ...formData, base_unit: value });
+                                }}
+                            >
+                                <SelectTrigger id="unit">
+                                    <SelectValue placeholder={tf('unit')} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {BASE_UNIT_OPTIONS.map((option) => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                    <SelectItem value={CUSTOM_UNIT_VALUE}>Другое...</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {(isCustomBaseUnit || formData.base_unit === '') && (
+                                <Input
+                                    id="unit-custom"
+                                    value={formData.base_unit}
+                                    onChange={(e) => setFormData({ ...formData, base_unit: e.target.value })}
+                                    onFocus={(e) => e.currentTarget.select()}
+                                    placeholder="Например: pallet"
+                                    required
+                                />
+                            )}
                         </div>
                     </div>
 
@@ -446,6 +498,7 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                                 step="0.01"
                                 min="0"
                                 value={formData.purchase_price}
+                                onFocus={(e) => e.currentTarget.select()}
                                 onChange={(e) => setFormData({ ...formData, purchase_price: parseFloat(e.target.value) || 0 })}
                             />
                         </div>
@@ -457,6 +510,7 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                                 step="0.01"
                                 min="0"
                                 value={formData.sale_price}
+                                onFocus={(e) => e.currentTarget.select()}
                                 onChange={(e) => setFormData({ ...formData, sale_price: parseFloat(e.target.value) || 0 })}
                             />
                         </div>

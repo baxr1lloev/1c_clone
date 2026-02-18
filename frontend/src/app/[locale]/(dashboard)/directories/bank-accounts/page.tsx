@@ -63,6 +63,28 @@ function extractResults<T>(payload: PaginatedResponse<T> | T[]): T[] {
   return payload?.results || [];
 }
 
+async function fetchCurrenciesList(): Promise<Currency[]> {
+  return extractResults<Currency>(await api.get('/directories/currencies/'));
+}
+
+async function fetchChartOfAccountsList(): Promise<ChartOfAccountOption[]> {
+  try {
+    return extractResults<ChartOfAccountOption>(await api.get('/vat/accounts/'));
+  } catch (error) {
+    const status = (error as { response?: { status?: number } })?.response?.status;
+    if (status !== 404) throw error;
+    try {
+      return extractResults<ChartOfAccountOption>(await api.get('/accounting/chart-of-accounts/'));
+    } catch (legacyError) {
+      const legacyStatus = (legacyError as { response?: { status?: number } })?.response?.status;
+      if (legacyStatus === 404) {
+        throw new Error('API плана счетов недоступен. Ожидается /api/v1/vat/accounts/.');
+      }
+      throw legacyError;
+    }
+  }
+}
+
 function getErrorMessage(error: unknown, fallback: string) {
   const err = error as {
     message?: string;
@@ -72,6 +94,9 @@ function getErrorMessage(error: unknown, fallback: string) {
     };
   };
   const responseData = err?.response?.data;
+  if (typeof responseData === 'string' && /<!DOCTYPE html>/i.test(responseData)) {
+    return fallback;
+  }
   if (typeof responseData === 'string' && responseData.trim()) return responseData;
   if (responseData && typeof responseData === 'object') {
     const detail = (responseData as { detail?: string }).detail;
@@ -104,12 +129,13 @@ export default function BankAccountsPage() {
 
   const {
     data: currencies = [],
+    isLoading: isCurrenciesLoading,
     isError: isCurrenciesError,
     error: currenciesError,
     refetch: refetchCurrencies,
   } = useQuery<Currency[]>({
     queryKey: ['bank-accounts-currencies'],
-    queryFn: async () => extractResults(await api.get('/directories/currencies/')),
+    queryFn: fetchCurrenciesList,
     initialData: [],
   });
   const hasCurrencies = currencies.length > 0;
@@ -121,7 +147,7 @@ export default function BankAccountsPage() {
     refetch: refetchAccounts,
   } = useQuery<ChartOfAccountOption[]>({
     queryKey: ['bank-accounts-coa'],
-    queryFn: async () => extractResults(await api.get('/accounting/chart-of-accounts/')),
+    queryFn: fetchChartOfAccountsList,
     initialData: [],
   });
 
@@ -130,10 +156,10 @@ export default function BankAccountsPage() {
   const saveMutation = useMutation({
     mutationFn: async (data: AccountForm) => {
       if (!hasCurrencies) {
-        throw new Error('No currencies configured. Add or load currencies first.');
+        throw new Error('Валюты не настроены. Сначала добавьте или загрузите валюты.');
       }
       if (!data.currency || !currencies.some((c) => c.id === data.currency)) {
-        throw new Error('Please select a valid currency');
+        throw new Error('Выберите корректную валюту');
       }
       const payload = {
         ...data,
@@ -159,7 +185,7 @@ export default function BankAccountsPage() {
       }
       await queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
       await refetch();
-      toast.success(selected ? 'Bank account updated' : 'Bank account created');
+      toast.success(selected ? 'Банковский счет обновлен' : 'Банковский счет создан');
       setIsFormOpen(false);
       setSelected(null);
       setFormData(defaultForm);
@@ -170,7 +196,7 @@ export default function BankAccountsPage() {
         message?: string;
       };
       const responseData = err?.response?.data;
-      let message = err?.message || 'Failed to save bank account';
+      let message = err?.message || 'Не удалось сохранить банковский счет';
       if (typeof responseData === 'string') {
         message = responseData;
       } else if (responseData && typeof responseData === 'object') {
@@ -185,12 +211,12 @@ export default function BankAccountsPage() {
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => api.delete(`/directories/bank-accounts/${id}/`),
     onSuccess: () => {
-      toast.success('Bank account deleted');
+      toast.success('Банковский счет удален');
       queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
       setIsDeleteOpen(false);
       setSelected(null);
     },
-    onError: () => toast.error('Failed to delete bank account'),
+    onError: () => toast.error('Не удалось удалить банковский счет'),
   });
 
   const bootstrapCurrenciesMutation = useMutation({
@@ -201,11 +227,11 @@ export default function BankAccountsPage() {
     onSuccess: async (res) => {
       const count = Number((res as { count?: number } | undefined)?.count || 0);
       await queryClient.invalidateQueries({ queryKey: ['bank-accounts-currencies'] });
-      toast.success(count > 0 ? `Added ${count} currencies` : 'Currencies are already loaded');
+      toast.success(count > 0 ? `Добавлено валют: ${count}` : 'Валюты уже загружены');
     },
     onError: (error: unknown) => {
       const err = error as { message?: string; response?: { data?: { detail?: string } } };
-      toast.error(err?.response?.data?.detail || err?.message || 'Failed to load currencies');
+      toast.error(err?.response?.data?.detail || err?.message || 'Не удалось загрузить валюты');
     },
   });
 
@@ -220,7 +246,7 @@ export default function BankAccountsPage() {
       }
 
       if (availableCurrencies.length === 0) {
-        throw new Error('No currencies available. Create currencies first.');
+        throw new Error('Нет доступных валют. Сначала создайте валюты.');
       }
 
       const existingAccounts = extractResults<BankAccount>(await api.get('/directories/bank-accounts/'));
@@ -233,8 +259,8 @@ export default function BankAccountsPage() {
 
       const templates = [
         {
-          name: 'Main UZS Account',
-          bank_name: 'National Bank',
+          name: 'Основной счет UZS',
+          bank_name: 'Национальный банк',
           account_number: '20208000900123456001',
           account_type: 'settlement' as const,
           currency: resolveCurrency('UZS'),
@@ -244,8 +270,8 @@ export default function BankAccountsPage() {
           is_default: !hasDefault,
         },
         {
-          name: 'Main USD Account',
-          bank_name: 'International Trade Bank',
+          name: 'Основной счет USD',
+          bank_name: 'Международный торговый банк',
           account_number: 'UZ77004001123456789001',
           account_type: 'foreign' as const,
           currency: resolveCurrency('USD'),
@@ -267,7 +293,7 @@ export default function BankAccountsPage() {
           overdraft_allowed: false,
           overdraft_limit: 0,
           minimum_balance: 0,
-          comment: 'Auto-created demo account',
+          comment: 'Автоматически созданный демонстрационный счет',
         });
         created += 1;
       }
@@ -280,15 +306,15 @@ export default function BankAccountsPage() {
       await queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
       await queryClient.invalidateQueries({ queryKey: ['bank-accounts-currencies'] });
       if (created > 0) {
-        toast.success(`Created ${created} bank account(s)`);
+        toast.success(`Создано банковских счетов: ${created}`);
       } else {
-        toast.success(`All demo accounts already exist (${skipped} skipped)`);
+        toast.success(`Все демонстрационные счета уже существуют (пропущено: ${skipped})`);
       }
     },
     onError: (error: unknown) => {
       const err = error as { message?: string; response?: { data?: Record<string, string[] | string> | string } };
       const responseData = err?.response?.data;
-      let message = err?.message || 'Failed to create demo bank accounts';
+      let message = err?.message || 'Не удалось создать демонстрационные банковские счета';
       if (typeof responseData === 'string') {
         message = responseData;
       } else if (responseData && typeof responseData === 'object') {
@@ -300,20 +326,37 @@ export default function BankAccountsPage() {
     },
   });
 
-  const openCreate = () => {
-    if (isBankAccountsError || isCurrenciesError) {
-      toast.error('Cannot open form while reference data is not loaded');
+  const openCreate = async () => {
+    if (isCurrenciesLoading) {
+      toast.info('Загрузка валют...');
       return;
     }
+
+    let availableCurrencies = currencies;
+    if (!availableCurrencies.length) {
+      try {
+        await bootstrapCurrenciesMutation.mutateAsync();
+        availableCurrencies = await fetchCurrenciesList();
+        queryClient.setQueryData(['bank-accounts-currencies'], availableCurrencies);
+      } catch (error) {
+        toast.error(getErrorMessage(error, 'Валюты не настроены. Сначала добавьте валюту.'));
+        router.push('/directories/currencies');
+        return;
+      }
+    }
+
+    if (!availableCurrencies.length) {
+      toast.error('Валюты не настроены. Сначала добавьте валюту.');
+      router.push('/directories/currencies');
+      return;
+    }
+
     setSelected(null);
     setFormData({
       ...defaultForm,
-      currency: currencies[0]?.id || 0,
+      currency: availableCurrencies[0].id,
     });
     setIsFormOpen(true);
-    if (!hasCurrencies) {
-      toast.error('No currencies configured. Add currency first.');
-    }
   };
 
   const openEdit = (item: BankAccount) => {
@@ -344,47 +387,47 @@ export default function BankAccountsPage() {
       accessorKey: 'name',
       header: ({ column }) => (
         <Button variant="ghost" className="-ml-4" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
-          Name <PiArrowsDownUpBold className="ml-2 h-4 w-4" />
+          Название <PiArrowsDownUpBold className="ml-2 h-4 w-4" />
         </Button>
       ),
       cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
     },
-    { accessorKey: 'bank_name', header: 'Bank' },
-    { accessorKey: 'account_number', header: 'Account Number' },
+    { accessorKey: 'bank_name', header: 'Банк' },
+    { accessorKey: 'account_number', header: 'Номер счета' },
     {
       accessorKey: 'currency',
-      header: 'Currency',
+      header: 'Валюта',
       cell: ({ row }) => row.original.currency_code || currencyById.get(row.original.currency) || row.original.currency,
     },
     {
       accessorKey: 'account_type',
-      header: 'Type',
+      header: 'Тип',
       cell: ({ row }) => row.original.account_type_display || row.original.account_type || '-',
     },
     {
       accessorKey: 'is_active',
-      header: 'Status',
+      header: 'Статус',
       cell: ({ row }) => (
         <div className="flex gap-2 items-center">
           <Badge variant={row.original.is_active ? 'default' : 'outline'}>
-            {row.original.is_active ? 'Active' : 'Inactive'}
+            {row.original.is_active ? 'Активен' : 'Неактивен'}
           </Badge>
-          {row.original.is_default ? <Badge variant="secondary">Default</Badge> : null}
+          {row.original.is_default ? <Badge variant="secondary">По умолчанию</Badge> : null}
         </div>
       ),
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: 'Действия',
       cell: ({ row }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon"><PiDotsThreeOutlineBold className="h-4 w-4" /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => openEdit(row.original)}><PiPencilBold className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => openEdit(row.original)}><PiPencilBold className="mr-2 h-4 w-4" />Изменить</DropdownMenuItem>
             <DropdownMenuItem className="text-destructive" onClick={() => { setSelected(row.original); setIsDeleteOpen(true); }}>
-              <PiTrashBold className="mr-2 h-4 w-4" />Delete
+              <PiTrashBold className="mr-2 h-4 w-4" />Удалить
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -396,45 +439,45 @@ export default function BankAccountsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Bank Accounts</h1>
-          <p className="text-muted-foreground">Manage bank account master data and compliance fields.</p>
+          <h1 className="text-3xl font-bold tracking-tight">Банковские счета</h1>
+          <p className="text-muted-foreground">Управление банковскими счетами и обязательными реквизитами.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => router.push('/directories/bank-exchange-settings')}>
-            Exchange Settings
+            Настройки обмена
           </Button>
           <Button
             variant="secondary"
             onClick={() => createDemoAccountsMutation.mutate()}
             disabled={createDemoAccountsMutation.isPending}
           >
-            {createDemoAccountsMutation.isPending ? 'Creating...' : 'Create Demo Accounts'}
+            {createDemoAccountsMutation.isPending ? 'Создание...' : 'Создать демо-счета'}
           </Button>
-          <Button onClick={openCreate}>+ Add Bank Account</Button>
+          <Button onClick={() => { void openCreate(); }}>+ Добавить банковский счет</Button>
         </div>
       </div>
 
       {(isBankAccountsError || isCurrenciesError || isAccountsError) ? (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm space-y-2">
-          <p className="font-medium">Failed to load Bank and Cash reference data.</p>
+          <p className="font-medium">Не удалось загрузить справочные данные раздела «Банк и касса».</p>
           {isBankAccountsError ? (
-            <p>Bank accounts: {getErrorMessage(bankAccountsError, 'Load failed')}</p>
+            <p>Банковские счета: {getErrorMessage(bankAccountsError, 'Ошибка загрузки')}</p>
           ) : null}
           {isCurrenciesError ? (
-            <p>Currencies: {getErrorMessage(currenciesError, 'Load failed')}</p>
+            <p>Валюты: {getErrorMessage(currenciesError, 'Ошибка загрузки')}</p>
           ) : null}
           {isAccountsError ? (
-            <p>Chart of accounts: {getErrorMessage(accountsError, 'Load failed')}</p>
+            <p>План счетов: {getErrorMessage(accountsError, 'Ошибка загрузки')}</p>
           ) : null}
           <div className="flex flex-wrap gap-2 pt-1">
             <Button type="button" variant="outline" size="sm" onClick={() => refetch()}>
-              Retry bank accounts
+              Повторить загрузку счетов
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => refetchCurrencies()}>
-              Retry currencies
+              Повторить загрузку валют
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={() => refetchAccounts()}>
-              Retry chart of accounts
+              Повторить загрузку плана счетов
             </Button>
           </div>
         </div>
@@ -445,15 +488,15 @@ export default function BankAccountsPage() {
         data={bankAccounts}
         isLoading={isLoading}
         searchColumn="name"
-        searchPlaceholder="Search bank accounts..."
+        searchPlaceholder="Поиск банковских счетов..."
         onRefresh={() => refetch()}
       />
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="sm:max-w-[760px]">
           <DialogHeader>
-            <DialogTitle>{selected ? 'Edit Bank Account' : 'New Bank Account'}</DialogTitle>
-            <DialogDescription>Required fields and bank exchange compliance metadata.</DialogDescription>
+            <DialogTitle>{selected ? 'Изменить банковский счет' : 'Новый банковский счет'}</DialogTitle>
+            <DialogDescription>Обязательные реквизиты и параметры обмена с банком.</DialogDescription>
           </DialogHeader>
           <form
             onSubmit={(e) => {
@@ -464,46 +507,46 @@ export default function BankAccountsPage() {
           >
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Name</Label>
+                <Label>Название</Label>
                 <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
               </div>
               <div className="space-y-2">
-                <Label>Bank Name</Label>
+                <Label>Банк</Label>
                 <Input value={formData.bank_name} onChange={(e) => setFormData({ ...formData, bank_name: e.target.value })} required />
               </div>
               <div className="space-y-2">
-                <Label>Account Number</Label>
+                <Label>Номер счета</Label>
                 <Input value={formData.account_number} onChange={(e) => setFormData({ ...formData, account_number: e.target.value })} required />
               </div>
               <div className="space-y-2">
-                <Label>Account Type</Label>
+                <Label>Тип счета</Label>
                 <select
                   className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                   value={formData.account_type}
                   onChange={(e) => setFormData({ ...formData, account_type: e.target.value as AccountForm['account_type'] })}
                 >
-                  <option value="settlement">Settlement</option>
-                  <option value="foreign">Foreign Currency</option>
-                  <option value="deposit">Deposit</option>
+                  <option value="settlement">Расчетный</option>
+                  <option value="foreign">Валютный</option>
+                  <option value="deposit">Депозитный</option>
                 </select>
               </div>
               <div className="space-y-2">
-                <Label>Currency</Label>
+                <Label>Валюта</Label>
                 <select
                   className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                   value={formData.currency}
                   onChange={(e) => setFormData({ ...formData, currency: Number(e.target.value) })}
                   disabled={!hasCurrencies}
                 >
-                  {!hasCurrencies ? <option value="">No currencies</option> : null}
+                  {!hasCurrencies ? <option value="">Нет валют</option> : null}
                   {currencies.map((c) => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
                 </select>
                 {!hasCurrencies ? (
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <span>
                       {isCurrenciesError
-                        ? `Currencies load error: ${getErrorMessage(currenciesError, 'Request failed')}`
-                        : 'Create or load currencies to continue.'}
+                        ? `Ошибка загрузки валют: ${getErrorMessage(currenciesError, 'Ошибка запроса')}`
+                        : 'Создайте или загрузите валюты для продолжения.'}
                     </span>
                     <Button
                       type="button"
@@ -512,7 +555,7 @@ export default function BankAccountsPage() {
                       onClick={() => bootstrapCurrenciesMutation.mutate()}
                       disabled={bootstrapCurrenciesMutation.isPending}
                     >
-                      {bootstrapCurrenciesMutation.isPending ? 'Loading...' : 'Load standard currencies'}
+                      {bootstrapCurrenciesMutation.isPending ? 'Загрузка...' : 'Загрузить стандартные валюты'}
                     </Button>
                     <Button
                       type="button"
@@ -520,19 +563,19 @@ export default function BankAccountsPage() {
                       size="sm"
                       onClick={() => router.push('/directories/currencies')}
                     >
-                      Open currencies
+                      Открыть валюты
                     </Button>
                   </div>
                 ) : null}
               </div>
               <div className="space-y-2">
-                <Label>Accounting Account</Label>
+                <Label>Счет учета</Label>
                 <select
                   className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
                   value={formData.accounting_account || ''}
                   onChange={(e) => setFormData({ ...formData, accounting_account: e.target.value ? Number(e.target.value) : null })}
                 >
-                  <option value="">Not set</option>
+                  <option value="">Не задано</option>
                   {accounts.map((a) => <option key={a.id} value={a.id}>{a.code} - {a.name}</option>)}
                 </select>
               </div>
@@ -541,7 +584,7 @@ export default function BankAccountsPage() {
                 <Input value={formData.bik} onChange={(e) => setFormData({ ...formData, bik: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Correspondent Account</Label>
+                <Label>Корреспондентский счет</Label>
                 <Input value={formData.correspondent_account} onChange={(e) => setFormData({ ...formData, correspondent_account: e.target.value })} />
               </div>
               <div className="space-y-2">
@@ -549,11 +592,11 @@ export default function BankAccountsPage() {
                 <Input value={formData.swift_code} onChange={(e) => setFormData({ ...formData, swift_code: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Opening Date</Label>
+                <Label>Дата открытия</Label>
                 <Input type="date" value={formData.opening_date} onChange={(e) => setFormData({ ...formData, opening_date: e.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Overdraft Limit</Label>
+                <Label>Лимит овердрафта</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -563,7 +606,7 @@ export default function BankAccountsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Minimum Balance</Label>
+                <Label>Минимальный остаток</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -573,27 +616,27 @@ export default function BankAccountsPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Comment</Label>
+              <Label>Комментарий</Label>
               <Textarea rows={2} value={formData.comment} onChange={(e) => setFormData({ ...formData, comment: e.target.value })} />
             </div>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <Switch checked={formData.is_active} onCheckedChange={(v) => setFormData({ ...formData, is_active: v })} />
-                <Label>Active</Label>
+                <Label>Активен</Label>
               </div>
               <div className="flex items-center gap-2">
                 <Switch checked={formData.is_default} onCheckedChange={(v) => setFormData({ ...formData, is_default: v })} />
-                <Label>Default</Label>
+                <Label>По умолчанию</Label>
               </div>
               <div className="flex items-center gap-2">
                 <Switch checked={formData.overdraft_allowed} onCheckedChange={(v) => setFormData({ ...formData, overdraft_allowed: v })} />
-                <Label>Overdraft Allowed</Label>
+                <Label>Разрешен овердрафт</Label>
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
+              <Button type="button" variant="outline" onClick={() => setIsFormOpen(false)}>Отмена</Button>
               <Button type="submit" disabled={saveMutation.isPending || !hasCurrencies}>
-                {saveMutation.isPending ? 'Saving...' : 'Save'}
+                {saveMutation.isPending ? 'Сохранение...' : 'Сохранить'}
               </Button>
             </DialogFooter>
           </form>
@@ -603,18 +646,18 @@ export default function BankAccountsPage() {
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete bank account?</AlertDialogTitle>
+            <AlertDialogTitle>Удалить банковский счет?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove account {selected?.name || ''}. This action cannot be undone.
+              Счет {selected?.name || ''} будет удален. Это действие нельзя отменить.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => selected?.id && deleteMutation.mutate(selected.id)}
               className="bg-destructive text-destructive-foreground"
             >
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              {deleteMutation.isPending ? 'Удаление...' : 'Удалить'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -338,7 +338,7 @@ export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: C
                                 <ReferenceSelector
                                     value={formData.debit_account as number}
                                     onSelect={(val) => setFormData({ ...formData, debit_account: val as number })}
-                                    apiEndpoint="/accounting/chart-of-accounts/"
+                                    apiEndpoint="/vat/accounts/"
                                     placeholder="Debit account..."
                                     displayField="code"
                                     secondaryField="name"
@@ -351,7 +351,7 @@ export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: C
                                 <ReferenceSelector
                                     value={formData.credit_account as number}
                                     onSelect={(val) => setFormData({ ...formData, credit_account: val as number })}
-                                    apiEndpoint="/accounting/chart-of-accounts/"
+                                    apiEndpoint="/vat/accounts/"
                                     placeholder="Credit account..."
                                     displayField="code"
                                     secondaryField="name"

@@ -1,22 +1,17 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
-import { navigationConfig, NavItem } from '@/config/navigation';
+import { navigationConfig } from '@/config/navigation';
 import Link from 'next/link';
-import { PiFolderOpenBold, PiListBold, PiCaretRightBold, PiPlusBold } from 'react-icons/pi';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { PiCaretRightBold, PiPlusBold } from 'react-icons/pi';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Metadata } from 'next';
 
 // export const metadata: Metadata = {
 //     title: 'All Functions | 1C ERP',
 // };
 
 export default function AllFunctionsPage() {
-    const t = useTranslations('nav');
     const [search, setSearch] = useState('');
 
     // Filter logic
@@ -49,13 +44,13 @@ export default function AllFunctionsPage() {
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                     <div className="w-2 h-8 bg-orange-500 rounded-sm" />
-                    All Functions (Все функции)
+                    Все функции
                 </h1>
                 <p className="text-muted-foreground mt-1 mb-4">
-                    The system map. Search for any document, report, or register using 1C terminology.
+                    Карта системы. Поиск документов, отчетов и регистров по терминологии 1С.
                 </p>
                 <Input
-                    placeholder="Search functions (e.g. Sales, Контрагенты, НДС)..."
+                    placeholder="Поиск функций (например: Продажи, Контрагенты, НДС)..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     className="max-w-md bg-white dark:bg-zinc-900"
@@ -91,7 +86,7 @@ export default function AllFunctionsPage() {
                                             {item.children?.find(c => c.href.includes('/new')) && (
                                                 <Link
                                                     href={item.children.find(c => c.href.includes('/new'))!.href}
-                                                    title="Create New"
+                                                    title="Создать"
                                                     className="p-1 hover:bg-green-100 text-green-700 rounded"
                                                 >
                                                     <PiPlusBold />
@@ -121,7 +116,7 @@ export default function AllFunctionsPage() {
             </div>
             {filteredConfig.length === 0 && (
                 <div className="text-center py-20 text-muted-foreground">
-                    No functions found matching "{search}"
+                    По запросу: {search}. Ничего не найдено.
                 </div>
             )}
         </div>

@@ -518,14 +518,16 @@ class TransferDocumentSerializer(serializers.ModelSerializer):
 class SalesOrderLineSerializer(serializers.ModelSerializer):
     """Serializer for SalesOrderLine."""
     item_name = serializers.CharField(source='item.name', read_only=True)
+    package_name = serializers.CharField(source='package.name', read_only=True, allow_null=True)
     
     class Meta:
         model = SalesOrderLine
         fields = [
             'id', 'item', 'item_name',
-            'quantity', 'price', 'amount'
+            'quantity', 'package', 'package_name', 'coefficient',
+            'price', 'amount', 'price_base', 'amount_base'
         ]
-        read_only_fields = ['amount']
+        read_only_fields = ['amount', 'price_base', 'amount_base']
 
 
 
@@ -881,9 +883,17 @@ class BankStatementCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = BankStatement
         fields = [
-            'number', 'date', 'statement_date', 'comment',
+            'id', 'number', 'date', 'statement_date', 'comment',
             'source', 'bank_account', 'currency', 'opening_balance', 'closing_balance', 'file'
         ]
+        extra_kwargs = {
+            'date': {'required': False},
+            'number': {'required': False},
+            'currency': {'required': False},
+            'source': {'required': False},
+            'closing_balance': {'required': False},
+            'file': {'required': False},
+        }
 
     def validate(self, attrs):
         tenant = self.context['request'].user.tenant

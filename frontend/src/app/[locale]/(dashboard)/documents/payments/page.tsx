@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ColumnDef } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
@@ -29,8 +29,10 @@ export default function PaymentsPage() {
   const t = useTranslations('documents');
   const tc = useTranslations('common');
   const tf = useTranslations('fields');
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const localePath = (path: string) => `/${locale}${path.startsWith('/') ? path : `/${path}`}`;
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<PaymentDocument | null>(null);
@@ -50,47 +52,47 @@ export default function PaymentsPage() {
   const postMutation = useMutation({
     mutationFn: async (id: number) => api.post(`/documents/payments/${id}/post/`),
     onSuccess: () => {
-      toast.success('Document posted successfully');
+      toast.success('Документ проведен');
       queryClient.invalidateQueries({ queryKey: ['payments'] });
     },
-    onError: () => toast.error('Failed to post document'),
+    onError: () => toast.error('Не удалось провести документ'),
   });
 
   const unpostMutation = useMutation({
     mutationFn: async (id: number) => api.post(`/documents/payments/${id}/unpost/`),
     onSuccess: () => {
-      toast.success('Document unposted');
+      toast.success('Проведение отменено');
       queryClient.invalidateQueries({ queryKey: ['payments'] });
     },
-    onError: () => toast.error('Failed to unpost document'),
+    onError: () => toast.error('Не удалось отменить проведение'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => api.delete(`/documents/payments/${id}/`),
     onSuccess: () => {
-      toast.success('Document deleted');
+      toast.success('Документ удален');
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       setIsDeleteOpen(false);
       setSelectedItem(null);
     },
-    onError: () => toast.error('Failed to delete document'),
+    onError: () => toast.error('Не удалось удалить документ'),
   });
 
   const handleCreate = (type: 'INCOMING' | 'OUTGOING' = 'INCOMING') =>
-    router.push(`/documents/payments/new?type=${type}`);
-  const handleEdit = (doc: PaymentDocument) => router.push(`/documents/payments/${doc.id}`);
-  const handleView = (doc: PaymentDocument) => router.push(`/documents/payments/${doc.id}`);
+    router.push(localePath(`/documents/payments/new?type=${type}`));
+  const handleEdit = (doc: PaymentDocument) => router.push(localePath(`/documents/payments/${doc.id}`));
+  const handleView = (doc: PaymentDocument) => router.push(localePath(`/documents/payments/${doc.id}`));
 
   const mainActions: CommandBarAction[] = [
     {
-      label: t('incoming'),
+      label: tf('incoming'),
       icon: <PiPlusBold />,
       onClick: () => handleCreate('INCOMING'),
       variant: 'default',
       shortcut: 'Ins',
     },
     {
-      label: t('outgoing'),
+      label: tf('outgoing'),
       icon: <PiPlusBold />,
       onClick: () => handleCreate('OUTGOING'),
       variant: 'secondary',
@@ -231,9 +233,9 @@ export default function PaymentsPage() {
       <div className="px-4 py-3 border-b">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'incoming' | 'outgoing')}>
             <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="incoming">{t('incoming')}</TabsTrigger>
-            <TabsTrigger value="outgoing">{t('outgoing')}</TabsTrigger>
+            <TabsTrigger value="all">Все</TabsTrigger>
+            <TabsTrigger value="incoming">{tf('incoming')}</TabsTrigger>
+            <TabsTrigger value="outgoing">{tf('outgoing')}</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -250,7 +252,7 @@ export default function PaymentsPage() {
             onRefresh={() => refetch()}
             onSearch={setSearchValue}
             searchValue={searchValue}
-            searchPlaceholder="Search number..."
+            searchPlaceholder="Поиск по номеру..."
           />
         }
       />
@@ -258,15 +260,15 @@ export default function PaymentsPage() {
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Mark for deletion?</AlertDialogTitle>
+            <AlertDialogTitle>Удалить документ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedItem?.number}?
+              Вы уверены, что хотите удалить {selectedItem?.number}?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={() => selectedItem && deleteMutation.mutate(selectedItem.id)} className="bg-destructive text-destructive-foreground">
-              {deleteMutation.isPending ? 'Deleting...' : tc('delete')}
+              {deleteMutation.isPending ? 'Удаление...' : tc('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

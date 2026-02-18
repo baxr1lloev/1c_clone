@@ -30,7 +30,7 @@ export function TaxiTabs() {
       path.startsWith("/uz")
     ) {
       if (path.replace(/^\/(en|ru|uz)/, "") === "")
-        return { title: "Main", icon: PiHouseBold, translationKey: "main" };
+        return { title: "Главная", icon: PiHouseBold, translationKey: "main" };
     }
 
     const cleanPath = path.replace(/^\/(en|ru|uz)/, "");
@@ -62,7 +62,7 @@ export function TaxiTabs() {
 
     // Dynamic Routes Heuristic
     if (path.includes("/new"))
-      return { title: "New Document", translationKey: "common.newDocument" };
+      return { title: "Новый документ", translationKey: "common.newDocument" };
 
     // Check for IDs
     const parts = cleanPath.split("/");
@@ -72,7 +72,7 @@ export function TaxiTabs() {
       return { title: `#${lastPart}`, translationKey: `common.document` };
     }
 
-    return { title: "Page", translationKey: "common.page" };
+    return { title: "Страница", translationKey: "common.page" };
   };
 
   // Effect: Add current page to tabs
@@ -186,7 +186,7 @@ export function TaxiTabs() {
             className="text-[10px] text-muted-foreground hover:text-destructive font-medium"
             onClick={() => useAppStore.getState().closeAllTabs()}
           >
-            Close Others
+            Закрыть остальные
           </button>
         </div>
       )}

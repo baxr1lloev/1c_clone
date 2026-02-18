@@ -54,12 +54,14 @@ const toUiLine = (line: SalesOrderLine): SalesOrderLine => {
 }
 
 // Helper: Transform UI Line (Package) to DB Line (Base)
-const toDbLine = (line: SalesOrderLine): SalesOrderLine => {
+const toDbLine = (line: SalesOrderLine) => {
     const coef = Number(line.coefficient) || 1;
     return {
-        ...line,
-        quantity: Number(line.quantity) * coef,
-        price: Number(line.price) / coef,
+        item: line.item,
+        quantity: (Number(line.quantity) || 0) * coef,
+        package: line.package ?? null,
+        coefficient: coef,
+        price: (Number(line.price) || 0) / coef,
     }
 }
 
@@ -269,12 +271,18 @@ export function SalesOrderForm({ initialData, mode }: SalesOrderFormProps) {
                     <div className="flex gap-1 h-full items-center">
                         <Input
                             type="number"
+                            step="0.001"
+                            min="0"
                             disabled={!canEdit}
                             className="h-8 w-20 text-right font-bold border-transparent focus:border-primary bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background"
                             value={row.original.quantity}
                             onChange={(e) => {
                                 const newLines = [...lines];
-                                let newLine = { ...newLines[row.index], quantity: parseFloat(e.target.value) };
+                                const value = parseFloat(e.target.value);
+                                let newLine = {
+                                    ...newLines[row.index],
+                                    quantity: Number.isFinite(value) ? value : 0,
+                                };
                                 newLines[row.index] = recalculateLine(newLine);
                                 setLines(newLines);
                             }}
