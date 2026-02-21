@@ -74,3 +74,13 @@ class CashOrderViewSet(TenantFilterMixin, viewsets.ModelViewSet):
                 {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+    @action(detail=True, methods=['post'], url_path='post')
+    def post(self, request, pk=None):
+        """Alias for post_document (standardized API naming)."""
+        return self.post_document(request, pk=pk)
+
+    @action(detail=True, methods=['post'], url_path='unpost')
+    def unpost(self, request, pk=None):
+        """Alias for unpost_document (standardized API naming)."""
+        return self.unpost_document(request, pk=pk)

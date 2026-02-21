@@ -2,7 +2,7 @@
 API ViewSets for documents app.
 Includes custom actions for post/unpost operations.
 """
-from rest_framework import viewsets, filters, status
+from rest_framework import viewsets, filters, status, serializers as drf_serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -20,6 +20,7 @@ from documents.models import (
     InventoryDocument,
     BankStatement, BankStatementLine,
     CashOrder,
+    OpeningBalanceDocument,
 )
 from documents.services import DocumentPostingService
 from tenants.permissions import PermissionService
@@ -55,6 +56,8 @@ from .serializers import (
     PayrollDocumentCreateUpdateSerializer,
     ProductionDocumentSerializer,
     ProductionDocumentCreateUpdateSerializer,
+    OpeningBalanceDocumentSerializer,
+    OpeningBalanceDocumentCreateSerializer,
 )
 from documents.models import PayrollDocument, ProductionDocument
 from documents.models import PayrollDocument, ProductionDocument
@@ -509,8 +512,24 @@ class SalesDocumentViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocument
             
             DocumentPostingService.unpost_sales_document(doc)
             return Response({'status': 'draft', 'message': f'Document #{doc.number} unposted successfully'})
-        except ValueError as e:
+        except Exception as e:
+            from documents.validators import DocumentValidationError
+            if isinstance(e, DocumentValidationError):
+                return Response({
+                    'error': 'Validation failed',
+                    'validation_errors': e.validation_errors
+                }, status=status.HTTP_400_BAD_REQUEST)
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='post')
+    def post(self, request, pk=None):
+        """Alias for post_document (standardized API naming)."""
+        return self.post_document(request, pk=pk)
+
+    @action(detail=True, methods=['post'], url_path='unpost')
+    def unpost(self, request, pk=None):
+        """Alias for unpost_document (standardized API naming)."""
+        return self.unpost_document(request, pk=pk)
     
     @action(detail=True, methods=['post'])
     def add_line(self, request, pk=None):
@@ -594,8 +613,24 @@ class PurchaseDocumentViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocum
 
             DocumentPostingService.unpost_purchase_document(doc)
             return Response({'status': 'draft', 'message': f'Purchase #{doc.number} unposted'})
-        except ValueError as e:
+        except Exception as e:
+            from documents.validators import DocumentValidationError
+            if isinstance(e, DocumentValidationError):
+                return Response({
+                    'error': 'Validation failed',
+                    'validation_errors': e.validation_errors
+                }, status=status.HTTP_400_BAD_REQUEST)
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='post')
+    def post(self, request, pk=None):
+        """Alias for post_document (standardized API naming)."""
+        return self.post_document(request, pk=pk)
+
+    @action(detail=True, methods=['post'], url_path='unpost')
+    def unpost(self, request, pk=None):
+        """Alias for unpost_document (standardized API naming)."""
+        return self.unpost_document(request, pk=pk)
 
 
 class PaymentDocumentViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocumentProtectionMixin, PeriodEnforcementMixin, DocumentPostingsMixin, viewsets.ModelViewSet):
@@ -721,8 +756,18 @@ class PaymentDocumentViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocume
 
             DocumentPostingService.unpost_payment_document(doc)
             return Response({'status': 'draft', 'message': f'Payment #{doc.number} unposted'})
-        except ValueError as e:
+        except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='post')
+    def post(self, request, pk=None):
+        """Alias for post_document (standardized API naming)."""
+        return self.post_document(request, pk=pk)
+
+    @action(detail=True, methods=['post'], url_path='unpost')
+    def unpost(self, request, pk=None):
+        """Alias for unpost_document (standardized API naming)."""
+        return self.unpost_document(request, pk=pk)
 
 
 class TransferDocumentViewSet(TenantFilterMixin, PostedDocumentProtectionMixin, PeriodEnforcementMixin, viewsets.ModelViewSet):
@@ -766,6 +811,36 @@ class TransferDocumentViewSet(TenantFilterMixin, PostedDocumentProtectionMixin, 
                 }, status=status.HTTP_400_BAD_REQUEST)
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=True, methods=['post'])
+    def unpost_document(self, request, pk=None):
+        """Unpost the transfer document."""
+        doc = self.get_object()
+        if doc.status != 'posted':
+            return Response({'error': 'Only posted documents can be unposted'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            self.validate_period_open(doc.date)
+            DocumentPostingService.unpost_transfer_document(doc)
+            return Response({'status': 'draft', 'message': f'Transfer #{doc.number} unposted'})
+        except Exception as e:
+            from documents.validators import DocumentValidationError
+            if isinstance(e, DocumentValidationError):
+                return Response({
+                    'error': 'Validation failed',
+                    'validation_errors': e.validation_errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='post')
+    def post(self, request, pk=None):
+        """Alias for post_document (standardized API naming)."""
+        return self.post_document(request, pk=pk)
+
+    @action(detail=True, methods=['post'], url_path='unpost')
+    def unpost(self, request, pk=None):
+        """Alias for unpost_document (standardized API naming)."""
+        return self.unpost_document(request, pk=pk)
+
 
 class SalesOrderViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocumentProtectionMixin, PeriodEnforcementMixin, viewsets.ModelViewSet):
     """API endpoint for sales orders."""
@@ -796,9 +871,9 @@ class SalesOrderViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocumentPro
             # 1C Rule: Check period before posting
             self.validate_period_open(doc.date)
 
-            DocumentPostingService.post_sales_order(doc)
-            return Response({'status': 'posted', 'message': f'Order #{doc.number} posted (Stock Reserved)'})
-        except ValueError as e:
+            doc.post(user=request.user)
+            return Response({'status': doc.status, 'message': f'Order #{doc.number} posted (Stock Reserved)'})
+        except Exception as e:
             # Handle structured validation errors
             from documents.validators import DocumentValidationError
             if isinstance(e, DocumentValidationError):
@@ -812,17 +887,27 @@ class SalesOrderViewSet(TenantFilterMixin, DocumentChainMixin, PostedDocumentPro
     def unpost_document(self, request, pk=None):
         """Unpost the sales order (release reservations)."""
         doc = self.get_object()
-        if doc.status != 'posted':
+        if doc.status not in ['posted', getattr(doc, 'STATUS_CONFIRMED', 'confirmed')]:
             return Response({'error': 'Only posted orders can be unposted'}, status=status.HTTP_400_BAD_REQUEST)
         
         try:
             # 1C Rule: Check period before unposting
             self.validate_period_open(doc.date)
 
-            DocumentPostingService.unpost_sales_order(doc)
-            return Response({'status': 'draft', 'message': f'Order #{doc.number} unposted'})
-        except ValueError as e:
+            doc.unpost()
+            return Response({'status': doc.status, 'message': f'Order #{doc.number} unposted'})
+        except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='post')
+    def post(self, request, pk=None):
+        """Alias for post_document (standardized API naming)."""
+        return self.post_document(request, pk=pk)
+
+    @action(detail=True, methods=['post'], url_path='unpost')
+    def unpost(self, request, pk=None):
+        """Alias for unpost_document (standardized API naming)."""
+        return self.unpost_document(request, pk=pk)
 
     @action(detail=True, methods=['post'])
     def create_sales_document(self, request, pk=None):
@@ -892,6 +977,16 @@ class InventoryDocumentViewSet(TenantFilterMixin, PostedDocumentProtectionMixin,
             return Response({'status': 'draft', 'message': f'Inventory #{doc.number} unposted'})
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'], url_path='post')
+    def post(self, request, pk=None):
+        """Alias for post_document (standardized API naming)."""
+        return self.post_document(request, pk=pk)
+
+    @action(detail=True, methods=['post'], url_path='unpost')
+    def unpost(self, request, pk=None):
+        """Alias for unpost_document (standardized API naming)."""
+        return self.unpost_document(request, pk=pk)
 
 
 class BankStatementViewSet(TenantFilterMixin, viewsets.ModelViewSet):
@@ -1370,6 +1465,57 @@ class BankStatementViewSet(TenantFilterMixin, viewsets.ModelViewSet):
             'created_count': created_count,
             'errors': errors
         }, status=status.HTTP_200_OK)
+
+class OpeningBalanceDocumentViewSet(TenantFilterMixin, viewsets.ModelViewSet):
+    """
+    API endpoint for stock opening balances.
+
+    Uses OpeningBalanceDocument for stock/settlement/bank opening balances.
+    """
+    queryset = OpeningBalanceDocument.objects.select_related('warehouse').prefetch_related(
+        'stock_lines__item',
+        'stock_lines__warehouse',
+        'settlement_lines__counterparty',
+        'settlement_lines__contract',
+        'account_lines__bank_account',
+    ).all()
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'head', 'options']
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['status', 'warehouse', 'operation_type']
+    search_fields = ['number', 'comment']
+    ordering = ['-date']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        operation_type = self.request.query_params.get('operation_type')
+        if operation_type in {
+            OpeningBalanceDocument.OPERATION_STOCK,
+            OpeningBalanceDocument.OPERATION_SETTLEMENT,
+            OpeningBalanceDocument.OPERATION_ACCOUNT,
+        }:
+            return qs.filter(operation_type=operation_type)
+        # Backward compatibility for existing stock balance page
+        return qs.filter(operation_type=OpeningBalanceDocument.OPERATION_STOCK)
+
+    def get_serializer_class(self):
+        if self.action in ['create']:
+            return OpeningBalanceDocumentCreateSerializer
+        return OpeningBalanceDocumentSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            doc = serializer.save()
+        except drf_serializers.ValidationError as exc:
+            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        out = OpeningBalanceDocumentSerializer(doc, context=self.get_serializer_context())
+        headers = self.get_success_headers(out.data)
+        return Response(out.data, status=status.HTTP_201_CREATED, headers=headers)
+
 
 class PayrollDocumentViewSet(TenantFilterMixin, DocumentPostingsMixin, viewsets.ModelViewSet):
     """API endpoint for payroll documents."""

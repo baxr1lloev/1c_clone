@@ -38,12 +38,12 @@ export function SmartPackageInput({
         queryFn: async () => {
             if (!item?.id || !warehouseId) return null;
 
-            const response = await api.get(`/items/${item.id}/context`, {
+            const response = await api.get(`/directories/items/${item.id}/context`, {
                 params: {
                     warehouse: warehouseId,
                 }
             });
-            return response.data.stock;
+            return response?.stock || null;
         },
         enabled: !!item?.id && !!warehouseId,
     });

@@ -36,13 +36,16 @@ interface SalesOrder {
   total: number;
   currency: number;
   is_fully_shipped: boolean;
+  can_post?: boolean;
+  can_unpost?: boolean;
+  can_create_sales_document?: boolean;
 }
 
 interface CreateSalesDocumentResponse {
-  status: string;
   id: number;
-  number: string;
-  message: string;
+  number?: string;
+  message?: string;
+  url?: string;
 }
 
 export default function SalesOrdersPage() {
@@ -60,7 +63,7 @@ export default function SalesOrdersPage() {
     queryKey: ["sales-orders"],
     queryFn: async () => {
       const response = await api.get("/documents/sales-orders/");
-      return response.results as SalesOrder[];
+      return (Array.isArray(response) ? response : response.results || []) as SalesOrder[];
     },
   });
 
@@ -92,11 +95,13 @@ export default function SalesOrdersPage() {
   // Create Based On: Sales Document
   const createDocumentMutation = useMutation({
     mutationFn: async (id: number) =>
-      api.post<CreateSalesDocumentResponse>(`/documents/sales-orders/${id}/create_sales_document/`),
+      api.post<CreateSalesDocumentResponse>(`/documents/sales-orders/${id}/create_on_basis/`, {
+        target_type: "salesdocument",
+      }),
     onSuccess: (data) => {
       toast.success(data.message || "Sales document created");
       // Redirect to the new document
-      router.push(`/documents/sales/${data.id}`);
+      router.push(data.url || `/documents/sales/${data.id}`);
     },
     onError: (err: unknown) => {
       const apiErr = err as { response?: { data?: { error?: string } } };
@@ -126,7 +131,7 @@ export default function SalesOrdersPage() {
           label: t("salesOrders.actions.createInvoice"),
           icon: <PiFilePlusBold />,
           onClick: () => createDocumentMutation.mutate(selectedItem.id),
-          disabled: selectedItem.status !== "confirmed",
+          disabled: !(selectedItem.can_create_sales_document ?? selectedItem.status === "confirmed"),
           variant: "default", // Highlighted
         },
         {
@@ -140,16 +145,14 @@ export default function SalesOrdersPage() {
           label: t("salesOrders.actions.confirm"),
           icon: <PiCheckCircleBold />,
           onClick: () => postMutation.mutate(selectedItem.id),
-          disabled: selectedItem.status !== "draft",
+          disabled: !(selectedItem.can_post ?? selectedItem.status === "draft"),
           variant: "ghost",
         },
         {
           label: t("salesOrders.actions.cancel"),
           icon: <PiXCircleBold />,
           onClick: () => unpostMutation.mutate(selectedItem.id),
-          disabled:
-            selectedItem.status === "draft" ||
-            selectedItem.status === "shipped",
+          disabled: !(selectedItem.can_unpost ?? selectedItem.status === "confirmed"),
           variant: "ghost",
         },
       ]

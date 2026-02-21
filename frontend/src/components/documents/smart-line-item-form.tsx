@@ -49,11 +49,12 @@ export function SmartLineItemForm({
         queryKey: ['item-context', selectedItem?.id, customerId, warehouseId],
         queryFn: async () => {
             if (!selectedItem?.id) return null;
-            const response = await api.get(`/items/${selectedItem.id}/context`, {
+            const response = await api.get(`/directories/items/${selectedItem.id}/context`, {
                 params: {
                     customer: customerId,
                     warehouse: warehouseId,
                     date: date,
+                    doc_type: documentType,
                 }
             });
             return response;

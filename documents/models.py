@@ -1266,11 +1266,14 @@ class SalesOrder(BaseDocument):
         from django.db import transaction
         from django.utils import timezone
         from django.core.exceptions import ValidationError
+        from accounting.models import validate_period_is_open
         from django.db.models import Sum
         from registers.models import StockReservation, StockBalance
         
         if not self.can_post:
             raise ValidationError(_("Order cannot be posted. Check status."))
+
+        validate_period_is_open(self.date, self.tenant, check_type='OPERATIONAL')
         
         with transaction.atomic():
             # Create reservations for each line
@@ -1323,10 +1326,13 @@ class SalesOrder(BaseDocument):
         """Unpost order - deletes stock reservations"""
         from django.db import transaction
         from django.core.exceptions import ValidationError
+        from accounting.models import validate_period_is_open
         from registers.models import StockReservation
         
         if not self.can_unpost:
             raise ValidationError(_("Order cannot be unposted. Check status."))
+
+        validate_period_is_open(self.date, self.tenant, check_type='OPERATIONAL')
         
         with transaction.atomic():
             # Delete all reservations
@@ -2521,34 +2527,45 @@ class OpeningBalanceDocument(BaseDocument):
         from django.utils import timezone
         from django.core.exceptions import ValidationError
         from django.contrib.contenttypes.models import ContentType
-        from registers.models import StockBatch, SettlementMovement
+        from registers.models import StockBalance, SettlementsBalance, SettlementMovement
+        from registers.batch_service import BatchService
         from accounting.models import AccountingEntry, ChartOfAccounts, validate_period_is_open
         
-        if not self.can_post:
-            raise ValidationError(_("Document cannot be posted. Check status and period."))
+        if self.status != self.STATUS_DRAFT:
+            raise ValidationError(_("Only draft opening balance documents can be posted."))
             
         validate_period_is_open(self.date, self.tenant, check_type='ACCOUNTING')
         
         with transaction.atomic():
-            base_currency = Currency.objects.get(tenant=self.tenant, is_base=True)
+            base_currency = Currency.objects.first()
+            if not base_currency:
+                raise ValidationError(_("No currencies configured. Add at least one currency."))
+
             acc_000, _ = ChartOfAccounts.objects.get_or_create(tenant=self.tenant, code='000', defaults={'name': 'Auxiliary', 'account_type': 'EQUITY'})
             
             if self.operation_type == self.OPERATION_STOCK:
-                acc_41 = ChartOfAccounts.objects.get(tenant=self.tenant, code='41')
+                try:
+                    acc_41 = ChartOfAccounts.objects.get(tenant=self.tenant, code='41')
+                except ChartOfAccounts.DoesNotExist:
+                    raise ValidationError(_("Account 41 (Inventory) is not configured in Chart of Accounts."))
+                affected_pairs = set()
                 
                 for line in self.stock_lines.all():
-                    # 1. Create Stock Batch
-                    StockBatch.objects.create(
+                    target_warehouse = self.warehouse or line.warehouse
+                    if not target_warehouse:
+                        raise ValidationError(_("Warehouse is required for stock opening balance lines."))
+
+                    # 1. Create Stock batch + movement (single source of truth)
+                    BatchService.create_batch_from_purchase(
                         tenant=self.tenant,
                         item=line.item,
-                        warehouse=self.warehouse or line.warehouse,
-                        incoming_document_type=ContentType.objects.get_for_model(self),
-                        incoming_document_id=self.id,
+                        warehouse=target_warehouse,
+                        quantity=line.quantity,
+                        unit_cost=line.price,
                         incoming_date=self.date,
-                        qty_initial=line.quantity,
-                        qty_remaining=line.quantity,
-                        unit_cost=line.price  # Assumed base currency cost
+                        source_document=self,
                     )
+                    affected_pairs.add((target_warehouse, line.item))
                     
                     # 2. Accounting Entry
                     AccountingEntry.objects.create(
@@ -2563,19 +2580,50 @@ class OpeningBalanceDocument(BaseDocument):
                         currency=base_currency,
                         description=f"Opening Stock: {line.item.name}",
                         item=line.item,
-                        warehouse=self.warehouse or line.warehouse,
+                        warehouse=target_warehouse,
                         quantity=line.quantity
                     )
+
+                for warehouse, item in affected_pairs:
+                    StockBalance.recalculate_for_item(self.tenant, warehouse, item)
             
             elif self.operation_type == self.OPERATION_SETTLEMENT:
-                acc_60 = ChartOfAccounts.objects.get(tenant=self.tenant, code='60')
-                acc_62 = ChartOfAccounts.objects.get(tenant=self.tenant, code='62')
+                try:
+                    acc_60 = ChartOfAccounts.objects.get(tenant=self.tenant, code='60')
+                    acc_62 = ChartOfAccounts.objects.get(tenant=self.tenant, code='62')
+                except ChartOfAccounts.DoesNotExist:
+                    raise ValidationError(_("Accounts 60/62 are not configured in Chart of Accounts."))
                 
                 for line in self.settlement_lines.all():
+                    if not line.contract:
+                        raise ValidationError(_("Contract is required for settlement opening balance lines."))
+                    if line.contract.counterparty_id != line.counterparty_id:
+                        raise ValidationError(_("Selected contract does not belong to the selected counterparty."))
+
                     is_receivable = line.type == 'receivable'
-                    
-                    # 1. Create Settlement Movement (if register exists)
-                    # TODO: SettlementRegister
+
+                    # 1. Settlement register movement (+ receivable, - payable)
+                    movement_amount = line.amount if is_receivable else -line.amount
+                    SettlementMovement.objects.create(
+                        tenant=self.tenant,
+                        date=self.date,
+                        counterparty=line.counterparty,
+                        contract=line.contract,
+                        currency=line.contract.currency,
+                        amount=movement_amount,
+                        content_type=ContentType.objects.get_for_model(self),
+                        object_id=self.id
+                    )
+
+                    settlement, _ = SettlementsBalance.objects.get_or_create(
+                        tenant=self.tenant,
+                        counterparty=line.counterparty,
+                        contract=line.contract,
+                        currency=line.contract.currency,
+                        defaults={'amount': 0}
+                    )
+                    settlement.amount += movement_amount
+                    settlement.save()
                     
                     # 2. Accounting Entry
                     if is_receivable:
@@ -2589,7 +2637,7 @@ class OpeningBalanceDocument(BaseDocument):
                             debit_account=acc_62,
                             credit_account=acc_000,
                             amount=line.amount,
-                            currency=base_currency, # Simplified
+                            currency=line.contract.currency or base_currency,
                             description=f"Opening Balance: {line.counterparty.name}",
                             counterparty=line.counterparty,
                             contract=line.contract
@@ -2605,11 +2653,44 @@ class OpeningBalanceDocument(BaseDocument):
                             debit_account=acc_000,
                             credit_account=acc_60,
                             amount=line.amount,
-                            currency=base_currency,
+                            currency=line.contract.currency or base_currency,
                             description=f"Opening Balance: {line.counterparty.name}",
                             counterparty=line.counterparty,
                             contract=line.contract
                         )
+
+            elif self.operation_type == self.OPERATION_ACCOUNT:
+                # Bank account opening balance: Dt bank account / Kt 000
+                for line in self.account_lines.select_related('bank_account', 'bank_account__accounting_account'):
+                    bank_account = line.bank_account
+                    if line.amount <= 0:
+                        raise ValidationError(_("Amount for bank opening balance must be greater than 0."))
+
+                    bank_gl = bank_account.accounting_account
+                    if not bank_gl:
+                        bank_gl = (
+                            ChartOfAccounts.objects.filter(
+                                tenant=self.tenant,
+                                code__in=['1030', '51', '52']
+                            )
+                            .order_by('code')
+                            .first()
+                        )
+                    if not bank_gl:
+                        raise ValidationError(_("No accounting account configured for bank opening balance (1030/51/52)."))
+
+                    AccountingEntry.objects.create(
+                        tenant=self.tenant,
+                        date=self.date,
+                        period=self.date.date().replace(day=1),
+                        content_type=ContentType.objects.get_for_model(self),
+                        object_id=self.id,
+                        debit_account=bank_gl,
+                        credit_account=acc_000,
+                        amount=line.amount,
+                        currency=bank_account.currency or base_currency,
+                        description=f"Opening Bank Balance: {bank_account.name}",
+                    )
             
             self.status = self.STATUS_POSTED
             self.posted_at = timezone.now()
@@ -2648,6 +2729,12 @@ class OpeningBalanceSettlementLine(models.Model):
         ('payable', _('Payable (Credit)')),
     ]
     type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    amount = models.DecimalField(_('Amount'), max_digits=15, decimal_places=2)
+
+
+class OpeningBalanceAccountLine(models.Model):
+    document = models.ForeignKey(OpeningBalanceDocument, on_delete=models.CASCADE, related_name='account_lines')
+    bank_account = models.ForeignKey('directories.BankAccount', on_delete=models.PROTECT)
     amount = models.DecimalField(_('Amount'), max_digits=15, decimal_places=2)
 
 

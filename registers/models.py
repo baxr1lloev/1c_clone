@@ -262,11 +262,16 @@ class StockBalance(models.Model):
             item=item
         )
         
-        receipt = movements.filter(type='RECEIPT').aggregate(Sum('quantity'))['quantity__sum'] or 0
-        expense = movements.filter(type='EXPENSE').aggregate(Sum('quantity'))['quantity__sum'] or 0
-        adjustment = movements.filter(type='ADJUSTMENT').aggregate(Sum('quantity'))['quantity__sum'] or 0
+        # Canonical movement types are IN/OUT. Keep legacy aliases for backward compatibility.
+        qty_in = movements.filter(
+            Q(type__iexact='IN') | Q(type__iexact='RECEIPT')
+        ).aggregate(Sum('quantity'))['quantity__sum'] or 0
+        qty_out = movements.filter(
+            Q(type__iexact='OUT') | Q(type__iexact='EXPENSE')
+        ).aggregate(Sum('quantity'))['quantity__sum'] or 0
+        adjustment = movements.filter(type__iexact='ADJUSTMENT').aggregate(Sum('quantity'))['quantity__sum'] or 0
         
-        quantity = receipt - expense + adjustment
+        quantity = qty_in - qty_out + adjustment
         
         # Calculate amount (cost valuation)
         # For now: sum of batch costs remaining

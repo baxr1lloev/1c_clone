@@ -12,16 +12,47 @@ from directories.models import (
 class CurrencySerializer(serializers.ModelSerializer):
     """Serializer for Currency model."""
     markup_base_currency_code = serializers.SerializerMethodField()
+    is_base = serializers.BooleanField(required=False, write_only=True, default=False)
     
     class Meta:
         model = Currency
         fields = [
             'id', 'code', 'name', 'symbol', 
-            'rate_source', 'markup_percent', 'markup_base_currency', 'markup_base_currency_code'
+            'rate_source', 'markup_percent', 'markup_base_currency', 'markup_base_currency_code',
+            'is_base'
         ]
 
     def get_markup_base_currency_code(self, obj):
         return obj.markup_base_currency.code if obj.markup_base_currency else None
+
+    def _get_request_tenant(self):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        return getattr(user, 'tenant', None)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        tenant = self._get_request_tenant()
+        data['is_base'] = bool(tenant and tenant.base_currency_id == instance.id)
+        return data
+
+    def create(self, validated_data):
+        is_base = validated_data.pop('is_base', False)
+        currency = super().create(validated_data)
+        tenant = self._get_request_tenant()
+        if tenant and (is_base or tenant.base_currency_id is None):
+            tenant.base_currency = currency
+            tenant.save(update_fields=['base_currency'])
+        return currency
+
+    def update(self, instance, validated_data):
+        is_base = validated_data.pop('is_base', False)
+        currency = super().update(instance, validated_data)
+        tenant = self._get_request_tenant()
+        if tenant and is_base and tenant.base_currency_id != currency.id:
+            tenant.base_currency = currency
+            tenant.save(update_fields=['base_currency'])
+        return currency
 
 
 class CurrencyClassifierSerializer(serializers.Serializer):

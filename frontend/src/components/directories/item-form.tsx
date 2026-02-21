@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
@@ -29,6 +29,7 @@ interface ItemFormProps {
 
 type ItemPackageFormData = {
     id?: number;
+    row_key: string;
     name: string;
     coefficient: number;
     is_default: boolean;
@@ -66,8 +67,9 @@ const isKnownBaseUnit = (unit: string): boolean => BASE_UNIT_OPTIONS.some((optio
 const normalizePackages = (source: (ItemUnit | ItemPackageFormData)[] | undefined): ItemPackageFormData[] => {
     if (!source?.length) return [];
 
-    return source.map((pkg) => ({
+    return source.map((pkg, index) => ({
         id: pkg.id,
+        row_key: pkg.id ? `existing-${pkg.id}` : `loaded-${index}`,
         name: pkg.name ?? '',
         coefficient: Number(pkg.coefficient) || 1,
         is_default: Boolean((pkg as ItemPackageFormData).is_default),
@@ -92,6 +94,7 @@ const defaultFormData: ItemFormData = {
     is_active: true,
     units: [
         {
+            row_key: 'new-1',
             name: '',
             coefficient: 1,
             is_default: true,
@@ -105,6 +108,11 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
     const tf = useTranslations('fields')
     const router = useRouter()
     const queryClient = useQueryClient()
+    const packageKeyRef = useRef(1);
+    const nextPackageKey = () => {
+        packageKeyRef.current += 1;
+        return `new-${packageKeyRef.current}`;
+    };
 
     const [formData, setFormData] = useState<ItemFormData>(initialData ? {
         sku: initialData.sku,
@@ -126,6 +134,7 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
             units: [
                 ...prev.units,
                 {
+                    row_key: nextPackageKey(),
                     name: '',
                     coefficient: 1,
                     is_default: prev.units.length === 0,
@@ -184,13 +193,18 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
             const categoryId = (catVal === '' || catVal === CATEGORY_NONE || catVal == null) ? null : Number(catVal);
             if (categoryId !== null && Number.isNaN(categoryId)) throw new Error('Invalid category');
 
-            const packages = data.units
-                .map((pkg) => ({
-                    name: pkg.name.trim(),
-                    coefficient: Number(pkg.coefficient),
-                    is_default: Boolean(pkg.is_default),
-                }))
-                .filter((pkg) => pkg.name.length > 0);
+            const normalizedPackages = data.units.map((pkg) => ({
+                name: pkg.name.trim(),
+                coefficient: Number(pkg.coefficient),
+                is_default: Boolean(pkg.is_default),
+            }));
+            const packages = normalizedPackages.filter((pkg) => pkg.name.length > 0);
+            const hasBlankPackageRows = normalizedPackages.some((pkg) => pkg.name.length === 0);
+
+            // Prevent silent dropping of package rows: user must either fill name or delete the row.
+            if (packages.length > 0 && hasBlankPackageRows) {
+                throw new Error('Заполните название во всех строках упаковки или удалите пустые строки');
+            }
 
             if (packages.some((pkg) => !Number.isFinite(pkg.coefficient) || pkg.coefficient <= 0)) {
                 throw new Error('Package coefficient must be greater than 0');
@@ -232,6 +246,9 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
         onSuccess: () => {
             toast.success(mode === 'edit' ? 'Item updated' : 'Item created');
             queryClient.invalidateQueries({ queryKey: ['items'] });
+            queryClient.invalidateQueries({
+                predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === 'item'
+            });
             router.push('/directories/items');
         },
         onError: (error: unknown) => {
@@ -383,7 +400,7 @@ export function ItemForm({ initialData, mode }: ItemFormProps) {
                         )}
 
                         {formData.units.map((pkg, index) => (
-                            <div key={pkg.id ?? index} className="grid grid-cols-12 gap-2 items-end">
+                            <div key={pkg.row_key} className="grid grid-cols-12 gap-2 items-end">
                                 <div className="col-span-5 space-y-1">
                                     <Label className="text-xs">{t('packageName')}</Label>
                                     <Input

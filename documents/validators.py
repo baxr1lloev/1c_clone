@@ -263,14 +263,27 @@ class DocumentValidator:
             except StockBalance.DoesNotExist:
                 on_stock = Decimal('0')
             
-            # Get reserved quantity (excluding our own reservation if from order)
+            # Get reserved quantity. If sales document is created from SalesOrder,
+            # include reservation from that base order as available for this posting.
             reserved = StockReservation.objects.filter(
                 tenant=document.tenant,
                 warehouse=warehouse,
                 item=item
             ).aggregate(total=Sum('quantity'))['total'] or Decimal('0')
-            
-            available = on_stock - reserved
+
+            own_order_reserve = Decimal('0')
+            base_document_type = getattr(document, 'base_document_type', None)
+            base_document_id = getattr(document, 'base_document_id', None)
+            if base_document_type and base_document_id and getattr(base_document_type, 'model', '') == 'salesorder':
+                own_order_reserve = StockReservation.objects.filter(
+                    tenant=document.tenant,
+                    warehouse=warehouse,
+                    item=item,
+                    document_type=base_document_type,
+                    document_id=base_document_id
+                ).aggregate(total=Sum('quantity'))['total'] or Decimal('0')
+
+            available = on_stock - reserved + own_order_reserve
             
             if quantity_needed > available:
                 errors.append({

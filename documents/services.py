@@ -5,6 +5,7 @@ from registers.batch_service import BatchService
 from registers.reservation_service import ReservationService
 from decimal import Decimal
 from django.utils import timezone
+from django.db.models import Sum
 
 
 class DocumentPostingService:
@@ -311,6 +312,76 @@ class DocumentPostingService:
             'batches_consumed': all_batches_consumed,
             'batches_created': all_batches_created
         }
+
+    @staticmethod
+    @transaction.atomic
+    def unpost_transfer_document(document):
+        """
+        Unpost a TransferDocument.
+
+        Rules:
+        1. Destination batches created by this transfer must not be consumed.
+        2. Source OUT movements are reversed back to source batches.
+        3. Destination IN movements and transfer-created batches are removed.
+        """
+        if document.status != 'posted':
+            return
+
+        from accounting.models import validate_period_is_open
+        from django.core.exceptions import ValidationError
+        from registers.models import StockBatch, StockMovement
+
+        validate_period_is_open(document.date, document.tenant, check_type='OPERATIONAL')
+
+        content_type = ContentType.objects.get_for_model(document)
+
+        transfer_batches = StockBatch.objects.filter(
+            tenant=document.tenant,
+            incoming_document_type=content_type,
+            incoming_document_id=document.id
+        )
+
+        for batch in transfer_batches:
+            if batch.qty_remaining < batch.qty_initial:
+                raise ValidationError(
+                    f"Cannot unpost transfer #{document.number}: "
+                    f"batch for {batch.item.name} in {batch.warehouse.name} was already consumed."
+                )
+
+        out_movements = StockMovement.objects.filter(
+            tenant=document.tenant,
+            content_type=content_type,
+            object_id=document.id,
+            type='OUT'
+        ).select_related('batch', 'item', 'warehouse')
+
+        in_movements = StockMovement.objects.filter(
+            tenant=document.tenant,
+            content_type=content_type,
+            object_id=document.id,
+            type='IN'
+        )
+
+        affected = set()
+        for movement in out_movements:
+            affected.add((movement.warehouse, movement.item))
+            if movement.batch:
+                movement.batch.qty_remaining += movement.quantity
+                movement.batch.save(update_fields=['qty_remaining'])
+
+        for batch in transfer_batches.select_related('item', 'warehouse'):
+            affected.add((batch.warehouse, batch.item))
+
+        in_movements.delete()
+        out_movements.delete()
+        transfer_batches.delete()
+
+        for warehouse, item in affected:
+            StockBalance.recalculate_for_item(document.tenant, warehouse, item)
+
+        document.status = 'draft'
+        document.posted_at = None
+        document.save()
     
     @staticmethod
     @transaction.atomic
@@ -557,19 +628,31 @@ class DocumentPostingService:
         # Validate period is open
         validate_period_is_open(document.date, document.tenant, check_type='OPERATIONAL')
         
-        # Delete batches created by this document
-        from registers.models import Batch
+        from django.core.exceptions import ValidationError
+        from registers.models import StockBatch, StockMovement
+
         content_type = ContentType.objects.get_for_model(document)
-        batches = Batch.objects.filter(
+        batches = StockBatch.objects.filter(
             tenant=document.tenant,
-            source_content_type=content_type,
-            source_object_id=document.id
+            incoming_document_type=content_type,
+            incoming_document_id=document.id
         )
-        
+
         affected_items = set()
         for batch in batches:
+            if batch.qty_remaining < batch.qty_initial:
+                raise ValidationError(
+                    f"Cannot unpost purchase #{document.number}: "
+                    f"batch for {batch.item.name} was already consumed."
+                )
             affected_items.add((batch.warehouse, batch.item))
-            batch.delete()  # This will cascade to movements
+
+        StockMovement.objects.filter(
+            tenant=document.tenant,
+            content_type=content_type,
+            object_id=document.id
+        ).delete()
+        batches.delete()
         
         # Reverse Settlements
         try:
@@ -590,11 +673,10 @@ class DocumentPostingService:
         # Reverse Accounting Entries
         try:
             from accounting.models import AccountingEntry
-            content_type = ContentType.objects.get_for_model(document)
             AccountingEntry.objects.filter(
                 tenant=document.tenant,
-                document_content_type=content_type,
-                document_object_id=document.id
+                content_type=content_type,
+                object_id=document.id
             ).delete()
         except ImportError:
             pass
@@ -630,19 +712,19 @@ class DocumentPostingService:
         validate_period_is_open(document.date, document.tenant, check_type='OPERATIONAL')
         
         # Reverse stock movements
-        from registers.models import StockMovement
+        from registers.models import StockMovement, StockReservation
         content_type = ContentType.objects.get_for_model(document)
         movements = StockMovement.objects.filter(
             tenant=document.tenant,
-            source_content_type=content_type,
-            source_object_id=document.id
+            content_type=content_type,
+            object_id=document.id
         )
         
         affected_items = set()
         for movement in movements:
             affected_items.add((movement.warehouse, movement.item))
             # Restore batch quantity
-            if movement.batch:
+            if movement.type == 'OUT' and movement.batch:
                 movement.batch.qty_remaining += abs(movement.quantity)
                 movement.batch.save()
             movement.delete()
@@ -666,14 +748,45 @@ class DocumentPostingService:
         # Reverse Accounting Entries
         try:
             from accounting.models import AccountingEntry
-            content_type = ContentType.objects.get_for_model(document)
             AccountingEntry.objects.filter(
                 tenant=document.tenant,
-                document_content_type=content_type,
-                document_object_id=document.id
+                content_type=content_type,
+                object_id=document.id
             ).delete()
         except ImportError:
             pass
+
+        # Restore reservations and reopen base sales order if this document was created on its basis.
+        if getattr(document, 'base_document_type_id', None) and getattr(document, 'base_document_id', None):
+            if getattr(document.base_document_type, 'model', '') == 'salesorder':
+                order_ct = document.base_document_type
+                for line in document.lines.all():
+                    if getattr(line.item, 'item_type', '') == 'SERVICE':
+                        continue
+                    existing_qty = StockReservation.objects.filter(
+                        tenant=document.tenant,
+                        warehouse=document.warehouse,
+                        item=line.item,
+                        document_type=order_ct,
+                        document_id=document.base_document_id
+                    ).aggregate(total=Sum('quantity'))['total'] or Decimal('0')
+                    missing_qty = Decimal(str(line.quantity)) - existing_qty
+                    if missing_qty > 0:
+                        StockReservation.objects.create(
+                            tenant=document.tenant,
+                            warehouse=document.warehouse,
+                            item=line.item,
+                            quantity=missing_qty,
+                            document_type=order_ct,
+                            document_id=document.base_document_id
+                        )
+
+                base_order = getattr(document, 'base_document', None)
+                if base_order and getattr(base_order, 'shipped_document_id', None) == document.id:
+                    base_order.shipped_document = None
+                    if hasattr(base_order, 'STATUS_CONFIRMED'):
+                        base_order.status = base_order.STATUS_CONFIRMED
+                    base_order.save(update_fields=['shipped_document', 'status'])
         
         # Recalculate stock balances
         for warehouse, item in affected_items:

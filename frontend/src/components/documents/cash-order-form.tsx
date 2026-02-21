@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useHotkeys } from "react-hotkeys-hook"
@@ -48,7 +48,7 @@ export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: C
         date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
         status: 'draft',
         order_type: initialType,
-        currency: 1, // Default ID for main currency
+        currency: undefined,
         amount: 0,
         purpose: "",
         basis: "",
@@ -70,6 +70,13 @@ export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: C
         initialData: []
     });
 
+    const defaultCurrencyId = useMemo(() => {
+        if (currencies.length === 0) return null;
+        const preferred = currencies.find((currency) => currency.is_base) || currencies[0];
+        return preferred?.id ?? null;
+    }, [currencies]);
+    const effectiveCurrencyId = formData.currency || defaultCurrencyId || undefined;
+
     const isPosted = initialData?.is_posted ?? (formData.status === 'posted');
     const canEdit = mode === 'create' ? true : (!isPosted && (initialData?.can_edit ?? true));
 
@@ -81,6 +88,7 @@ export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: C
         mutationFn: async (data: Partial<CashOrder>) => {
             const payload = {
                 ...data,
+                currency: data.currency || defaultCurrencyId || undefined,
                 // Ensure counterparty_name is set if counterparty ID is not
                 counterparty_name: data.counterparty_name || (data.counterparty ? `ID:${data.counterparty}` : 'Unknown'),
             };
@@ -295,7 +303,7 @@ export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: C
                                     />
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                                         <span className="text-lg font-bold text-muted-foreground">
-                                            {currencies.find((c) => c.id === formData.currency)?.code || initialData?.currency_code || 'CUR'}
+                                            {currencies.find((c) => c.id === effectiveCurrencyId)?.code || initialData?.currency_code || 'CUR'}
                                         </span>
                                     </div>
                                 </div>
@@ -306,10 +314,18 @@ export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: C
                                 <Label className="text-xs">Currency</Label>
                                 <select
                                     className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                                    value={formData.currency || ''}
-                                    onChange={(e) => setFormData({ ...formData, currency: Number(e.target.value) })}
+                                    value={effectiveCurrencyId || ''}
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            currency: Number(e.target.value) || undefined,
+                                        })
+                                    }
                                     disabled={!canEdit}
                                 >
+                                    {currencies.length === 0 ? (
+                                        <option value="">No currencies</option>
+                                    ) : null}
                                     {currencies.map((c) => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
                                 </select>
                             </div>

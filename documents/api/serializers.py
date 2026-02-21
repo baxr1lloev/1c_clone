@@ -1,7 +1,13 @@
 """
 API Serializers for documents app.
 """
+from datetime import datetime, time
+
 from rest_framework import serializers
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
+from django.utils import timezone
 from documents.models import (
     SalesDocument, SalesDocumentLine,
     PurchaseDocument, PurchaseDocumentLine,
@@ -13,11 +19,13 @@ from documents.models import (
     CashOrder,
     PayrollDocument, PayrollDocumentLine,
     ProductionDocument, ProductionProductLine, ProductionMaterialLine,
+    OpeningBalanceDocument, OpeningBalanceStockLine, OpeningBalanceSettlementLine, OpeningBalanceAccountLine,
 )
 from directories.api.serializers import (
     CounterpartyListSerializer, ContractSerializer, 
     WarehouseSerializer, ItemSerializer, CurrencySerializer
 )
+from directories.models import Warehouse, Item, Contract, Counterparty, BankAccount
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -535,20 +543,30 @@ class SalesOrderListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for sales order list."""
     counterparty_name = serializers.CharField(source='counterparty.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    total = serializers.DecimalField(source='total_amount', max_digits=15, decimal_places=2, read_only=True)
+    can_post = serializers.BooleanField(read_only=True)
+    can_unpost = serializers.BooleanField(read_only=True)
+    can_create_sales_document = serializers.BooleanField(read_only=True)
     
     class Meta:
         model = SalesOrder
         fields = [
             'id', 'number', 'date', 'status', 'status_display',
-            'counterparty_name', 'total_amount'
+            'counterparty', 'warehouse', 'currency',
+            'counterparty_name', 'total_amount', 'total',
+            'can_post', 'can_unpost', 'can_create_sales_document',
         ]
 
 
 class SalesOrderDetailSerializer(serializers.ModelSerializer):
     """Full serializer for sales order detail."""
-    counterparty = CounterpartyListSerializer(read_only=True)
+    counterparty_detail = CounterpartyListSerializer(source='counterparty', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     lines = SalesOrderLineSerializer(many=True, read_only=True)
+    can_edit = serializers.SerializerMethodField()
+    can_post = serializers.BooleanField(read_only=True)
+    can_unpost = serializers.BooleanField(read_only=True)
+    can_create_sales_document = serializers.BooleanField(read_only=True)
     
     # Document Chain (1C-style)
     base_document_display = serializers.CharField(source='get_base_document_display', read_only=True, allow_null=True)
@@ -558,12 +576,18 @@ class SalesOrderDetailSerializer(serializers.ModelSerializer):
         model = SalesOrder
         fields = [
             'id', 'number', 'date', 'status', 'status_display', 'comment',
-            'counterparty', 'contract', 'warehouse', 'currency',
-            'total_amount', 'lines',
+            'counterparty', 'counterparty_detail',
+            'contract', 'warehouse', 'currency', 'rate',
+            'order_date', 'delivery_date',
+            'total_amount', 'total_amount_base', 'lines',
             'created_at', 'updated_at',
+            'can_edit', 'can_post', 'can_unpost', 'can_create_sales_document',
             # Document Chain
             'base_document_display', 'base_document_url',
         ]
+
+    def get_can_edit(self, obj):
+        return obj.status in [obj.STATUS_DRAFT, obj.STATUS_CONFIRMED]
 
 
 class SalesOrderCreateUpdateSerializer(serializers.ModelSerializer):
@@ -937,6 +961,256 @@ class BankStatementCreateUpdateSerializer(serializers.ModelSerializer):
 # ─────────────────────────────────────────────────────────────────────
 # Payroll Document
 # ─────────────────────────────────────────────────────────────────────
+
+class OpeningBalanceStockLineSerializer(serializers.ModelSerializer):
+    item_name = serializers.CharField(source='item.name', read_only=True)
+    warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
+
+    class Meta:
+        model = OpeningBalanceStockLine
+        fields = ['id', 'item', 'item_name', 'warehouse', 'warehouse_name', 'quantity', 'price', 'amount']
+        read_only_fields = ['amount']
+
+
+class OpeningBalanceSettlementLineSerializer(serializers.ModelSerializer):
+    counterparty_name = serializers.CharField(source='counterparty.name', read_only=True)
+    contract_number = serializers.CharField(source='contract.number', read_only=True, allow_null=True)
+
+    class Meta:
+        model = OpeningBalanceSettlementLine
+        fields = [
+            'id', 'counterparty', 'counterparty_name',
+            'contract', 'contract_number',
+            'type', 'amount'
+        ]
+
+
+class OpeningBalanceAccountLineSerializer(serializers.ModelSerializer):
+    bank_account_name = serializers.CharField(source='bank_account.name', read_only=True)
+    bank_account_number = serializers.CharField(source='bank_account.account_number', read_only=True)
+    currency_code = serializers.CharField(source='bank_account.currency.code', read_only=True)
+
+    class Meta:
+        model = OpeningBalanceAccountLine
+        fields = ['id', 'bank_account', 'bank_account_name', 'bank_account_number', 'currency_code', 'amount']
+
+
+class OpeningBalanceDocumentSerializer(serializers.ModelSerializer):
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
+    stock_lines = OpeningBalanceStockLineSerializer(many=True, read_only=True)
+    settlement_lines = OpeningBalanceSettlementLineSerializer(many=True, read_only=True)
+    account_lines = OpeningBalanceAccountLineSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = OpeningBalanceDocument
+        fields = [
+            'id', 'number', 'date', 'status', 'status_display', 'comment',
+            'operation_type', 'warehouse', 'warehouse_name',
+            'stock_lines', 'settlement_lines', 'account_lines',
+            'created_at', 'updated_at', 'posted_at',
+        ]
+
+
+class OpeningBalanceDocumentCreateSerializer(serializers.Serializer):
+    operation_type = serializers.ChoiceField(
+        choices=OpeningBalanceDocument.OPERATION_CHOICES,
+        required=False,
+        default=OpeningBalanceDocument.OPERATION_STOCK
+    )
+    date = serializers.DateField(required=False)
+    comment = serializers.CharField(required=False, allow_blank=True, default='')
+    warehouse = serializers.IntegerField(required=False, allow_null=True)
+    stock_lines = OpeningBalanceStockLineSerializer(many=True, required=False)
+    settlement_lines = OpeningBalanceSettlementLineSerializer(many=True, required=False)
+    account_lines = OpeningBalanceAccountLineSerializer(many=True, required=False)
+    post_immediately = serializers.BooleanField(required=False, default=True)
+
+    def validate_stock_lines(self, value):
+        if not value:
+            raise serializers.ValidationError("At least one stock line is required.")
+        return value
+
+    @staticmethod
+    def _pk(value):
+        return getattr(value, 'pk', value)
+
+    def validate(self, attrs):
+        try:
+            user = self.context['request'].user
+            tenant = getattr(user, 'tenant', None)
+            if tenant is None:
+                raise serializers.ValidationError({'tenant': 'Current user is not assigned to a tenant.'})
+
+            document_warehouse = attrs.get('warehouse')
+            document_warehouse_id = self._pk(document_warehouse)
+            operation_type = attrs.get('operation_type', OpeningBalanceDocument.OPERATION_STOCK)
+
+            if operation_type == OpeningBalanceDocument.OPERATION_STOCK:
+                lines = attrs.get('stock_lines') or []
+                if not lines:
+                    raise serializers.ValidationError({'stock_lines': 'At least one stock line is required.'})
+
+                if document_warehouse_id and not Warehouse.objects.filter(id=document_warehouse_id, tenant=tenant).exists():
+                    raise serializers.ValidationError({'warehouse': 'Selected warehouse is not available for current tenant.'})
+
+                for index, line in enumerate(lines, start=1):
+                    item = line.get('item')
+                    item_id = self._pk(item)
+                    item_tenant_id = getattr(item, 'tenant_id', None)
+                    if item_tenant_id is None and item_id:
+                        item_tenant_id = Item.objects.filter(id=item_id).values_list('tenant_id', flat=True).first()
+                    if item_id and item_tenant_id != tenant.id:
+                        raise serializers.ValidationError({'stock_lines': f'Item in line #{index} does not belong to current tenant.'})
+
+                    line_warehouse = line.get('warehouse')
+                    line_warehouse_id = self._pk(line_warehouse)
+                    line_warehouse_tenant_id = getattr(line_warehouse, 'tenant_id', None)
+                    if line_warehouse_tenant_id is None and line_warehouse_id:
+                        line_warehouse_tenant_id = Warehouse.objects.filter(id=line_warehouse_id).values_list('tenant_id', flat=True).first()
+                    if line_warehouse_id and line_warehouse_tenant_id != tenant.id:
+                        raise serializers.ValidationError({'stock_lines': f'Warehouse in line #{index} does not belong to current tenant.'})
+
+                    if not document_warehouse_id and not line_warehouse_id:
+                        raise serializers.ValidationError({
+                            'stock_lines': f'Warehouse is required in line #{index} or document header.'
+                        })
+                    if line.get('quantity') is None or line['quantity'] <= 0:
+                        raise serializers.ValidationError({'stock_lines': f'Quantity must be greater than 0 in line #{index}.'})
+                    if line.get('price') is None or line['price'] < 0:
+                        raise serializers.ValidationError({'stock_lines': f'Price must be >= 0 in line #{index}.'})
+
+            elif operation_type == OpeningBalanceDocument.OPERATION_SETTLEMENT:
+                settlement_lines = attrs.get('settlement_lines') or []
+                if not settlement_lines:
+                    raise serializers.ValidationError({'settlement_lines': 'At least one settlement line is required.'})
+
+                for index, line in enumerate(settlement_lines, start=1):
+                    counterparty = line.get('counterparty')
+                    counterparty_id = self._pk(counterparty)
+                    counterparty_tenant_id = getattr(counterparty, 'tenant_id', None)
+                    if counterparty_tenant_id is None and counterparty_id:
+                        counterparty_tenant_id = Counterparty.objects.filter(id=counterparty_id).values_list('tenant_id', flat=True).first()
+                    if not counterparty_id or counterparty_tenant_id != tenant.id:
+                        raise serializers.ValidationError({'settlement_lines': f'Counterparty in line #{index} does not belong to current tenant.'})
+
+                    contract = line.get('contract')
+                    contract_id = self._pk(contract)
+                    contract_tenant_id = getattr(contract, 'tenant_id', None)
+                    if contract_tenant_id is None and contract_id:
+                        contract_tenant_id = Contract.objects.filter(id=contract_id).values_list('tenant_id', flat=True).first()
+                    if not contract_id or contract_tenant_id != tenant.id:
+                        raise serializers.ValidationError({'settlement_lines': f'Contract is required and must belong to current tenant in line #{index}.'})
+
+                    contract_counterparty_id = getattr(contract, 'counterparty_id', None)
+                    if contract_counterparty_id is None and contract_id:
+                        contract_counterparty_id = Contract.objects.filter(id=contract_id).values_list('counterparty_id', flat=True).first()
+                    if contract_counterparty_id != counterparty_id:
+                        raise serializers.ValidationError({'settlement_lines': f'Contract/counterparty mismatch in line #{index}.'})
+
+                    if line.get('amount') is None or line['amount'] <= 0:
+                        raise serializers.ValidationError({'settlement_lines': f'Amount must be greater than 0 in line #{index}.'})
+
+            elif operation_type == OpeningBalanceDocument.OPERATION_ACCOUNT:
+                account_lines = attrs.get('account_lines') or []
+                if not account_lines:
+                    raise serializers.ValidationError({'account_lines': 'At least one bank account line is required.'})
+
+                for index, line in enumerate(account_lines, start=1):
+                    bank_account = line.get('bank_account')
+                    bank_account_id = self._pk(bank_account)
+                    bank_account_tenant_id = getattr(bank_account, 'tenant_id', None)
+                    if bank_account_tenant_id is None and bank_account_id:
+                        bank_account_tenant_id = BankAccount.objects.filter(id=bank_account_id).values_list('tenant_id', flat=True).first()
+                    if not bank_account_id or bank_account_tenant_id != tenant.id:
+                        raise serializers.ValidationError({'account_lines': f'Bank account in line #{index} does not belong to current tenant.'})
+
+                    if line.get('amount') is None or line['amount'] <= 0:
+                        raise serializers.ValidationError({'account_lines': f'Amount must be greater than 0 in line #{index}.'})
+
+            return attrs
+        except serializers.ValidationError:
+            raise
+        except Exception as exc:
+            raise serializers.ValidationError({'detail': f'Invalid opening balance payload: {exc}'})
+
+    def create(self, validated_data):
+        request = self.context['request']
+        user = request.user
+        tenant = getattr(user, 'tenant', None)
+        if tenant is None:
+            raise serializers.ValidationError({'tenant': 'Current user is not assigned to a tenant.'})
+
+        operation_type = validated_data.pop('operation_type', OpeningBalanceDocument.OPERATION_STOCK)
+        lines_data = validated_data.pop('stock_lines', [])
+        settlement_lines_data = validated_data.pop('settlement_lines', [])
+        account_lines_data = validated_data.pop('account_lines', [])
+        post_immediately = validated_data.pop('post_immediately', True)
+        date_value = validated_data.pop('date', None)
+        warehouse_id = validated_data.pop('warehouse', None)
+
+        if date_value:
+            dt = datetime.combine(date_value, time.min)
+            if timezone.is_naive(dt):
+                try:
+                    dt = timezone.make_aware(dt)
+                except Exception:
+                    pass
+            validated_data['date'] = dt
+        else:
+            validated_data['date'] = timezone.now()
+
+        if warehouse_id:
+            validated_data['warehouse_id'] = warehouse_id
+
+        with transaction.atomic():
+            doc = OpeningBalanceDocument.objects.create(
+                tenant=tenant,
+                created_by=user,
+                operation_type=operation_type,
+                **validated_data,
+            )
+
+            if operation_type == OpeningBalanceDocument.OPERATION_STOCK:
+                for line in lines_data:
+                    OpeningBalanceStockLine.objects.create(
+                        document=doc,
+                        item=line['item'],
+                        warehouse=line.get('warehouse'),
+                        quantity=line['quantity'],
+                        price=line['price'],
+                    )
+            elif operation_type == OpeningBalanceDocument.OPERATION_SETTLEMENT:
+                for line in settlement_lines_data:
+                    OpeningBalanceSettlementLine.objects.create(
+                        document=doc,
+                        counterparty=line['counterparty'],
+                        contract=line.get('contract'),
+                        type=line['type'],
+                        amount=line['amount'],
+                    )
+            elif operation_type == OpeningBalanceDocument.OPERATION_ACCOUNT:
+                for line in account_lines_data:
+                    OpeningBalanceAccountLine.objects.create(
+                        document=doc,
+                        bank_account=line['bank_account'],
+                        amount=line['amount'],
+                    )
+
+            if post_immediately:
+                try:
+                    doc.post(user=user)
+                except DjangoValidationError as exc:
+                    if hasattr(exc, 'message_dict'):
+                        raise serializers.ValidationError(exc.message_dict)
+                    raise serializers.ValidationError({'detail': '; '.join(exc.messages)})
+                except ObjectDoesNotExist as exc:
+                    raise serializers.ValidationError({'detail': str(exc)})
+                except Exception as exc:
+                    raise serializers.ValidationError({'detail': str(exc)})
+
+        return doc
+
 
 class PayrollDocumentLineSerializer(serializers.ModelSerializer):
     """Serializer for PayrollDocumentLine."""

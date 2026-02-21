@@ -56,7 +56,7 @@ export function DocumentContextPanel({
     const { data: customerInfo, isLoading: loadingCustomer } = useQuery({
         queryKey: ['customer-context', customerId],
         queryFn: async () => {
-            const response = await api.get(`/counterparties/${customerId}/context`);
+            const response = await api.get(`/directories/counterparties/${customerId}/context`);
             return response;
         },
         enabled: !!customerId,
@@ -66,10 +66,26 @@ export function DocumentContextPanel({
     const { data: itemStock, isLoading: loadingStock } = useQuery({
         queryKey: ['item-stock-context', itemId, warehouseId],
         queryFn: async () => {
-            const response = await api.get(`/items/${itemId}/stock`, {
-                params: { warehouse: warehouseId }
-            });
-            return response;
+            if (!itemId || !warehouseId) return null;
+            try {
+                const context = await api.get(`/directories/items/${itemId}/context`, {
+                    params: { warehouse: warehouseId }
+                });
+                if (context?.stock) return context.stock;
+            } catch {
+                // Fallback to balances endpoint for compatibility.
+            }
+
+            try {
+                const balances = await api.get<{ balances?: Array<{ warehouse_id: number; quantity: number }> }>(
+                    `/directories/items/${itemId}/balances/`,
+                );
+                const row = (balances?.balances || []).find((entry) => entry.warehouse_id === warehouseId);
+                const onHand = Number(row?.quantity || 0);
+                return { on_hand: onHand, reserved: 0, available: onHand };
+            } catch {
+                return null;
+            }
         },
         enabled: !!itemId && !!warehouseId,
     });

@@ -26,6 +26,7 @@ import { PaginatedResponse, SalesDocument, SalesDocumentLine } from "@/types";
 import {
   PiFloppyDiskBold,
   PiCheckCircleBold,
+  PiFilePlusBold,
   PiPrinterBold,
   PiXBold,
   PiPlusBold,
@@ -412,6 +413,29 @@ export function SalesDocumentForm({
     },
   });
 
+  const createPaymentMutation = useMutation({
+    mutationFn: async () =>
+      api.post<{ id: number; url?: string }>(
+        `/documents/sales/${initialData!.id}/create_on_basis/`,
+        { target_type: "paymentdocument" },
+      ),
+    onSuccess: (response) => {
+      toast.success("Payment document created");
+      queryClient.invalidateQueries({ queryKey: ["sales-documents"] });
+      if (response?.url) {
+        router.push(response.url);
+        return;
+      }
+      if (response?.id) {
+        router.push(`/documents/payments/${response.id}`);
+      }
+    },
+    onError: (err) => {
+      const { title, description } = mapApiError(err);
+      toast.error(title, { description });
+    },
+  });
+
   // Formatting Shortcuts
   useHotkeys(
     "ctrl+s",
@@ -441,6 +465,10 @@ export function SalesDocumentForm({
   useHotkeys("esc", (e) => router.back(), { enableOnFormTags: true });
 
   // Actions
+  const canCreatePayment = Boolean(
+    mode === "edit" && initialData?.id && (initialData?.status === "posted" || initialData?.is_posted),
+  );
+
   const actions: CommandBarAction[] = [
     ...(initialData?.can_post
       ? [
@@ -472,6 +500,17 @@ export function SalesDocumentForm({
             icon: <PiXBold />,
             onClick: () => unpostMutation.mutate(),
             variant: "destructive" as const,
+          },
+        ]
+      : []),
+    ...(canCreatePayment
+      ? [
+          {
+            label: "Create Payment",
+            icon: <PiFilePlusBold />,
+            onClick: () => createPaymentMutation.mutate(),
+            disabled: createPaymentMutation.isPending,
+            variant: "default" as const,
           },
         ]
       : []),

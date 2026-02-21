@@ -19,6 +19,7 @@ interface ReferenceSelectorProps {
     value?: number | null;
     onSelect: (value: number | null, item?: ReferenceItem) => void;
     apiEndpoint: string; // e.g. '/directories/counterparties/'
+    queryParams?: Record<string, string | number | boolean | null | undefined>;
     placeholder?: string;
     label?: string;
     displayField?: string; // Field to show (default: name)
@@ -31,6 +32,7 @@ export function ReferenceSelector({
     value,
     onSelect,
     apiEndpoint,
+    queryParams,
     placeholder = 'Выберите...',
     label = 'Выбор',
     displayField = 'name',
@@ -44,15 +46,24 @@ export function ReferenceSelector({
 
     const isItemsEndpoint = apiEndpoint.includes('/items');
     const fetchWhenOpenOrItems = open || isItemsEndpoint;
+    const normalizedBaseEndpoint = React.useMemo(
+        () => apiEndpoint.split('?')[0].replace(/\/+$/, ''),
+        [apiEndpoint]
+    );
 
     const { data: items = [], isLoading } = useQuery<ReferenceItem[]>({
-        queryKey: [apiEndpoint, debouncedSearch],
+        queryKey: [apiEndpoint, queryParams, debouncedSearch],
         queryFn: async () => {
             try {
-                const params = new URLSearchParams();
-                if (debouncedSearch) params.append('search', debouncedSearch);
+                const [basePath, rawQuery] = apiEndpoint.split('?');
+                const params = new URLSearchParams(rawQuery || '');
+                Object.entries(queryParams || {}).forEach(([key, value]) => {
+                    if (value === null || value === undefined || value === '') return;
+                    params.set(key, String(value));
+                });
+                if (debouncedSearch) params.set('search', debouncedSearch);
                 const qs = params.toString();
-                const url = qs ? `${apiEndpoint.replace(/\?$/, '')}?${qs}` : apiEndpoint.replace(/\?$/, '');
+                const url = qs ? `${basePath}?${qs}` : basePath;
                 const res = await api.get(url) as ReferenceItem[] | { results?: ReferenceItem[] };
                 return Array.isArray(res) ? res : res.results || [];
             } catch {
@@ -63,11 +74,11 @@ export function ReferenceSelector({
     });
 
     const { data: selectedItem } = useQuery<ReferenceItem | null>({
-        queryKey: [apiEndpoint, value, 'detail'],
+        queryKey: [normalizedBaseEndpoint, value, 'detail'],
         queryFn: async () => {
             if (!value) return null;
             try {
-                const res = await api.get(`${apiEndpoint}${value}/`) as ReferenceItem;
+                const res = await api.get(`${normalizedBaseEndpoint}/${value}/`) as ReferenceItem;
                 return res;
             } catch {
                 return null;

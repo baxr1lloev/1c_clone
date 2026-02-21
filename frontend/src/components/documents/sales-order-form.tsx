@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useHotkeys } from "react-hotkeys-hook"
@@ -14,7 +14,7 @@ import { DataTable } from "@/components/data-table/data-table"
 import { ColumnDef } from "@tanstack/react-table"
 import { toast } from "sonner"
 import api from "@/lib/api"
-import { SalesOrder, SalesOrderLine } from "@/types"
+import { PaginatedResponse, SalesOrder, SalesOrderLine } from "@/types"
 import {
     PiFloppyDiskBold,
     PiCheckCircleBold,
@@ -41,6 +41,15 @@ function formatBaseQuantity(value: number): string {
         minimumFractionDigits: 0,
         maximumFractionDigits: 3,
     });
+}
+
+interface ContractOption {
+    id: number;
+    number: string;
+}
+
+function normalizeListResponse<T>(response: PaginatedResponse<T> | T[]): T[] {
+    return Array.isArray(response) ? response : response?.results || [];
 }
 
 // Helper: Transform DB Line (Base) to UI Line (Package)
@@ -80,11 +89,15 @@ export function SalesOrderForm({ initialData, mode }: SalesOrderFormProps) {
         lines: [],
         currency: 1,
         rate: 12500,
-        contract: 1
+        contract: null
     })
 
-    const isPosted = initialData?.status === 'posted' || initialData?.status === 'confirmed' as any;
-    const canEdit = mode === 'create' ? true : !isPosted;
+    const currentStatus = String(initialData?.status || formData.status || 'draft');
+    const isPosted = ['posted', 'confirmed', 'shipped'].includes(currentStatus);
+    const canEdit = mode === 'create'
+        ? true
+        : Boolean(initialData?.can_edit ?? !['posted', 'shipped', 'cancelled'].includes(currentStatus));
+    const counterpartyId = Number(formData.counterparty || 0) || null;
 
     // Lines State (UI Units)
     const [lines, setLines] = useState<SalesOrderLine[]>(
@@ -104,6 +117,44 @@ export function SalesOrderForm({ initialData, mode }: SalesOrderFormProps) {
         });
     }
 
+    const { data: contracts = [] } = useQuery<ContractOption[]>({
+        queryKey: ['sales-order-contracts', counterpartyId],
+        queryFn: async () => {
+            if (!counterpartyId) return [];
+            const response = await api.get<PaginatedResponse<ContractOption> | ContractOption[]>(
+                '/directories/contracts/',
+                { params: { counterparty: counterpartyId } },
+            );
+            return normalizeListResponse(response);
+        },
+        enabled: !!counterpartyId,
+        initialData: [],
+    });
+
+    useEffect(() => {
+        if (!counterpartyId) {
+            if (formData.contract) {
+                setFormData((prev) => ({ ...prev, contract: null }));
+            }
+            return;
+        }
+
+        const selectedContractId = Number(formData.contract || 0);
+        const hasSelectedContract = selectedContractId > 0
+            && contracts.some((contract) => contract.id === selectedContractId);
+
+        if (hasSelectedContract) return;
+
+        if (contracts.length === 1) {
+            setFormData((prev) => ({ ...prev, contract: contracts[0].id }));
+            return;
+        }
+
+        if (selectedContractId > 0 && contracts.length > 1) {
+            setFormData((prev) => ({ ...prev, contract: null }));
+        }
+    }, [contracts, counterpartyId, formData.contract]);
+
     // Prepare Payload for Save/Post
     const preparePayload = () => {
         const dbLines = lines.map(toDbLine);
@@ -121,7 +172,7 @@ export function SalesOrderForm({ initialData, mode }: SalesOrderFormProps) {
         },
         onSuccess: () => {
             toast.success(tc('savedSuccessfully'));
-            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
             if (mode === 'create') router.push('/documents/sales-orders');
         },
         onError: (err) => {
@@ -134,7 +185,7 @@ export function SalesOrderForm({ initialData, mode }: SalesOrderFormProps) {
         mutationFn: async () => api.post(`/documents/sales-orders/${initialData!.id}/post/`),
         onSuccess: () => {
             toast.success(t('postedSuccessfully'));
-            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
             router.refresh();
         },
         onError: (err: any) => {
@@ -142,6 +193,28 @@ export function SalesOrderForm({ initialData, mode }: SalesOrderFormProps) {
             toast.error(title, { description });
         }
     })
+
+    const createSalesDocumentMutation = useMutation({
+        mutationFn: async () => api.post<{ id: number; url?: string; number?: string }>(
+            `/documents/sales-orders/${initialData!.id}/create_on_basis/`,
+            { target_type: 'salesdocument' }
+        ),
+        onSuccess: (response) => {
+            toast.success('Sales document created');
+            queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
+            if (response?.url) {
+                router.push(response.url);
+                return;
+            }
+            if (response?.id) {
+                router.push(`/documents/sales/${response.id}`);
+            }
+        },
+        onError: (err) => {
+            const { title, description } = mapApiError(err);
+            toast.error(title, { description });
+        },
+    });
 
     // Hotkeys
     useHotkeys('ctrl+s', (e) => {
@@ -154,7 +227,18 @@ export function SalesOrderForm({ initialData, mode }: SalesOrderFormProps) {
     useHotkeys('esc', (e) => router.back(), { enableOnFormTags: true });
 
     // Actions
+    const canCreateSalesDocument = Boolean(
+        initialData?.can_create_sales_document ?? currentStatus === 'confirmed'
+    );
+
     const actions: CommandBarAction[] = [
+        ...(canCreateSalesDocument ? [{
+            label: t('salesOrders.actions.createInvoice'),
+            icon: <PiCheckCircleBold />,
+            onClick: () => createSalesDocumentMutation.mutate(),
+            disabled: mode === 'create' || createSalesDocumentMutation.isPending,
+            variant: 'default' as const
+        }] : []),
         ...(initialData?.can_post ? [{
             label: t('post'),
             icon: <PiCheckCircleBold />,
@@ -368,7 +452,13 @@ export function SalesOrderForm({ initialData, mode }: SalesOrderFormProps) {
                         </div>
                         <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground">{tf('counterparty')}</Label>
-                            <ReferenceSelector className="bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent" value={formData.counterparty as number} onSelect={(val) => setFormData({ ...formData, counterparty: val as number })} apiEndpoint="/directories/counterparties/" placeholder="Select Customer..." />
+                            <ReferenceSelector
+                                className="bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent"
+                                value={formData.counterparty as number}
+                                onSelect={(val) => setFormData({ ...formData, counterparty: val as number, contract: null })}
+                                apiEndpoint="/directories/counterparties/"
+                                placeholder="Select Customer..."
+                            />
                         </div>
                         <div className="space-y-1">
                             <Label className="text-xs text-muted-foreground">{tf('warehouse')}</Label>
@@ -379,8 +469,9 @@ export function SalesOrderForm({ initialData, mode }: SalesOrderFormProps) {
                             <ReferenceSelector
                                 className="bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent"
                                 value={formData.contract as number}
-                                onSelect={(val) => setFormData({ ...formData, contract: val as number })}
+                                onSelect={(val) => setFormData({ ...formData, contract: (val as number | null) ?? null })}
                                 apiEndpoint="/directories/contracts/"
+                                queryParams={counterpartyId ? { counterparty: counterpartyId } : undefined}
                                 placeholder="Main Contract"
                                 displayField="number"
                             />

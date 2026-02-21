@@ -14,6 +14,7 @@ from .viewsets import (
     BankStatementViewSet,
     PayrollDocumentViewSet,
     ProductionDocumentViewSet,
+    OpeningBalanceDocumentViewSet,
 )
 from .cash_order_viewset import CashOrderViewSet
 from .item_context import get_item_context
@@ -33,6 +34,7 @@ router.register(r'bank-statements', BankStatementViewSet, basename='bank-stateme
 router.register(r'cash-orders', CashOrderViewSet, basename='cash-order')
 router.register(r'payroll', PayrollDocumentViewSet, basename='payroll')
 router.register(r'production', ProductionDocumentViewSet, basename='production')
+router.register(r'opening-balances', OpeningBalanceDocumentViewSet, basename='opening-balance')
 
 urlpatterns = [
     path('', include(router.urls)),
