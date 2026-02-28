@@ -1,600 +1,1040 @@
 "use client";
-import { LinkableCell } from "@/components/ui/linkable-cell";
-import { StatusBar } from "@/components/ui/status-bar";
-import { getDocumentRowClassName } from "@/components/data-table/row-styles";
-import { GroupBySelector } from "@/components/data-table/group-by-selector";
-import { SavedViews, SavedView } from "@/components/data-table/saved-views";
-import { HelpPanel } from "@/components/layout/help-panel";
-import { ColumnCustomization } from "@/components/data-table/column-customization";
 
-import { useState, useMemo } from "react";
-import { useTranslations } from "next-intl";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ColumnDef, SortingState } from "@tanstack/react-table";
-import api from "@/lib/api";
-import { DataTable } from "@/components/data-table/data-table";
-import { ReferenceLink } from "@/components/ui/reference-link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useMemo, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  PiPencilBold,
-  PiTrashBold,
-  PiArrowsDownUpBold,
-  PiCheckCircleBold,
-  PiXCircleBold,
-  PiXBold,
-} from "react-icons/pi";
-import type { SalesDocument, PaginatedResponse, DocumentStatus } from "@/types";
-import { CommandBar, CommandBarAction } from "@/components/ui/command-bar";
-import { useRouter } from "next/navigation";
+import { PiTrashBold } from "react-icons/pi";
 
-type SalesListRow = SalesDocument & {
-  total_amount?: number | string | null;
-  currency_code?: string | null;
-};
+import api from "@/lib/api";
+import { mapApiError } from "@/lib/error-mapper";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 
-function getDocTotal(doc: SalesListRow): number {
-  const raw = doc.total_amount ?? doc.total;
-  const value = Number(raw);
-  return Number.isFinite(value) ? value : 0;
+type ListResponse<T> = { results?: T[] } | T[];
+
+interface DirectoryItem {
+  id: number;
+  name: string;
+  sku?: string;
+  item_type?: "GOODS" | "SERVICE";
+  type?: "goods" | "service";
+  unit?: string;
+  base_unit?: string;
+  sale_price?: string | number;
+  selling_price?: string | number;
 }
 
-function formatMoney(amount: number, currency = "UZS"): string {
-  return `${amount.toLocaleString("ru-RU", {
+interface WarehouseOption {
+  id: number;
+  name: string;
+}
+
+interface CounterpartyOption {
+  id: number;
+  name: string;
+}
+
+interface ContractOption {
+  id: number;
+  number: string;
+  counterparty: number;
+}
+
+interface CurrencyOption {
+  id: number;
+  code: string;
+  name: string;
+  is_base?: boolean;
+}
+
+interface WorkspaceLine {
+  key: string;
+  item: number;
+  itemName: string;
+  itemType: "GOODS" | "SERVICE";
+  unit: string;
+  quantity: number;
+  price: number;
+}
+
+interface SettlementInfo {
+  debt_now?: number;
+}
+
+interface StockPredictItem {
+  item_id: number;
+  item_name: string;
+  is_negative: boolean;
+}
+
+interface StockPredictResponse {
+  items?: StockPredictItem[];
+}
+
+interface UiMessage {
+  id: string;
+  text: string;
+  type: "warning" | "error" | "info";
+}
+
+interface SalesCreateResponse {
+  id: number;
+  number?: string;
+}
+
+interface CashCreateResponse {
+  id: number;
+}
+
+function normalizeListResponse<T>(response: ListResponse<T> | undefined): T[] {
+  if (!response) return [];
+  if (Array.isArray(response)) return response;
+  return response.results || [];
+}
+
+function toNumber(value: string | number | undefined | null, fallback = 0): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function formatAmount(value: number): string {
+  return value.toLocaleString("ru-RU", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  })} ${currency}`;
+  });
 }
 
-const decorationSales: SalesDocument[] = [
-  {
-    id: 1,
-    tenant: 1,
-    number: "SL-2024-0001",
-    date: "2024-01-20",
-    status: "posted",
-    is_posted: true,
-    comment: "",
-    counterparty: 1,
-    contract: 1,
-    warehouse: 1,
-    currency: 1,
-    exchange_rate: 1,
-    base_currency_rate: 1,
-    subtotal: 1500,
-    tax_amount: 150,
-    total: 1650,
-    lines: [],
-    created_by: 1,
-    posted_by: 1,
-    posted_at: "2024-01-20",
-    created_at: "2024-01-20",
-    updated_at: "2024-01-20",
-  },
-  {
-    id: 2,
-    tenant: 1,
-    number: "SL-2024-0002",
-    date: "2024-01-21",
-    status: "draft",
-    is_posted: false,
-    comment: "Pending approval",
-    counterparty: 2,
-    contract: null,
-    warehouse: 1,
-    currency: 1,
-    exchange_rate: 1,
-    base_currency_rate: 1,
-    subtotal: 2400,
-    tax_amount: 240,
-    total: 2640,
-    lines: [],
-    created_by: 1,
-    posted_by: null,
-    posted_at: null,
-    created_at: "2024-01-21",
-    updated_at: "2024-01-21",
-  },
-  {
-    id: 3,
-    tenant: 1,
-    number: "SL-2024-0003",
-    date: "2024-01-22",
-    status: "posted",
-    is_posted: true,
-    comment: "",
-    counterparty: 3,
-    contract: 2,
-    warehouse: 2,
-    currency: 2,
-    exchange_rate: 0.92,
-    base_currency_rate: 1.09,
-    subtotal: 850,
-    tax_amount: 85,
-    total: 935,
-    lines: [],
-    created_by: 1,
-    posted_by: 1,
-    posted_at: "2024-01-22",
-    created_at: "2024-01-22",
-    updated_at: "2024-01-22",
-  },
-  {
-    id: 4,
-    tenant: 1,
-    number: "SL-2024-0004",
-    date: "2024-01-23",
-    status: "cancelled",
-    is_posted: false,
-    comment: "Cancelled by customer",
-    counterparty: 1,
-    contract: 1,
-    warehouse: 1,
-    currency: 1,
-    exchange_rate: 1,
-    base_currency_rate: 1,
-    subtotal: 500,
-    tax_amount: 50,
-    total: 550,
-    lines: [],
-    created_by: 1,
-    posted_by: null,
-    posted_at: null,
-    created_at: "2024-01-23",
-    updated_at: "2024-01-23",
-  },
-];
+function extractErrorMessages(error: unknown): string[] {
+  const data = (error as { response?: { data?: unknown } })?.response?.data;
+  if (!data || typeof data !== "object") return [];
+
+  const unknownData = data as Record<string, unknown>;
+  const messages: string[] = [];
+
+  if (typeof unknownData.error === "string" && unknownData.error.trim()) {
+    messages.push(unknownData.error.trim());
+  }
+
+  const validationErrors = unknownData.validation_errors;
+  if (Array.isArray(validationErrors)) {
+    for (const item of validationErrors) {
+      if (typeof item === "string" && item.trim()) {
+        messages.push(item.trim());
+      }
+    }
+  }
+
+  for (const [key, value] of Object.entries(unknownData)) {
+    if (key === "error" || key === "validation_errors") continue;
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        if (typeof entry === "string" && entry.trim()) {
+          messages.push(entry.trim());
+        }
+      }
+    } else if (typeof value === "string" && value.trim()) {
+      messages.push(value.trim());
+    }
+  }
+
+  return Array.from(new Set(messages));
+}
 
 export default function SalesDocumentsPage() {
-  const t = useTranslations("documents");
-  const tc = useTranslations("common");
-  const tf = useTranslations("fields");
-  const router = useRouter();
   const queryClient = useQueryClient();
 
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<SalesDocument | null>(null);
-  // BULK OPERATIONS: Multi-select state
-  const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const [searchValue, setSearchValue] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [groupBy, setGroupBy] = useState<string | null>(null);
-  const [columnVisibility, setColumnVisibility] = useState<
-    Record<string, boolean>
-  >({});
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [warehouseId, setWarehouseId] = useState<number | null>(null);
+  const [counterpartyId, setCounterpartyId] = useState<number | null>(null);
+  const [contractId, setContractId] = useState<number | null>(null);
+  const [currencyId, setCurrencyId] = useState<number | null>(null);
+  const [workDate, setWorkDate] = useState<string>(
+    new Date().toISOString().slice(0, 10),
+  );
+  const [cashDesk, setCashDesk] = useState<string>("Main Cash Desk");
+  const [priceType, setPriceType] = useState<string>("Оптовая");
+  const [catalogMode, setCatalogMode] = useState<"goods" | "service">("goods");
+  const [searchValue, setSearchValue] = useState<string>("");
+  const [note, setNote] = useState<string>("");
+  const [rateValue, setRateValue] = useState<string>("1.00");
+  const [printWarehouse, setPrintWarehouse] = useState<boolean>(false);
+  const [printSlip, setPrintSlip] = useState<boolean>(false);
+  const [isPaymentMarked, setIsPaymentMarked] = useState<boolean>(true);
+  const [lines, setLines] = useState<WorkspaceLine[]>([]);
+  const [customMessages, setCustomMessages] = useState<UiMessage[]>([]);
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["sales-documents"],
+  const { data: warehousesRaw = [] } = useQuery<ListResponse<WarehouseOption>>({
+    queryKey: ["sales-pos-warehouses"],
+    queryFn: () => api.get<ListResponse<WarehouseOption>>("/directories/warehouses/"),
+    initialData: [],
+  });
+  const warehouses = useMemo(
+    () => normalizeListResponse(warehousesRaw),
+    [warehousesRaw],
+  );
+
+  const { data: counterpartiesRaw = [] } = useQuery<ListResponse<CounterpartyOption>>({
+    queryKey: ["sales-pos-counterparties"],
+    queryFn: () =>
+      api.get<ListResponse<CounterpartyOption>>("/directories/counterparties/"),
+    initialData: [],
+  });
+  const counterparties = useMemo(
+    () => normalizeListResponse(counterpartiesRaw),
+    [counterpartiesRaw],
+  );
+
+  const { data: contractsRaw = [] } = useQuery<ListResponse<ContractOption>>({
+    queryKey: ["sales-pos-contracts"],
+    queryFn: () => api.get<ListResponse<ContractOption>>("/directories/contracts/"),
+    initialData: [],
+  });
+  const contracts = useMemo(
+    () => normalizeListResponse(contractsRaw),
+    [contractsRaw],
+  );
+
+  const { data: currenciesRaw = [] } = useQuery<ListResponse<CurrencyOption>>({
+    queryKey: ["sales-pos-currencies"],
+    queryFn: () => api.get<ListResponse<CurrencyOption>>("/directories/currencies/"),
+    initialData: [],
+  });
+  const currencies = useMemo(
+    () => normalizeListResponse(currenciesRaw),
+    [currenciesRaw],
+  );
+
+  const { data: itemsRaw = [] } = useQuery<ListResponse<DirectoryItem>>({
+    queryKey: ["sales-pos-items"],
+    queryFn: () => api.get<ListResponse<DirectoryItem>>("/directories/items/"),
+    initialData: [],
+  });
+  const items = useMemo(() => normalizeListResponse(itemsRaw), [itemsRaw]);
+
+  const defaultWarehouseId = warehouses[0]?.id ?? null;
+  const effectiveWarehouseId = warehouseId ?? defaultWarehouseId;
+
+  const defaultCounterpartyId = counterparties[0]?.id ?? null;
+  const effectiveCounterpartyId = counterpartyId ?? defaultCounterpartyId;
+
+  const defaultCurrencyId = useMemo(() => {
+    if (currencies.length === 0) return null;
+    const usd = currencies.find(
+      (currency) => String(currency.code || "").toUpperCase() === "USD",
+    );
+    return (usd || currencies[0]).id;
+  }, [currencies]);
+  const effectiveCurrencyId = currencyId ?? defaultCurrencyId;
+
+  const contractsForCounterparty = useMemo(() => {
+    if (!effectiveCounterpartyId) return contracts;
+    return contracts.filter(
+      (contract) => Number(contract.counterparty) === effectiveCounterpartyId,
+    );
+  }, [contracts, effectiveCounterpartyId]);
+
+  const effectiveContractId = useMemo(() => {
+    if (contractsForCounterparty.length === 0) return null;
+    if (
+      contractId &&
+      contractsForCounterparty.some((contract) => contract.id === contractId)
+    ) {
+      return contractId;
+    }
+    return contractsForCounterparty[0].id;
+  }, [contractId, contractsForCounterparty]);
+
+  const selectedCurrency = useMemo(
+    () => currencies.find((currency) => currency.id === effectiveCurrencyId) || null,
+    [currencies, effectiveCurrencyId],
+  );
+  const selectedCurrencyCode = selectedCurrency?.code || "USD";
+
+  const counterpartyMap = useMemo(() => {
+    const map = new Map<number, CounterpartyOption>();
+    for (const counterparty of counterparties) {
+      map.set(counterparty.id, counterparty);
+    }
+    return map;
+  }, [counterparties]);
+
+  const filteredCatalogItems = useMemo(() => {
+    const normalizedSearch = searchValue.trim().toLowerCase();
+    return items
+      .filter((item) => {
+        const type =
+          item.item_type ||
+          (item.type === "service" ? "SERVICE" : "GOODS");
+        return catalogMode === "goods" ? type === "GOODS" : type === "SERVICE";
+      })
+      .filter((item) => {
+        if (!normalizedSearch) return true;
+        return (
+          String(item.name || "").toLowerCase().includes(normalizedSearch) ||
+          String(item.sku || "").toLowerCase().includes(normalizedSearch)
+        );
+      });
+  }, [catalogMode, items, searchValue]);
+
+  const totalAmount = useMemo(
+    () =>
+      lines.reduce(
+        (sum, line) => sum + Number(line.quantity || 0) * Number(line.price || 0),
+        0,
+      ),
+    [lines],
+  );
+  const totalQuantity = useMemo(
+    () => lines.reduce((sum, line) => sum + Number(line.quantity || 0), 0),
+    [lines],
+  );
+
+  const goodsLinesForPrediction = useMemo(
+    () =>
+      lines
+        .filter((line) => line.itemType === "GOODS")
+        .map((line) => ({
+          item: line.item,
+          quantity: Number(line.quantity || 0),
+        }))
+        .filter((line) => line.item && line.quantity > 0),
+    [lines],
+  );
+
+  const { data: settlementInfo } = useQuery<SettlementInfo | null>({
+    queryKey: [
+      "sales-pos-settlement-info",
+      effectiveCounterpartyId,
+      effectiveContractId,
+      effectiveCurrencyId,
+      totalAmount,
+    ],
     queryFn: async () => {
+      if (!effectiveCounterpartyId) return null;
       try {
-        const response =
-          await api.get<PaginatedResponse<SalesDocument>>("/documents/sales/");
-        return response.results;
+        return await api.get<SettlementInfo>(
+          "/registers/operational/settlement-info/",
+          {
+            params: {
+              counterparty: effectiveCounterpartyId,
+              ...(effectiveContractId ? { contract: effectiveContractId } : {}),
+              ...(effectiveCurrencyId ? { currency: effectiveCurrencyId } : {}),
+            },
+          },
+        );
       } catch {
-        return decorationSales;
+        return null;
       }
     },
+    enabled: Boolean(effectiveCounterpartyId),
   });
 
-  const postMutation = useMutation({
-    mutationFn: async (id: number) => api.post(`/documents/sales/${id}/post/`),
-    onSuccess: () => {
-      toast.success(tc("postedSuccessfully"));
-      queryClient.invalidateQueries({ queryKey: ["sales-documents"] });
+  const { data: stockPrediction } = useQuery<StockPredictResponse>({
+    queryKey: [
+      "sales-pos-stock-predict",
+      effectiveWarehouseId,
+      goodsLinesForPrediction,
+      catalogMode,
+    ],
+    queryFn: async () => {
+      if (!effectiveWarehouseId || goodsLinesForPrediction.length === 0) {
+        return { items: [] };
+      }
+      try {
+        return await api.post<StockPredictResponse>(
+          "/registers/operational/stock-predict/",
+          {
+            warehouse: effectiveWarehouseId,
+            lines: goodsLinesForPrediction,
+            operation: "OUT",
+          },
+        );
+      } catch {
+        return { items: [] };
+      }
     },
-    onError: () => toast.error(t("post_failed")),
+    enabled: Boolean(effectiveWarehouseId && goodsLinesForPrediction.length),
   });
 
-  const unpostMutation = useMutation({
-    mutationFn: async (id: number) =>
-      api.post(`/documents/sales/${id}/unpost/`),
-    onSuccess: () => {
-      toast.success(tc("updatedSuccessfully"));
-      queryClient.invalidateQueries({ queryKey: ["sales-documents"] });
-    },
-    onError: () => toast.error(t("unpost_failed")),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => api.delete(`/documents/sales/${id}/`),
-    onSuccess: () => {
-      toast.success(tc("deletedSuccessfully"));
-      queryClient.invalidateQueries({ queryKey: ["sales-documents"] });
-      setIsDeleteOpen(false);
-      setSelectedItem(null);
-    },
-    onError: () => toast.error(t("delete_failed")),
-  });
-
-  // Actions
-  const handleCreate = () => router.push("/documents/sales/new");
-  const handleEdit = (doc: SalesDocument) =>
-    router.push(`/documents/sales/${doc.id}/edit`);
-  const handleView = (doc: SalesDocument) =>
-    router.push(`/documents/sales/${doc.id}`);
-
-  // Load saved view
-  const handleLoadView = (view: SavedView) => {
-    setStatusFilter(view.filters.status || "all");
-    setSorting(view.sorting);
-    setColumnVisibility(view.columnVisibility);
-    setGroupBy(view.groupBy);
-  };
-
-  const mainActions: CommandBarAction[] = [
-    {
-      label: tc("create"),
-      icon: <PiPencilBold />,
-      onClick: handleCreate,
-      variant: "default",
-      shortcut: "Ins",
-    },
-  ];
-
-  const selectionActions: CommandBarAction[] = selectedItem
-    ? [
-        {
-          label: tc("edit"),
-          icon: <PiPencilBold />,
-          onClick: () => handleEdit(selectedItem),
-          disabled: selectedItem.status !== "draft",
-          shortcut: "F2",
-        },
-        {
-          label: t("post"),
-          icon: <PiCheckCircleBold />,
-          onClick: () => postMutation.mutate(selectedItem.id),
-          disabled: selectedItem.status === "posted",
-          variant: "ghost",
-        },
-        {
-          label: t("unpost"),
-          icon: <PiXCircleBold />,
-          onClick: () => unpostMutation.mutate(selectedItem.id),
-          disabled: selectedItem.status !== "posted",
-          variant: "ghost",
-        },
-        {
-          label: tc("delete"),
-          icon: <PiTrashBold />,
-          onClick: () => setIsDeleteOpen(true),
-          variant: "destructive",
-          shortcut: "Del",
-        },
-      ]
-    : [];
-
-  // Calculate totals
-  const totalSum = useMemo(() => {
-    if (!data) return 0;
-    return data.reduce((sum, doc) => sum + getDocTotal(doc), 0);
-  }, [data]);
-
-  // Filter data based on status filter and search
-  const filteredData = useMemo(() => {
-    if (!data) return [];
-    let filtered = data;
-
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((doc) => doc.status === statusFilter);
-    }
-
-    if (searchValue) {
-      filtered = filtered.filter(
-        (doc) =>
-          doc.number.toLowerCase().includes(searchValue.toLowerCase()) ||
-          doc.comment?.toLowerCase().includes(searchValue.toLowerCase()),
-      );
-    }
-
-    return filtered;
-  }, [data, statusFilter, searchValue]);
-
-  // BULK: Toggle selection
-  const toggleSelection = (id: number) => {
-    setSelectedIds((prev) =>
-      prev.includes(id)
-        ? prev.filter((selectedId) => selectedId !== id)
-        : [...prev, id],
+  const stockWarningMessages = useMemo<UiMessage[]>(() => {
+    const warnings = (stockPrediction?.items || []).filter(
+      (item) => item.is_negative,
     );
+    return warnings.map((warning) => ({
+      id: `stock-${warning.item_id}`,
+      type: "warning",
+      text: `Вы выбрали количество больше чем в остатке: ${warning.item_name}`,
+    }));
+  }, [stockPrediction]);
+
+  const allMessages = useMemo(() => {
+    const merged = [...customMessages, ...stockWarningMessages];
+    const unique = new Map<string, UiMessage>();
+    for (const message of merged) {
+      unique.set(message.id, message);
+    }
+    return Array.from(unique.values()).slice(-8);
+  }, [customMessages, stockWarningMessages]);
+
+  const addMessage = (message: UiMessage) => {
+    setCustomMessages((prev) => {
+      const next = [...prev.filter((entry) => entry.id !== message.id), message];
+      return next.slice(-8);
+    });
   };
 
-  // BULK: Select all visible
-  const selectAll = () => {
-    setSelectedIds(filteredData.map((doc) => doc.id));
+  const clearMessages = () => {
+    setCustomMessages([]);
   };
 
-  // BULK: Clear selection
-  const clearSelection = () => {
-    setSelectedIds([]);
-  };
+  const addCatalogItemToLines = (item: DirectoryItem) => {
+    const itemType: "GOODS" | "SERVICE" =
+      item.item_type || (item.type === "service" ? "SERVICE" : "GOODS");
+    const defaultPrice = toNumber(item.sale_price ?? item.selling_price, 0);
+    const unit = item.base_unit || item.unit || "шт";
 
-  const columns: ColumnDef<SalesDocument>[] = [
-    // BULK OPERATIONS: Checkbox column
-    {
-      id: "select",
-      header: () => (
-        <Checkbox
-          checked={
-            selectedIds.length === filteredData.length &&
-            filteredData.length > 0
-          }
-          onCheckedChange={(value) => {
-            if (value) {
-              selectAll();
-            } else {
-              clearSelection();
-            }
-          }}
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={selectedIds.includes(row.original.id)}
-          onCheckedChange={() => toggleSelection(row.original.id)}
-          onClick={(e) => e.stopPropagation()}
-        />
-      ),
-      size: 40,
-    },
-    {
-      accessorKey: "date",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="-ml-4 h-8 text-xs"
-        >
-          {tc("date")} <PiArrowsDownUpBold className="ml-2 h-3 w-3" />
-        </Button>
-      ),
-      cell: ({ row }) => {
-        // 1C Format: DD.MM.YYYY HH:mm
-        const d = new Date(row.getValue("date"));
-        const day = d.getDate().toString().padStart(2, "0");
-        const month = (d.getMonth() + 1).toString().padStart(2, "0");
-        const year = d.getFullYear();
-        const time =
-          d.getHours().toString().padStart(2, "0") +
-          ":" +
-          d.getMinutes().toString().padStart(2, "0");
-        return (
-          <span className="font-mono text-xs">
-            {day}.{month}.{year} {time}
-          </span>
-        );
-      },
-      footer: () => (
-        <span className="text-muted-foreground">{tc("total")}:</span>
-      ),
-    },
-    {
-      accessorKey: "number",
-      header: tc("number"),
-      cell: ({ row }) => (
-        <ReferenceLink
-          id={row.original.id}
-          type="sales-document"
-          label={row.getValue("number")}
-          className="font-mono text-primary font-bold"
-        />
-      ),
-    },
-    {
-      accessorKey: "counterparty",
-      header: tf("counterparty"),
-      cell: ({ row }) => {
-        const val = row.getValue("counterparty");
-        return (
-          <LinkableCell
-            id={val as number}
-            type="counterparty"
-            label={`Customer #${val}`}
-          />
-        );
-      },
-    },
-    {
-      accessorKey: "warehouse",
-      header: tf("warehouse"),
-      cell: ({ row }) => {
-        const val = row.getValue("warehouse");
-        return (
-          <LinkableCell
-            id={val as number}
-            type="warehouse"
-            label={`WH-#${val}`}
-          />
-        );
-      },
-    },
-    {
-      id: "total",
-      accessorFn: (row) => getDocTotal(row as SalesListRow),
-      header: tc("total"),
-      cell: ({ row }) => {
-        const doc = row.original as SalesListRow;
-        const total = getDocTotal(doc);
-        const currency = doc.currency_code || "UZS";
-        return (
-          <span className="font-mono font-bold">{formatMoney(total, currency)}</span>
-        );
-      },
-      footer: () => (
-        <span className="font-mono text-primary">{formatMoney(totalSum)}</span>
-      ),
-    },
-    {
-      accessorKey: "status",
-      header: tc("status"),
-      cell: ({ row }) => {
-        const status = row.getValue("status") as DocumentStatus;
-        // Use new Badge component with 1C-style variants
-        const variantMap: Record<DocumentStatus, "posted" | "draft" | "deleted"> = {
-          posted: "posted",
-          draft: "draft",
-          cancelled: "deleted",
+    setLines((prev) => {
+      const index = prev.findIndex((line) => line.item === item.id);
+      if (index >= 0) {
+        const next = [...prev];
+        next[index] = {
+          ...next[index],
+          quantity: Number(next[index].quantity || 0) + 1,
         };
-        return (
-          <Badge variant={variantMap[status]}>
-            {status === "posted" && "✓ "}
-            {t(status)}
-          </Badge>
-        );
-      },
+        return next;
+      }
+      return [
+        ...prev,
+        {
+          key: `${item.id}-${Date.now()}`,
+          item: item.id,
+          itemName: item.name,
+          itemType,
+          unit,
+          quantity: 1,
+          price: defaultPrice,
+        },
+      ];
+    });
+  };
+
+  const updateLine = (
+    index: number,
+    field: "quantity" | "price",
+    rawValue: string,
+  ) => {
+    const numericValue = toNumber(rawValue, 0);
+    setLines((prev) => {
+      const next = [...prev];
+      next[index] = {
+        ...next[index],
+        [field]: numericValue < 0 ? 0 : numericValue,
+      };
+      return next;
+    });
+  };
+
+  const removeLine = (index: number) => {
+    setLines((prev) => prev.filter((_, rowIndex) => rowIndex !== index));
+  };
+
+  const createSalesPayload = () => ({
+    date: `${workDate}T00:00:00`,
+    comment: note,
+    counterparty: effectiveCounterpartyId,
+    contract: effectiveContractId,
+    warehouse: effectiveWarehouseId,
+    currency: effectiveCurrencyId,
+    lines: lines.map((line) => ({
+      item: line.item,
+      quantity: Number(line.quantity || 0),
+      package: null,
+      coefficient: 1,
+      price: Number(line.price || 0),
+      discount: 0,
+      vat_rate: 0,
+    })),
+  });
+
+  const validateBeforeSubmit = (): boolean => {
+    if (!effectiveWarehouseId) {
+      toast.error("Выберите склад.");
+      addMessage({
+        id: "validate-warehouse",
+        type: "warning",
+        text: "Не выбран склад.",
+      });
+      return false;
+    }
+    if (!effectiveCounterpartyId) {
+      toast.error("Выберите покупателя.");
+      addMessage({
+        id: "validate-counterparty",
+        type: "warning",
+        text: "Не выбран покупатель.",
+      });
+      return false;
+    }
+    if (!effectiveContractId) {
+      toast.error("Выберите договор.");
+      addMessage({
+        id: "validate-contract",
+        type: "warning",
+        text: "Не выбран договор.",
+      });
+      return false;
+    }
+    if (!effectiveCurrencyId) {
+      toast.error("Выберите валюту.");
+      addMessage({
+        id: "validate-currency",
+        type: "warning",
+        text: "Не выбрана валюта.",
+      });
+      return false;
+    }
+    if (lines.length === 0) {
+      toast.error("Добавьте хотя бы одну позицию.");
+      addMessage({
+        id: "validate-lines",
+        type: "warning",
+        text: "Документ пустой: не выбраны товары/услуги.",
+      });
+      return false;
+    }
+    if (lines.some((line) => Number(line.quantity || 0) <= 0)) {
+      toast.error("Количество в строках должно быть больше 0.");
+      addMessage({
+        id: "validate-qty",
+        type: "warning",
+        text: "Есть строка с нулевым количеством.",
+      });
+      return false;
+    }
+    if (lines.some((line) => Number(line.price || 0) < 0)) {
+      toast.error("Цена не может быть отрицательной.");
+      addMessage({
+        id: "validate-price",
+        type: "warning",
+        text: "Есть строка с отрицательной ценой.",
+      });
+      return false;
+    }
+    return true;
+  };
+
+  const runSalesWorkflow = async (withCashOrder: boolean) => {
+    if (!validateBeforeSubmit()) return;
+
+    clearMessages();
+
+    try {
+      const sales = await api.post<SalesCreateResponse>(
+        "/documents/sales/",
+        createSalesPayload(),
+      );
+      await api.post(`/documents/sales/${sales.id}/post/`);
+
+      if (withCashOrder && isPaymentMarked) {
+        const cashOrder = await api.post<CashCreateResponse>("/documents/cash-orders/", {
+          date: `${workDate}T00:00:00`,
+          order_type: "incoming",
+          counterparty: effectiveCounterpartyId,
+          counterparty_name:
+            counterpartyMap.get(Number(effectiveCounterpartyId || 0))?.name || "Покупатель",
+          amount: totalAmount,
+          currency: effectiveCurrencyId,
+          cash_desk: cashDesk || "Main Cash Desk",
+          purpose: `Оплата по реализации ${sales.number || `#${sales.id}`}`,
+          basis: sales.number || `Реализация #${sales.id}`,
+          comment: note,
+        });
+        await api.post(`/documents/cash-orders/${cashOrder.id}/post/`);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["sales-documents"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-orders"] });
+
+      toast.success(
+        withCashOrder && isPaymentMarked
+          ? "Реализация и кассовый ордер успешно проведены."
+          : "Реализация успешно проведена.",
+      );
+
+      addMessage({
+        id: `success-${Date.now()}`,
+        type: "info",
+        text:
+          withCashOrder && isPaymentMarked
+            ? "Операция завершена: реализация + наличная оплата."
+            : "Операция завершена: реализация проведена.",
+      });
+
+      setLines([]);
+      setNote("");
+      setSearchValue("");
+    } catch (error) {
+      const { title, description } = mapApiError(error);
+      toast.error(title, { description });
+
+      const details = extractErrorMessages(error);
+      if (details.length === 0) {
+        addMessage({
+          id: `error-${Date.now()}`,
+          type: "error",
+          text: title,
+        });
+      } else {
+        for (const detail of details) {
+          addMessage({
+            id: `error-${detail}`,
+            type: "error",
+            text: detail,
+          });
+        }
+      }
+    }
+  };
+
+  const acceptInvoiceMutation = useMutation({
+    mutationFn: async () => runSalesWorkflow(false),
+  });
+
+  const cashMutation = useMutation({
+    mutationFn: async () => runSalesWorkflow(true),
+  });
+
+  const isBusy = acceptInvoiceMutation.isPending || cashMutation.isPending;
+
+  useHotkeys(
+    "f12",
+    (event) => {
+      event.preventDefault();
+      if (!isBusy) acceptInvoiceMutation.mutate();
     },
-  ];
+    { enableOnFormTags: true },
+    [
+      isBusy,
+      lines,
+      effectiveWarehouseId,
+      effectiveCounterpartyId,
+      effectiveContractId,
+      effectiveCurrencyId,
+    ],
+  );
+
+  useHotkeys(
+    "f6",
+    (event) => {
+      event.preventDefault();
+      if (!isBusy) cashMutation.mutate();
+    },
+    { enableOnFormTags: true },
+    [
+      isBusy,
+      lines,
+      effectiveWarehouseId,
+      effectiveCounterpartyId,
+      effectiveContractId,
+      effectiveCurrencyId,
+      isPaymentMarked,
+    ],
+  );
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
-      {/* Quick Filters */}
-      <div className="border-b px-4 py-2 bg-muted/20">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground font-medium">
-            {tc("status")}:
-          </span>
-          <Button
-            variant={statusFilter === "all" ? "default" : "outline"}
-            size="sm"
-            className="h-7 text-xs px-3"
-            onClick={() => setStatusFilter("all")}
-          >
-            {t("sales.filters.all")}
-          </Button>
-          <Button
-            variant={statusFilter === "draft" ? "default" : "outline"}
-            size="sm"
-            className="h-7 text-xs px-3"
-            onClick={() => setStatusFilter("draft")}
-          >
-            {t("sales.filters.draft")}
-          </Button>
-          <Button
-            variant={statusFilter === "posted" ? "default" : "outline"}
-            size="sm"
-            className="h-7 text-xs px-3"
-            onClick={() => setStatusFilter("posted")}
-          >
-            {t("sales.filters.posted")}
-          </Button>
-          <Button
-            variant={statusFilter === "cancelled" ? "default" : "outline"}
-            size="sm"
-            className="h-7 text-xs px-3"
-            onClick={() => setStatusFilter("cancelled")}
-          >
-            {t("sales.filters.cancelled")}
-          </Button>
-          {statusFilter !== "all" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2"
-              onClick={() => setStatusFilter("all")}
-            >
-              <PiXBold className="mr-1 h-3 w-3" />
-              {tc("clearAll")}
-            </Button>
-          )}
+    <div className="h-[calc(100vh-4rem)] flex flex-col bg-background">
+      <div className="h-full border border-border bg-white dark:bg-zinc-950 flex flex-col">
+        <div className="px-3 py-2 border-b bg-muted/30 text-sm font-semibold tracking-wide">
+          РЕАЛИЗАЦИЯ
         </div>
-      </div>
 
-      <DataTable
-        columns={columns}
-        data={filteredData}
-        isLoading={isLoading}
-        // Interaction
-        onRowClick={setSelectedItem}
-        onRowDoubleClick={(row) =>
-          row.status === "draft" ? handleEdit(row) : handleView(row)
-        }
-        getRowClassName={(row) => getDocumentRowClassName(row.status)}
-        // Toolbar
-        commandBar={
-          <div className="flex items-center justify-between w-full">
-            <CommandBar
-              mainActions={mainActions}
-              selectionActions={selectionActions}
-              onRefresh={() => refetch()}
-              onSearch={setSearchValue}
-              searchValue={searchValue}
-              searchPlaceholder={tc("searchPlaceholder")}
-            />
-            <div className="flex items-center gap-2">
-              <GroupBySelector
-                columns={columns}
-                groupBy={groupBy}
-                onGroupByChange={setGroupBy}
-                tableName="sales_documents"
-              />
-              <SavedViews
-                tableName="sales_documents"
-                currentState={{
-                  filters: { status: statusFilter },
-                  sorting,
-                  columnVisibility,
-                  groupBy,
-                }}
-                onLoadView={handleLoadView}
-              />
-              <ColumnCustomization
-                columns={columns}
-                columnVisibility={columnVisibility}
-                onColumnVisibilityChange={setColumnVisibility}
-                tableName="sales_documents"
-              />
-              <HelpPanel context="sales-list" />
+        <div className="grid grid-cols-12 gap-0 flex-1 min-h-0">
+          <div className="col-span-5 border-r border-border min-h-0 flex flex-col">
+            <div className="p-2 border-b space-y-2">
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-5">
+                  <label className="text-xs text-muted-foreground">Склад:</label>
+                  <select
+                    className="h-8 w-full border rounded px-2 text-sm bg-background"
+                    value={effectiveWarehouseId || ""}
+                    onChange={(event) =>
+                      setWarehouseId(event.target.value ? Number(event.target.value) : null)
+                    }
+                  >
+                    <option value="">Выберите склад</option>
+                    {warehouses.map((warehouse) => (
+                      <option key={warehouse.id} value={warehouse.id}>
+                        {warehouse.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-4">
+                  <label className="text-xs text-muted-foreground">Касса:</label>
+                  <Input
+                    value={cashDesk}
+                    onChange={(event) => setCashDesk(event.target.value)}
+                    className="h-8"
+                  />
+                </div>
+                <div className="col-span-3">
+                  <label className="text-xs text-muted-foreground">Тип цен:</label>
+                  <Input
+                    value={priceType}
+                    onChange={(event) => setPriceType(event.target.value)}
+                    className="h-8"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant={catalogMode === "goods" ? "default" : "outline"}
+                  className="h-7 text-xs"
+                  onClick={() => setCatalogMode("goods")}
+                >
+                  Товар
+                </Button>
+                <Button
+                  size="sm"
+                  variant={catalogMode === "service" ? "default" : "outline"}
+                  className="h-7 text-xs"
+                  onClick={() => setCatalogMode("service")}
+                >
+                  Услуга
+                </Button>
+                <Input
+                  value={searchValue}
+                  onChange={(event) => setSearchValue(event.target.value)}
+                  className="h-7 text-xs"
+                  placeholder="Поиск (Ctrl+F)"
+                />
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-auto">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 z-10 bg-muted/60 border-b">
+                  <tr>
+                    <th className="text-left font-medium px-2 py-1 w-10">N</th>
+                    {catalogMode === "goods" && (
+                      <th className="text-left font-medium px-2 py-1">Склад</th>
+                    )}
+                    <th className="text-left font-medium px-2 py-1">Товар</th>
+                    <th className="text-left font-medium px-2 py-1">Ед.изм</th>
+                    <th className="text-right font-medium px-2 py-1">Цена</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCatalogItems.map((item, index) => {
+                    const rowPrice = toNumber(item.sale_price ?? item.selling_price);
+                    return (
+                      <tr
+                        key={item.id}
+                        className="border-b hover:bg-yellow-50 dark:hover:bg-zinc-900 cursor-pointer"
+                        onDoubleClick={() => addCatalogItemToLines(item)}
+                        onClick={() => addCatalogItemToLines(item)}
+                      >
+                        <td className="px-2 py-1">{index + 1}</td>
+                        {catalogMode === "goods" && (
+                          <td className="px-2 py-1">
+                            {effectiveWarehouseId ? "Текущий" : "-"}
+                          </td>
+                        )}
+                        <td className="px-2 py-1">{item.name}</td>
+                        <td className="px-2 py-1">{item.base_unit || item.unit || "-"}</td>
+                        <td className="px-2 py-1 text-right">{formatAmount(rowPrice)}</td>
+                      </tr>
+                    );
+                  })}
+                  {filteredCatalogItems.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={catalogMode === "goods" ? 5 : 4}
+                        className="px-2 py-4 text-center text-muted-foreground"
+                      >
+                        Номенклатура не найдена
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-        }
-      />
 
-      {/* Status Bar */}
-      <StatusBar
-        totalRecords={data?.length || 0}
-        filteredCount={filteredData.length}
-        selectedCount={selectedItem ? 1 : 0}
-        isLoading={isLoading}
-      />
+          <div className="col-span-7 min-h-0 flex flex-col">
+            <div className="p-2 border-b">
+              <div className="grid grid-cols-12 gap-2">
+                <div className="col-span-5">
+                  <label className="text-xs text-muted-foreground">Контрагент:</label>
+                  <select
+                    className="h-8 w-full border rounded px-2 text-sm bg-background"
+                    value={effectiveCounterpartyId || ""}
+                    onChange={(event) =>
+                      setCounterpartyId(
+                        event.target.value ? Number(event.target.value) : null,
+                      )
+                    }
+                  >
+                    <option value="">Выберите покупателя</option>
+                    {counterparties.map((counterparty) => (
+                      <option key={counterparty.id} value={counterparty.id}>
+                        {counterparty.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-4">
+                  <label className="text-xs text-muted-foreground">Договор:</label>
+                  <select
+                    className="h-8 w-full border rounded px-2 text-sm bg-background"
+                    value={effectiveContractId || ""}
+                    onChange={(event) =>
+                      setContractId(event.target.value ? Number(event.target.value) : null)
+                    }
+                  >
+                    <option value="">Выберите договор</option>
+                    {contractsForCounterparty.map((contract) => (
+                      <option key={contract.id} value={contract.id}>
+                        {contract.number}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-3">
+                  <label className="text-xs text-muted-foreground">Дата запроса:</label>
+                  <Input
+                    type="date"
+                    value={workDate}
+                    onChange={(event) => setWorkDate(event.target.value)}
+                    className="h-8"
+                  />
+                </div>
+              </div>
+            </div>
 
-      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("sales.alerts.markForDeletion")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t.rich("sales.alerts.deleteConfirmation", {
-                number: selectedItem?.number ?? '',
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() =>
-                selectedItem && deleteMutation.mutate(selectedItem.id)
-              }
-              className="bg-destructive text-destructive-foreground"
-            >
-              {deleteMutation.isPending ? tc("deleting") : tc("delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            <div className="p-2 border-b">
+              <table className="w-full text-xs border">
+                <thead className="bg-muted/40 border-b">
+                  <tr>
+                    <th className="text-left px-2 py-1 w-10">N</th>
+                    <th className="text-left px-2 py-1">Валюта</th>
+                    <th className="text-right px-2 py-1">Долг</th>
+                    <th className="text-right px-2 py-1">Сумма</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-yellow-50 dark:bg-zinc-900">
+                    <td className="px-2 py-1">1</td>
+                    <td className="px-2 py-1">
+                      <select
+                        className="h-7 border rounded px-2 text-xs bg-background"
+                        value={effectiveCurrencyId || ""}
+                        onChange={(event) =>
+                          setCurrencyId(event.target.value ? Number(event.target.value) : null)
+                        }
+                      >
+                        <option value="">-</option>
+                        {currencies.map((currency) => (
+                          <option key={currency.id} value={currency.id}>
+                            {currency.code}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-2 py-1 text-right">
+                      {formatAmount(toNumber(settlementInfo?.debt_now))}
+                    </td>
+                    <td className="px-2 py-1 text-right">{formatAmount(totalAmount)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-auto">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 z-10 bg-muted/60 border-b">
+                  <tr>
+                    <th className="text-left px-2 py-1 w-10">N</th>
+                    <th className="text-left px-2 py-1">Товар</th>
+                    <th className="text-left px-2 py-1">Ед.изм</th>
+                    <th className="text-right px-2 py-1 w-28">Количество</th>
+                    <th className="text-right px-2 py-1 w-28">Цена</th>
+                    <th className="text-right px-2 py-1 w-28">Сумма</th>
+                    <th className="text-left px-2 py-1 w-24">Валюта</th>
+                    <th className="text-center px-2 py-1 w-12">Д</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lines.map((line, index) => {
+                    const amount = Number(line.quantity || 0) * Number(line.price || 0);
+                    return (
+                      <tr key={line.key} className="border-b hover:bg-yellow-50 dark:hover:bg-zinc-900">
+                        <td className="px-2 py-1">{index + 1}</td>
+                        <td className="px-2 py-1">{line.itemName}</td>
+                        <td className="px-2 py-1">{line.unit}</td>
+                        <td className="px-2 py-1">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.001"
+                            value={line.quantity}
+                            onChange={(event) =>
+                              updateLine(index, "quantity", event.target.value)
+                            }
+                            className="h-7 text-xs text-right"
+                          />
+                        </td>
+                        <td className="px-2 py-1">
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={line.price}
+                            onChange={(event) =>
+                              updateLine(index, "price", event.target.value)
+                            }
+                            className="h-7 text-xs text-right"
+                          />
+                        </td>
+                        <td className="px-2 py-1 text-right font-mono">
+                          {formatAmount(amount)}
+                        </td>
+                        <td className="px-2 py-1">{selectedCurrencyCode}</td>
+                        <td className="px-2 py-1 text-center">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-destructive"
+                            onClick={() => removeLine(index)}
+                          >
+                            <PiTrashBold className="h-3.5 w-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {lines.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="px-2 py-4 text-center text-muted-foreground">
+                        Выберите товар или услугу слева
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="border-t px-2 py-2 flex items-center justify-end gap-8 bg-muted/20">
+              <div className="text-right">
+                <div className="text-[11px] text-muted-foreground">Количество</div>
+                <div className="font-mono">{formatAmount(totalQuantity)}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-[11px] text-muted-foreground">Итого</div>
+                <div className="font-mono text-2xl leading-none">{formatAmount(totalAmount)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t p-2 space-y-2">
+          <div>
+            <label className="text-xs text-muted-foreground">Примечание:</label>
+            <Input
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              className="h-8"
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-4 text-sm">
+              <label className="inline-flex items-center gap-2">
+                <Checkbox
+                  checked={printWarehouse}
+                  onCheckedChange={(checked) => setPrintWarehouse(Boolean(checked))}
+                />
+                Печать складу
+              </label>
+              <label className="inline-flex items-center gap-2">
+                <Checkbox
+                  checked={printSlip}
+                  onCheckedChange={(checked) => setPrintSlip(Boolean(checked))}
+                />
+                Печать
+              </label>
+              <label className="inline-flex items-center gap-2 text-emerald-600">
+                <Checkbox
+                  checked={isPaymentMarked}
+                  onCheckedChange={(checked) => setIsPaymentMarked(Boolean(checked))}
+                />
+                Оплата
+              </label>
+              <span className="text-xs text-muted-foreground">Курс:</span>
+              <Input
+                value={rateValue}
+                onChange={(event) => setRateValue(event.target.value)}
+                className="h-8 w-24 text-right"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                size="lg"
+                className="min-w-[220px] text-2xl"
+                disabled={isBusy}
+                onClick={() => acceptInvoiceMutation.mutate()}
+              >
+                {isBusy && acceptInvoiceMutation.isPending
+                  ? "Обработка..."
+                  : "Принять счет (F12)"}
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                className={cn(
+                  "min-w-[220px] text-2xl",
+                  isPaymentMarked && "border-emerald-600 text-emerald-700",
+                )}
+                disabled={isBusy}
+                onClick={() => cashMutation.mutate()}
+              >
+                {isBusy && cashMutation.isPending
+                  ? "Обработка..."
+                  : "Наличные (F6)"}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t min-h-8 bg-muted/10">
+          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground border-b">
+            Сообщения:
+          </div>
+          <div className="max-h-24 overflow-auto">
+            {allMessages.length === 0 && (
+              <div className="px-2 py-1 text-xs text-muted-foreground">-</div>
+            )}
+            {allMessages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  "px-2 py-1 text-xs border-b",
+                  message.type === "warning" && "bg-yellow-100/70 text-yellow-900",
+                  message.type === "error" && "bg-red-100/70 text-red-900",
+                  message.type === "info" && "bg-emerald-100/70 text-emerald-900",
+                )}
+              >
+                - {message.text}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
