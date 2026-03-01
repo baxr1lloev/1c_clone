@@ -1,0 +1,6 @@
+#!/usr/bin/expect -f
+set timeout 600
+spawn ssh -o StrictHostKeyChecking=no root@76.13.79.42 "git clone https://github.com/baxr1lloev/1c_clone.git && cd 1c_clone && cp .env.example .env && sed -i 's/replace-with-a-long-random-secret/d9ce15f35f7e294f10f7cacfe896b8dbbf210dc06faa8ec6b141681a2ece79ed/g' .env && sed -i 's/your-frontend-name.vercel.app/76.13.79.42/g' .env && sed -i 's/your-backend-name.koyeb.app/76.13.79.42/g' .env && docker compose up -d"
+expect "password:"
+send "sxmuves@A123\n"
+expect eof
