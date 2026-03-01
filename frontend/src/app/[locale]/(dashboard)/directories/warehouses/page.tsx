@@ -1,268 +1,251 @@
-﻿'use client';
+'use client';
 
-import { useState } from 'react';
-import { useTranslations } from 'next-intl';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ColumnDef } from '@tanstack/react-table';
-import api from '@/lib/api';
-import { DataTable } from '@/components/data-table/data-table';
-import { ReferenceLink } from '@/components/ui/reference-link';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
+import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useRouter } from 'next/navigation';
+import { useLocale } from 'next-intl';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { PiDotsThreeOutlineBold, PiPencilBold, PiTrashBold, PiArrowsDownUpBold, PiBuildingsBold } from 'react-icons/pi';
-import type { Warehouse, PaginatedResponse, WarehouseType } from '@/types';
+
+import api from '@/lib/api';
+import type { PaginatedResponse, Warehouse } from '@/types';
+
+type WarehouseUiMeta = {
+  department: string;
+  counterpartyId: number | null;
+  counterpartyName: string;
+};
+
+type WarehouseUiMetaRecord = Record<string, WarehouseUiMeta>;
+
+const STORAGE_KEY = 'warehouse_directory_meta_v1';
+const EMPTY_WAREHOUSE_META: WarehouseUiMetaRecord = {};
+const EMPTY_WAREHOUSE_META_SNAPSHOT = '{}';
+const DEFAULT_DEPARTMENT = 'Оптовая торговля (общая)';
 
 const demoWarehouses: Warehouse[] = [
-  { id: 1, tenant: 1, name: 'Main Warehouse', code: 'WH-001', type: 'physical', address: '100 Industrial Blvd', is_active: true, created_at: '2024-01-15', updated_at: '2024-01-15' },
-  { id: 2, tenant: 1, name: 'Downtown Store', code: 'WH-002', type: 'physical', address: '50 Main Street', is_active: true, created_at: '2024-01-16', updated_at: '2024-01-16' },
-  { id: 3, tenant: 1, name: 'Virtual Storage', code: 'VW-001', type: 'virtual', address: '', is_active: true, created_at: '2024-01-17', updated_at: '2024-01-17' },
-  { id: 4, tenant: 1, name: 'Transit Zone', code: 'TZ-001', type: 'transit', address: '', is_active: true, created_at: '2024-01-18', updated_at: '2024-01-18' },
+  { id: 4, name: 'BOZOR 4 QATOR', warehouse_type: 'PHYSICAL', address: '', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
+  { id: 5, name: 'TAMOJNI SKLAD', warehouse_type: 'PHYSICAL', address: '', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
+  { id: 6, name: 'BOZOR 6 QATOR', warehouse_type: 'PHYSICAL', address: '', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
+  { id: 7, name: 'BOZOR 7 QATOR', warehouse_type: 'PHYSICAL', address: '', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
+  { id: 17, name: 'Prochi Sklad', warehouse_type: 'PHYSICAL', address: '', is_active: true, created_at: '2026-01-01', updated_at: '2026-01-01' },
 ];
 
-type WarehouseFormData = Omit<Warehouse, 'id' | 'tenant' | 'created_at' | 'updated_at'>;
+function parseWarehouseMeta(rawValue: string | null): WarehouseUiMetaRecord {
+  if (!rawValue) return EMPTY_WAREHOUSE_META;
 
-const defaultFormData: WarehouseFormData = {
-  name: '',
-  code: '',
-  type: 'physical',
-  address: '',
-  is_active: true,
-};
+  try {
+    const parsed = JSON.parse(rawValue) as WarehouseUiMetaRecord;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed
+      : EMPTY_WAREHOUSE_META;
+  } catch {
+    return EMPTY_WAREHOUSE_META;
+  }
+}
 
-const typeColors: Record<WarehouseType, string> = {
-  physical: 'bg-emerald-100 text-emerald-800',
-  virtual: 'bg-blue-100 text-blue-800',
-  transit: 'bg-amber-100 text-amber-800',
-};
+function readWarehouseMetaSnapshot(): string {
+  if (typeof window === 'undefined') return EMPTY_WAREHOUSE_META_SNAPSHOT;
+  return window.localStorage.getItem(STORAGE_KEY) || EMPTY_WAREHOUSE_META_SNAPSHOT;
+}
+
+function saveWarehouseMeta(meta: WarehouseUiMetaRecord) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(meta));
+  window.dispatchEvent(new Event('warehouse-meta-change'));
+}
+
+function subscribeWarehouseMeta(onChange: () => void) {
+  if (typeof window === 'undefined') {
+    return () => undefined;
+  }
+
+  const handler = () => onChange();
+  window.addEventListener('storage', handler);
+  window.addEventListener('warehouse-meta-change', handler);
+
+  return () => {
+    window.removeEventListener('storage', handler);
+    window.removeEventListener('warehouse-meta-change', handler);
+  };
+}
 
 export default function WarehousesPage() {
-  const t = useTranslations('directories');
-  const tc = useTranslations('common');
-  const tf = useTranslations('fields');
+  const router = useRouter();
+  const locale = useLocale();
   const queryClient = useQueryClient();
+  const localePath = (path: string) => `/${locale}${path.startsWith('/') ? path : `/${path}`}`;
 
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<Warehouse | null>(null);
-  const [formData, setFormData] = useState<WarehouseFormData>(defaultFormData);
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | null>(null);
+  const [searchValue, setSearchValue] = useState('');
+  const metaSnapshot = useSyncExternalStore(
+    subscribeWarehouseMeta,
+    readWarehouseMetaSnapshot,
+    () => EMPTY_WAREHOUSE_META_SNAPSHOT,
+  );
+  const metaByWarehouse = useMemo(
+    () => parseWarehouseMeta(metaSnapshot),
+    [metaSnapshot],
+  );
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data: warehouses = [], isLoading, refetch } = useQuery({
     queryKey: ['warehouses'],
     queryFn: async () => {
       try {
         const response = await api.get<PaginatedResponse<Warehouse>>('/directories/warehouses/');
-        return response.results;
+        return response.results || [];
       } catch {
         return demoWarehouses;
       }
     },
   });
 
-  const saveMutation = useMutation({
-    mutationFn: async (data: WarehouseFormData) => {
-      if (selectedItem) return api.put(`/directories/warehouses/${selectedItem.id}/`, data);
-      return api.post('/directories/warehouses/', data);
-    },
-    onSuccess: () => {
-      toast.success(selectedItem ? 'Warehouse updated' : 'Warehouse created');
-      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
-      handleCloseForm();
-    },
-    onError: () => toast.error('Failed to save warehouse'),
-  });
+  const filteredWarehouses = useMemo(() => {
+    if (!searchValue.trim()) return warehouses;
+    const term = searchValue.toLowerCase();
+    return warehouses.filter((warehouse) =>
+      warehouse.name.toLowerCase().includes(term) ||
+      String(warehouse.id || '').toLowerCase().includes(term) ||
+      (metaByWarehouse[String(warehouse.id)]?.counterpartyName || '').toLowerCase().includes(term),
+    );
+  }, [metaByWarehouse, searchValue, warehouses]);
+
+  const effectiveSelectedWarehouseId = selectedWarehouseId ?? filteredWarehouses[0]?.id ?? null;
+
+  const selectedWarehouse = useMemo(
+    () => filteredWarehouses.find((warehouse) => warehouse.id === effectiveSelectedWarehouseId) || null,
+    [effectiveSelectedWarehouseId, filteredWarehouses],
+  );
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => api.delete(`/directories/warehouses/${id}/`),
-    onSuccess: () => {
-      toast.success('Warehouse deleted');
+    onSuccess: (_, deletedId) => {
+      const nextMeta = { ...metaByWarehouse };
+      delete nextMeta[String(deletedId)];
+      saveWarehouseMeta(nextMeta);
+      toast.success('Склад удален');
       queryClient.invalidateQueries({ queryKey: ['warehouses'] });
-      setIsDeleteOpen(false);
+      setSelectedWarehouseId(null);
     },
-    onError: () => toast.error('Failed to delete warehouse'),
+    onError: () => {
+      toast.error('Не удалось удалить склад');
+    },
   });
 
-  const handleOpenCreate = () => { setSelectedItem(null); setFormData(defaultFormData); setIsFormOpen(true); };
-  const handleOpenEdit = (item: Warehouse) => {
-    setSelectedItem(item);
-    setFormData({ name: item.name, code: item.code, type: item.type, address: item.address, is_active: item.is_active });
-    setIsFormOpen(true);
-  };
-  const handleCloseForm = () => { setIsFormOpen(false); setSelectedItem(null); setFormData(defaultFormData); };
-  const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); saveMutation.mutate(formData); };
-
-  const columns: ColumnDef<Warehouse>[] = [
-    {
-      accessorKey: 'code',
-      header: tc('code'),
-      cell: ({ row }) => <span className="font-mono text-sm">{row.getValue('code')}</span>,
-    },
-    {
-      accessorKey: 'name',
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="-ml-4">
-          {tf('name')} <PiArrowsDownUpBold className="ml-2 h-4 w-4" />
-        </Button>
-      ),
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <PiBuildingsBold className="h-4 w-4 text-muted-foreground" />
-          <ReferenceLink
-            id={row.original.id}
-            type="warehouse"
-            label={row.getValue('name')}
-            showIcon={false}
-            className="font-medium"
-          />
-        </div>
-      ),
-    },
-    {
-      accessorKey: 'type',
-      header: tf('type'),
-      cell: ({ row }) => {
-        const type = row.getValue('type') as WarehouseType | undefined;
-        if (!type) return <Badge variant="outline">Unknown</Badge>;
-        return <Badge className={typeColors[type] || 'bg-gray-100 text-gray-800'}>{type.charAt(0).toUpperCase() + type.slice(1)}</Badge>;
-      },
-    },
-    {
-      accessorKey: 'address',
-      header: tf('address'),
-      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.getValue('address') || '-'}</span>,
-    },
-    {
-      accessorKey: 'is_active',
-      header: tf('isActive'),
-      cell: ({ row }) => {
-        const isActive = row.getValue('is_active') as boolean;
-        return <Badge variant={isActive ? 'default' : 'outline'}>{isActive ? 'Active' : 'Inactive'}</Badge>;
-      },
-    },
-    {
-      id: 'actions',
-      header: tc('actions'),
-      cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">{tc('actions')}</span>
-              <PiDotsThreeOutlineBold className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleOpenEdit(row.original)}>
-              <PiPencilBold className="mr-2 h-4 w-4" />
-              {tc('edit')}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => { setSelectedItem(row.original); setIsDeleteOpen(true); }} className="text-destructive">
-              <PiTrashBold className="mr-2 h-4 w-4" />
-              {tc('delete')}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ];
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{t('warehouses')}</h1>
-          <p className="text-muted-foreground">Manage your storage locations</p>
+    <div className="min-h-[calc(100vh-4rem)] bg-[#e9e9e9] px-1 py-1 text-[#3e3e3e]">
+      <div className="mx-auto h-[calc(100vh-4.6rem)] w-full overflow-hidden border border-[#c9c9c9] bg-[#efefef] shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
+          <div className="flex items-center gap-3">
+            <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
+            <h1 className="text-[18px] font-medium text-black">Склады</h1>
+          </div>
+          <div className="flex items-center gap-3 text-lg text-[#777]">
+            <span>🔗</span>
+            <span>⋮</span>
+            <span>▢</span>
+            <span>×</span>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            Import
-          </Button>
-          <Button variant="outline" size="sm">
-            Export
-          </Button>
-          <Button onClick={handleOpenCreate}>
-            + New Warehouse
-          </Button>
+
+        <div className="border-b border-[#d4d4d4] px-2 py-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="h-10 rounded-sm border border-[#b99800] bg-[#f5d90a] px-5 text-sm font-medium text-black hover:bg-[#f0d000]"
+              onClick={() => router.push(localePath('/directories/warehouses/new'))}
+            >
+              Создать
+            </button>
+            <button
+              type="button"
+              className="h-10 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
+              onClick={() => selectedWarehouse && router.push(localePath(`/directories/warehouses/${selectedWarehouse.id}`))}
+              disabled={!selectedWarehouse}
+            >
+              Изменить
+            </button>
+            <button
+              type="button"
+              className="h-10 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3] disabled:opacity-50"
+              onClick={() => refetch()}
+            >
+              Обновить
+            </button>
+            <button
+              type="button"
+              className="h-10 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3] disabled:opacity-50"
+              onClick={() => selectedWarehouse && deleteMutation.mutate(selectedWarehouse.id)}
+              disabled={!selectedWarehouse || deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Удаление...' : 'Удалить'}
+            </button>
+
+            <div className="ml-auto flex items-center gap-2">
+              <input
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
+                placeholder="Поиск (Ctrl+F)"
+                className="h-10 w-[300px] rounded-none border border-[#bcbcbc] bg-white px-3 text-sm"
+              />
+              <button
+                type="button"
+                className="h-10 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
+              >
+                Еще ▾
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="h-[calc(100%-108px)] overflow-auto">
+          <table className="min-w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-[#f3f3f3]">
+                <th className="w-10 border border-[#bdbdbd] px-2 py-2 text-left font-normal" />
+                <th className="border border-[#bdbdbd] px-3 py-2 text-left font-normal">Наименование</th>
+                <th className="w-[140px] border border-[#bdbdbd] px-3 py-2 text-left font-normal">Код</th>
+                <th className="w-[300px] border border-[#bdbdbd] px-3 py-2 text-left font-normal">Подразделение</th>
+                <th className="w-[260px] border border-[#bdbdbd] px-3 py-2 text-left font-normal">Контрагент</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="border border-[#bdbdbd] px-3 py-10 text-center text-[#666]">
+                    Загрузка...
+                  </td>
+                </tr>
+              ) : filteredWarehouses.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="border border-[#bdbdbd] px-3 py-10 text-center text-[#666]">
+                    Склады не найдены.
+                  </td>
+                </tr>
+              ) : (
+                filteredWarehouses.map((warehouse) => {
+                  const isSelected = effectiveSelectedWarehouseId === warehouse.id;
+                  const meta = metaByWarehouse[String(warehouse.id)];
+
+                  return (
+                    <tr
+                      key={warehouse.id}
+                      className={isSelected ? 'bg-[#f8efba]' : 'bg-white hover:bg-[#fbf7da]'}
+                      onClick={() => setSelectedWarehouseId(warehouse.id)}
+                      onDoubleClick={() => router.push(localePath(`/directories/warehouses/${warehouse.id}`))}
+                    >
+                      <td className="border border-[#bdbdbd] px-2 py-2 text-center text-[#4a89b3]">▬</td>
+                      <td className="border border-[#bdbdbd] px-3 py-2">{warehouse.name}</td>
+                      <td className="border border-[#bdbdbd] px-3 py-2 font-mono">{warehouse.id || '0'}</td>
+                      <td className="border border-[#bdbdbd] px-3 py-2">{meta?.department || DEFAULT_DEPARTMENT}</td>
+                      <td className="border border-[#bdbdbd] px-3 py-2">{meta?.counterpartyName || ''}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
-
-      <DataTable columns={columns} data={data || []} isLoading={isLoading} searchColumn="name" searchPlaceholder="Search warehouses..." onRefresh={() => refetch()} />
-
-      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>{selectedItem ? t('editWarehouse') : t('addWarehouse')}</DialogTitle>
-            <DialogDescription>{selectedItem ? 'Update warehouse details' : 'Add a new warehouse'}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="code">{tc('code')}</Label>
-                  <Input id="code" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value })} placeholder="WH-001" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="type">{tf('type')}</Label>
-                  <Select value={formData.type} onValueChange={(v) => setFormData({ ...formData, type: v as WarehouseType })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="physical">Physical</SelectItem>
-                      <SelectItem value="virtual">Virtual</SelectItem>
-                      <SelectItem value="transit">Transit</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="name">{tc('name')}</Label>
-                <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Main Warehouse" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="address">{tf('address')}</Label>
-                <Textarea id="address" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Full address" rows={2} />
-              </div>
-              <div className="flex items-center space-x-2">
-                <Switch id="is_active" checked={formData.is_active} onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })} />
-                <Label htmlFor="is_active">{tf('isActive')}</Label>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleCloseForm}>{tc('cancel')}</Button>
-              <Button type="submit" disabled={saveMutation.isPending}>{saveMutation.isPending ? 'Saving...' : tc('save')}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Warehouse</AlertDialogTitle>
-            <AlertDialogDescription>Are you sure you want to delete "{selectedItem?.name}"?</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => selectedItem && deleteMutation.mutate(selectedItem.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {deleteMutation.isPending ? 'Deleting...' : tc('delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
-

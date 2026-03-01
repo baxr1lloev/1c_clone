@@ -1,51 +1,81 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ColumnDef } from '@tanstack/react-table';
-import { cn } from '@/lib/utils';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import {
+  PiArrowsDownUpBold,
+  PiCheckCircleBold,
+  PiPencilBold,
+  PiPlusBold,
+  PiTrashBold,
+  PiXCircleBold,
+} from 'react-icons/pi';
+
 import api from '@/lib/api';
+import type { PaginatedResponse, PaymentDocument } from '@/types';
 import { DataTable } from '@/components/data-table/data-table';
 import { ReferenceLink } from '@/components/ui/reference-link';
 import { LinkableCell } from '@/components/ui/linkable-cell';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
-import { PiPencilBold, PiTrashBold, PiArrowsDownUpBold, PiCheckCircleBold, PiXCircleBold, PiArrowCircleDownBold, PiArrowCircleUpBold, PiPlusBold } from 'react-icons/pi';
-import { useRouter } from 'next/navigation';
-import type { PaymentDocument, PaginatedResponse, DocumentStatus, PaymentType } from '@/types';
-import { CommandBar, CommandBarAction } from '@/components/ui/command-bar';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { CommandBar, type CommandBarAction } from '@/components/ui/command-bar';
 
-const statusColors: Record<DocumentStatus, string> = {
-  draft: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
-  posted: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
-  cancelled: 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200',
-};
+const DEFAULT_DEPARTMENT_LABEL = 'Оптовая торговля (общая)';
+const DEFAULT_CREATOR_LABEL = 'Admin';
+
+function formatDateTime(value?: string | null) {
+  if (!value) return '-';
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+
+  return parsed.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+}
 
 export default function PaymentsPage() {
   const t = useTranslations('documents');
   const tc = useTranslations('common');
-  const tf = useTranslations('fields');
   const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const localePath = (path: string) => `/${locale}${path.startsWith('/') ? path : `/${path}`}`;
+
+  const localePath = (path: string) =>
+    `/${locale}${path.startsWith('/') ? path : `/${path}`}`;
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<PaymentDocument | null>(null);
   const [searchValue, setSearchValue] = useState('');
-  const [activeTab, setActiveTab] = useState<'all' | 'incoming' | 'outgoing'>('all');
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['payments'],
     queryFn: async () => {
       try {
-        const response = await api.get<PaginatedResponse<PaymentDocument>>('/documents/payments/');
+        const response =
+          await api.get<PaginatedResponse<PaymentDocument>>('/documents/payments/');
         return response.results;
-      } catch { return []; }
+      } catch {
+        return [];
+      }
     },
   });
 
@@ -78,57 +108,13 @@ export default function PaymentsPage() {
     onError: () => toast.error('Не удалось удалить документ'),
   });
 
-  const handleCreate = (type: 'INCOMING' | 'OUTGOING' = 'INCOMING') =>
-    router.push(localePath(`/documents/payments/new?type=${type}`));
-  const handleEdit = (doc: PaymentDocument) => router.push(localePath(`/documents/payments/${doc.id}`));
-  const handleView = (doc: PaymentDocument) => router.push(localePath(`/documents/payments/${doc.id}`));
+  const handleCreate = () => {
+    router.push(localePath('/documents/payments/new'));
+  };
 
-  const mainActions: CommandBarAction[] = [
-    {
-      label: tf('incoming'),
-      icon: <PiPlusBold />,
-      onClick: () => handleCreate('INCOMING'),
-      variant: 'default',
-      shortcut: 'Ins',
-    },
-    {
-      label: tf('outgoing'),
-      icon: <PiPlusBold />,
-      onClick: () => handleCreate('OUTGOING'),
-      variant: 'secondary',
-    },
-  ];
-
-  const selectionActions: CommandBarAction[] = selectedItem ? [
-    {
-      label: tc('edit'),
-      icon: <PiPencilBold />,
-      onClick: () => handleEdit(selectedItem),
-      disabled: selectedItem.status !== 'draft',
-      shortcut: 'F2'
-    },
-    {
-      label: t('post'),
-      icon: <PiCheckCircleBold />,
-      onClick: () => postMutation.mutate(selectedItem.id),
-      disabled: selectedItem.status === 'posted',
-      variant: 'ghost'
-    },
-    {
-      label: t('unpost'),
-      icon: <PiXCircleBold />,
-      onClick: () => unpostMutation.mutate(selectedItem.id),
-      disabled: selectedItem.status !== 'posted',
-      variant: 'ghost'
-    },
-    {
-      label: tc('delete'),
-      icon: <PiTrashBold />,
-      onClick: () => setIsDeleteOpen(true),
-      variant: 'destructive',
-      shortcut: 'Del'
-    }
-  ] : [];
+  const handleEdit = (doc: PaymentDocument) => {
+    router.push(localePath(`/documents/payments/${doc.id}`));
+  };
 
   const totalSum = useMemo(() => {
     if (!data) return 0;
@@ -137,30 +123,82 @@ export default function PaymentsPage() {
 
   const filteredData = useMemo(() => {
     if (!data) return [];
-    let result = data;
-    if (activeTab === 'incoming') result = result.filter((d) => d.payment_type === 'INCOMING');
-    if (activeTab === 'outgoing') result = result.filter((d) => d.payment_type === 'OUTGOING');
-    if (searchValue.trim()) {
-      const term = searchValue.toLowerCase();
-      result = result.filter((d) =>
-        (d.number || '').toLowerCase().includes(term)
-        || String(d.id).includes(term)
-        || (d.counterparty_name || '').toLowerCase().includes(term)
-        || (d.purpose || '').toLowerCase().includes(term)
-      );
+
+    if (!searchValue.trim()) {
+      return data;
     }
-    return result;
-  }, [data, activeTab, searchValue]);
+
+    const term = searchValue.toLowerCase();
+    return data.filter((doc) =>
+      (doc.number || '').toLowerCase().includes(term) ||
+      String(doc.id).includes(term) ||
+      (doc.counterparty_name || '').toLowerCase().includes(term) ||
+      (doc.bank_account_name || '').toLowerCase().includes(term) ||
+      (doc.currency_code || '').toLowerCase().includes(term) ||
+      (doc.purpose || '').toLowerCase().includes(term)
+    );
+  }, [data, searchValue]);
+
+  const mainActions: CommandBarAction[] = [
+    {
+      label: tc('create'),
+      icon: <PiPlusBold />,
+      onClick: handleCreate,
+      variant: 'default',
+      shortcut: 'Ins',
+    },
+  ];
+
+  const selectionActions: CommandBarAction[] = selectedItem
+    ? [
+      {
+        label: tc('edit'),
+        icon: <PiPencilBold />,
+        onClick: () => handleEdit(selectedItem),
+        shortcut: 'F2',
+      },
+      {
+        label: t('post'),
+        icon: <PiCheckCircleBold />,
+        onClick: () => postMutation.mutate(selectedItem.id),
+        disabled: selectedItem.status === 'posted',
+        variant: 'ghost',
+      },
+      {
+        label: t('unpost'),
+        icon: <PiXCircleBold />,
+        onClick: () => unpostMutation.mutate(selectedItem.id),
+        disabled: selectedItem.status !== 'posted',
+        variant: 'ghost',
+      },
+      {
+        label: tc('delete'),
+        icon: <PiTrashBold />,
+        onClick: () => setIsDeleteOpen(true),
+        variant: 'destructive',
+        shortcut: 'Del',
+      },
+    ]
+    : [];
 
   const columns: ColumnDef<PaymentDocument>[] = [
     {
       accessorKey: 'date',
       header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="-ml-4 h-8 text-xs">
-          {tc('date')} <PiArrowsDownUpBold className="ml-2 h-3 w-3" />
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+          className="-ml-4 h-8 text-xs"
+        >
+          {tc('date')}
+          <PiArrowsDownUpBold className="ml-2 h-3 w-3" />
         </Button>
       ),
-      cell: ({ row }) => <span className="font-mono">{new Date(row.getValue('date')).toLocaleDateString()}</span>,
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">
+          {formatDateTime(row.original.date)}
+        </span>
+      ),
       footer: () => <span className="text-muted-foreground">{tc('total')}:</span>,
     },
     {
@@ -170,91 +208,92 @@ export default function PaymentsPage() {
         <ReferenceLink
           id={row.original.id}
           type="payment-document"
-          label={row.getValue('number')}
-          className="font-mono text-primary font-bold"
+          label={row.original.number || String(row.original.id)}
+          className="font-mono font-semibold text-primary"
         />
       ),
     },
     {
-      accessorKey: 'payment_type',
-      header: tf('paymentType'),
-      cell: ({ row }) => {
-        const type = row.getValue('payment_type') as PaymentType;
-        const typeKey: 'incoming' | 'outgoing' = type === 'OUTGOING' ? 'outgoing' : 'incoming';
-        return (
-          <Badge variant="outline" className={cn("text-[10px] h-5 px-1", type === 'INCOMING' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200' : 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200')}>
-            {type === 'INCOMING' ? <PiArrowCircleDownBold className="mr-1 h-3 w-3 inline" /> : <PiArrowCircleUpBold className="mr-1 h-3 w-3 inline" />}
-            {tf(typeKey)}
-          </Badge>
-        );
-      },
+      accessorKey: 'bank_account_name',
+      header: 'Касса',
+      cell: ({ row }) => <span>{row.original.bank_account_name || '-'}</span>,
     },
     {
       accessorKey: 'counterparty',
-      header: tf('counterparty'),
+      header: 'Контрагент',
       cell: ({ row }) => {
         const id = row.original.counterparty;
         const name = row.original.counterparty_name || (id ? `CP #${id}` : '-');
+
         if (!id) return <span>{name}</span>;
         return <LinkableCell id={id} type="counterparty" label={name} />;
       },
     },
     {
+      accessorKey: 'currency_code',
+      header: 'Валюта',
+      cell: ({ row }) => (
+        <span className="font-mono">{row.original.currency_code || 'USD'}</span>
+      ),
+    },
+    {
       accessorKey: 'amount',
       header: tc('amount'),
-      cell: ({ row }) => {
-        const amount = parseFloat(row.getValue('amount'));
-        const currency = row.original.currency_code || 'CUR';
-        return <span className="font-mono font-bold">{amount.toFixed(2)} {currency}</span>;
-      },
-      footer: () => <span className="font-mono text-primary">{totalSum.toFixed(2)}</span>,
+      cell: ({ row }) => (
+        <span className="font-mono">{Number(row.original.amount || 0).toFixed(2)}</span>
+      ),
+      footer: () => (
+        <span className="font-mono text-primary">{totalSum.toFixed(2)}</span>
+      ),
     },
     {
       accessorKey: 'purpose',
-      header: tf('purpose'),
-      cell: ({ row }) => <span className="text-xs text-muted-foreground truncate max-w-[200px] block">{row.getValue('purpose')}</span>,
+      header: 'Примечание',
+      cell: ({ row }) => (
+        <span className="block max-w-[220px] truncate text-xs text-muted-foreground">
+          {row.original.purpose || '-'}
+        </span>
+      ),
     },
     {
-      accessorKey: 'status',
-      header: tc('status'),
-      cell: ({ row }) => {
-        const status = row.getValue('status') as DocumentStatus;
-        return (
-          <Badge variant="outline" className={cn("text-[10px] h-5 px-1", statusColors[status])}>
-            {t(status)}
-          </Badge>
-        );
-      },
+      id: 'creator',
+      header: 'Создатель',
+      cell: () => <span>{DEFAULT_CREATOR_LABEL}</span>,
+    },
+    {
+      id: 'department',
+      header: 'Подразделение',
+      cell: () => <span>{DEFAULT_DEPARTMENT_LABEL}</span>,
     },
   ];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
-      <div className="px-4 py-3 border-b">
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'all' | 'incoming' | 'outgoing')}>
-            <TabsList>
-            <TabsTrigger value="all">Все</TabsTrigger>
-            <TabsTrigger value="incoming">{tf('incoming')}</TabsTrigger>
-            <TabsTrigger value="outgoing">{tf('outgoing')}</TabsTrigger>
-          </TabsList>
-        </Tabs>
+    <div className="flex h-[calc(100vh-4rem)] flex-col bg-[#efefef]">
+      <div className="border-b border-[#cecece] bg-[#f5f5f5] px-4 py-3">
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-semibold text-[#1d1d1d]">
+            Безналичные операции
+          </h1>
+          <span className="text-xs text-muted-foreground">Рабочий стол</span>
+        </div>
       </div>
+
       <DataTable
         columns={columns}
         data={filteredData}
         isLoading={isLoading}
         onRowClick={setSelectedItem}
-        onRowDoubleClick={(row) => row.status === 'draft' ? handleEdit(row) : handleView(row)}
-        commandBar={
+        onRowDoubleClick={(row) => handleEdit(row)}
+        commandBar={(
           <CommandBar
             mainActions={mainActions}
             selectionActions={selectionActions}
             onRefresh={() => refetch()}
             onSearch={setSearchValue}
             searchValue={searchValue}
-            searchPlaceholder="Поиск по номеру..."
+            searchPlaceholder="Поиск (Ctrl+F)"
           />
-        }
+        )}
       />
 
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
@@ -262,12 +301,15 @@ export default function PaymentsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Удалить документ?</AlertDialogTitle>
             <AlertDialogDescription>
-              Вы уверены, что хотите удалить {selectedItem?.number}?
+              Вы уверены, что хотите удалить {selectedItem?.number || 'документ'}?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => selectedItem && deleteMutation.mutate(selectedItem.id)} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction
+              onClick={() => selectedItem && deleteMutation.mutate(selectedItem.id)}
+              className="bg-destructive text-destructive-foreground"
+            >
               {deleteMutation.isPending ? 'Удаление...' : tc('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>

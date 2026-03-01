@@ -69,10 +69,17 @@ export const navigationConfig: NavGroup[] = [
       },
       {
         id: "cashOrders",
-        title: "Кассовые ордера",
+        title: "Рабочий стол касса",
         href: "/documents/cash-orders",
         icon: PiCoinsBold,
         keywords: ["РќР°Р»РѕРіРѕРІР°СЏ РѕС‚С‡РµС‚РЅРѕСЃС‚СЊ", "РќР”РЎ", "РќР”РЎ"],
+      },
+      {
+        id: "cashDirectory",
+        title: "Касса",
+        href: "/bank-cash/cash",
+        icon: PiWalletBold,
+        keywords: ["РљР°СЃСЃР°", "Р‘Р°РЅРє", "РќР°Р»РёС‡РЅС‹Рµ", "Р‘РµР·РЅР°Р»"],
       },
       {
         id: "payments",
@@ -137,6 +144,13 @@ export const navigationConfig: NavGroup[] = [
         icon: PiPackageBold,
         keywords: ["РќРѕРјРµРЅРєР»Р°С‚СѓСЂР°", "РўРѕРІР°СЂС‹ РґР»СЏ РїСЂРѕРґР°Р¶Рё"],
       },
+      {
+        id: "salesReports",
+        title: "Отчеты",
+        href: "/reports/sales-menu",
+        icon: PiScrollBold,
+        keywords: ["РћС‚С‡РµС‚С‹", "РђРєС‚ СЃРІРµСЂРєРё", "РћС‚С‡РµС‚ РїРѕ РїСЂРѕРґР°Р¶Р°Рј"],
+      },
     ],
   },
   {
@@ -158,6 +172,13 @@ export const navigationConfig: NavGroup[] = [
         icon: PiUsersBold,
         keywords: ["РђРјРѕСЂС‚РёР·Р°С†РёСЏ", "РљРѕРЅС‚СЂР°РіРµРЅС‚"],
       },
+      {
+        id: "purchasesReports",
+        title: "Отчеты",
+        href: "/reports",
+        icon: PiScrollBold,
+        keywords: ["РћС‚С‡РµС‚С‹", "РњР°С‚РµСЂРёР°Р»СЊРЅС‹Р№ РѕС‚С‡РµС‚", "РћС‚С‡РµС‚ РїРѕ РїРѕСЃС‚Р°РІС‰РёРєР°Рј"],
+      },
     ],
   },
   {
@@ -167,10 +188,10 @@ export const navigationConfig: NavGroup[] = [
     items: [
       {
         id: "stockBalance",
-        title: "Остатки товаров",
-        href: "/reports/stock-balance",
+        title: "Материальный отчет общий",
+        href: "/reports/warehouse-materials",
         icon: PiChartBarBold,
-        keywords: ["РћСЃС‚Р°С‚РєРё С‚РѕРІР°СЂРѕРІ"],
+        keywords: ["РњР°С‚РµСЂРёР°Р»СЊРЅС‹Р№ РѕС‚С‡РµС‚", "РћР±С‰РёР№ РјР°С‚РµСЂРёР°Р»СЊРЅС‹Р№ РѕС‚С‡РµС‚"],
       },
       {
         id: "transfers",

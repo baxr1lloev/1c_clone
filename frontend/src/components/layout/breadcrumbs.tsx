@@ -30,7 +30,7 @@ export function Breadcrumbs() {
     return null;
   }
 
-  const getSegmentLabel = (segment: string, index: number): string => {
+  const getSegmentLabel = (segment: string): string => {
     const labelMap: Record<string, string> = {
       // Nav
       directories: td('title'),
@@ -67,6 +67,7 @@ export function Breadcrumbs() {
       'trial-balance': ta('trialBalance'),
       'balance-sheet': ta('balanceSheet'),
       'profit-loss': ta('profitLoss'),
+      'warehouse-materials': 'Материальный отчет общий',
     };
 
     return labelMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
@@ -89,7 +90,7 @@ export function Breadcrumbs() {
         </BreadcrumbItem>
         {segments.map((segment, index) => {
           const isLast = index === segments.length - 1;
-          const label = getSegmentLabel(segment, index);
+          const label = getSegmentLabel(segment);
 
           return (
             <React.Fragment key={segment + index}>

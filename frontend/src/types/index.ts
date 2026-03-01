@@ -106,13 +106,12 @@ export interface Contract extends BaseModel {
   is_active: boolean;
 }
 
-export type WarehouseType = 'physical' | 'virtual' | 'transit';
+export type WarehouseType = 'PHYSICAL' | 'VIRTUAL' | 'TRANSIT';
 
 export interface Warehouse extends BaseModel {
-  tenant: number;
   name: string;
-  code: string;
-  type: WarehouseType;
+  warehouse_type: WarehouseType;
+  warehouse_type_display?: string;
   address: string;
   is_active: boolean;
 }

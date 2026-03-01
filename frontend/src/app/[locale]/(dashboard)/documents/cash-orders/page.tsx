@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -29,7 +29,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReferenceSelector } from "@/components/ui/reference-selector";
-import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,6 +56,8 @@ interface QuickCreateResult {
   posted: boolean;
   postError?: unknown;
 }
+
+type HistoryScope = "day" | "week" | "month" | "all";
 
 type CurrencyListResponse =
   | PaginatedResponse<Currency>
@@ -118,6 +119,113 @@ function formatAmount(value: number): string {
   }).format(value);
 }
 
+function parseIsoDate(date: string): Date {
+  return new Date(`${date}T00:00:00`);
+}
+
+function toIsoDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function getHistoryBounds(anchorDate: string, scope: HistoryScope): {
+  start: string | null;
+  end: string | null;
+} {
+  if (!anchorDate) {
+    return { start: null, end: null };
+  }
+
+  if (scope === "all") {
+    return { start: null, end: null };
+  }
+
+  if (scope === "day") {
+    return { start: anchorDate, end: anchorDate };
+  }
+
+  if (scope === "month") {
+    const monthStart = parseIsoDate(`${anchorDate.slice(0, 7)}-01`);
+    const monthEnd = new Date(monthStart);
+    monthEnd.setMonth(monthEnd.getMonth() + 1);
+    monthEnd.setDate(0);
+    return {
+      start: toIsoDate(monthStart),
+      end: toIsoDate(monthEnd),
+    };
+  }
+
+  const current = parseIsoDate(anchorDate);
+  const dayOfWeek = (current.getDay() + 6) % 7;
+  const weekStart = new Date(current);
+  weekStart.setDate(current.getDate() - dayOfWeek);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+
+  return {
+    start: toIsoDate(weekStart),
+    end: toIsoDate(weekEnd),
+  };
+}
+
+function formatHistoryDateTime(value?: string | null): string {
+  if (!value) return "-";
+
+  const hasTime = value.length > 10;
+  const parsed = new Date(hasTime ? value : `${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    ...(hasTime
+      ? {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }
+      : {}),
+  });
+}
+
+function getCashOrderDocumentTypeLabel(doc: CashOrder): string {
+  return doc.order_type === "incoming"
+    ? "Приходный кассовый ордер"
+    : "Расходный кассовый ордер";
+}
+
+function getCashOrderDirectionLabel(doc: CashOrder): string {
+  const paymentKind = (doc as CashOrder & {
+    payment_kind?: "supplier" | "salary" | "tax" | "other";
+  }).payment_kind;
+
+  switch (paymentKind) {
+    case "supplier":
+      return "Поставщик";
+    case "salary":
+      return "Зарплата";
+    case "tax":
+      return "Налоги";
+    default:
+      return doc.order_type === "incoming" ? "Покупатель" : "Прочие";
+  }
+}
+
+function getHistoryScopeLabel(scope: HistoryScope): string {
+  switch (scope) {
+    case "day":
+      return "Сегодня";
+    case "week":
+      return "Эта неделя";
+    case "month":
+      return "Этот месяц";
+    default:
+      return "Все документы";
+  }
+}
+
 async function fetchAllCashOrders(): Promise<CashOrder[]> {
   const all: CashOrder[] = [];
   let page = 1;
@@ -146,8 +254,11 @@ export default function CashOrdersPage() {
   const t = useTranslations("documents");
   const tc = useTranslations("common");
   const tf = useTranslations("fields");
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const localePath = (path: string) =>
+    `/${locale}${path.startsWith("/") ? path : `/${path}`}`;
 
   const [activeTab, setActiveTab] = useState("main");
   const [workDate, setWorkDate] = useState(() =>
@@ -163,6 +274,7 @@ export default function CashOrdersPage() {
   const [amountInput, setAmountInput] = useState("0");
   const [rateInput, setRateInput] = useState("1");
   const [historySearch, setHistorySearch] = useState("");
+  const [historyScope, setHistoryScope] = useState<HistoryScope>("week");
   const [selectedItem, setSelectedItem] = useState<CashOrder | null>(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
@@ -323,24 +435,53 @@ export default function CashOrdersPage() {
 
   const filteredHistory = useMemo(() => {
     const query = historySearch.trim().toLowerCase();
+    const bounds = getHistoryBounds(workDate, historyScope);
+
     return [...documents]
       .sort((left, right) => {
+        const leftTime = Date.parse(left.date || "");
+        const rightTime = Date.parse(right.date || "");
+        if (Number.isFinite(leftTime) && Number.isFinite(rightTime) && leftTime !== rightTime) {
+          return rightTime - leftTime;
+        }
         const leftDate = normalizeDate(left.date);
         const rightDate = normalizeDate(right.date);
         if (leftDate !== rightDate) return leftDate < rightDate ? 1 : -1;
         return right.id - left.id;
       })
       .filter((doc) => {
+        const docCashDesk = doc.cash_desk?.trim() || DEFAULT_CASH_DESK;
+        if (docCashDesk !== selectedCashDesk) {
+          return false;
+        }
+
+        const docDate = normalizeDate(doc.date);
+        if (bounds.start && docDate < bounds.start) {
+          return false;
+        }
+        if (bounds.end && docDate > bounds.end) {
+          return false;
+        }
+
         if (!query) return true;
         return [
           doc.number,
           doc.counterparty_name,
+          doc.basis,
           doc.purpose,
           doc.cash_desk,
           doc.currency_code,
+          getCashOrderDocumentTypeLabel(doc),
+          getCashOrderDirectionLabel(doc),
         ].some((value) => String(value || "").toLowerCase().includes(query));
       });
-  }, [documents, historySearch]);
+  }, [documents, historyScope, historySearch, selectedCashDesk, workDate]);
+
+  const activeHistorySelection = useMemo(() => {
+    if (filteredHistory.length === 0) return null;
+    if (!selectedItem) return filteredHistory[0];
+    return filteredHistory.find((doc) => doc.id === selectedItem.id) || filteredHistory[0];
+  }, [filteredHistory, selectedItem]);
 
   const postMutation = useMutation({
     mutationFn: async (id: number) =>
@@ -429,7 +570,7 @@ export default function CashOrdersPage() {
 
       const { description } = mapApiError(result.postError);
       toast.warning("Документ создан, но не проведен", { description });
-      router.push(`/documents/cash-orders/${result.created.id}/edit`);
+      router.push(localePath(`/documents/cash-orders/${result.created.id}/edit`));
     },
     onError: (error: unknown) => {
       const { title, description } = mapApiError(error);
@@ -469,12 +610,17 @@ export default function CashOrdersPage() {
 
   const handleOpenCounterpartyHistory = () => {
     setActiveTab("history");
+    setHistoryScope("all");
     if (counterpartyName.trim()) {
       setHistorySearch(counterpartyName.trim());
       toast.success("Открыта история операций выбранного контрагента.");
       return;
     }
     toast.info("Переключено на историю кассовых ордеров.");
+  };
+
+  const openCashOrderDocument = (doc: CashOrder) => {
+    router.push(localePath(`/documents/cash-orders/${doc.id}/edit`));
   };
 
   const canEditDocument = (doc: CashOrder | null | undefined): boolean => {
@@ -800,175 +946,229 @@ export default function CashOrdersPage() {
 
           <TabsContent value="history" className="mt-3 min-h-0 flex-1 overflow-auto">
             <div className="space-y-3 rounded-sm border border-[#b8bec8] bg-white p-3 text-[#1f2937] md:p-4">
-              <div className="flex flex-col gap-2 md:flex-row md:items-center">
-                <Input
-                  value={historySearch}
-                  onChange={(event) => setHistorySearch(event.target.value)}
-                  placeholder={tc("searchNumberCounterparty")}
-                  className="h-10 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937] placeholder:text-[#7b8591] md:max-w-sm"
-                />
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-10 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
-                    onClick={() => refetch()}
-                    disabled={isFetching}
-                  >
-                    <PiArrowClockwiseBold
-                      className={cn("h-4 w-4", isFetching && "animate-spin")}
+              <div className="space-y-2">
+                <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                      onClick={() =>
+                        router.push(localePath(`/documents/cash-orders/new?type=${direction}`))
+                      }
+                    >
+                      <PiPlusBold className="h-4 w-4" />
+                      Создать
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                      onClick={() => refetch()}
+                      disabled={isFetching}
+                    >
+                      <PiArrowClockwiseBold
+                        className={cn("h-4 w-4", isFetching && "animate-spin")}
+                      />
+                      Обновить
+                    </Button>
+                    {([
+                      ["day", "День"],
+                      ["week", "Неделя"],
+                      ["month", "Месяц"],
+                      ["all", "Все"],
+                    ] as Array<[HistoryScope, string]>).map(([scope, label]) => (
+                      <button
+                        key={scope}
+                        type="button"
+                        onClick={() => setHistoryScope(scope)}
+                        className={cn(
+                          "h-8 rounded-sm border px-3 text-xs",
+                          historyScope === scope
+                            ? "border-[#d7c37a] bg-[#f6e7ab] font-semibold text-[#6c5b1f]"
+                            : "border-[#b8b8b8] bg-white text-[#1f2937]",
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex h-8 items-center rounded-sm border border-[#d7c37a] bg-[#f6e7ab] px-3 text-xs font-medium text-[#6c5b1f]">
+                      {getHistoryScopeLabel(historyScope)}
+                    </span>
+                    <Input
+                      value={historySearch}
+                      onChange={(event) => setHistorySearch(event.target.value)}
+                      placeholder="Поиск (Ctrl+F)"
+                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937] placeholder:text-[#7b8591] md:w-[280px]"
                     />
-                    {tc("refresh")}
-                  </Button>
-                  {selectedItem ? (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-10 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
-                        onClick={() => router.push(`/documents/cash-orders/${selectedItem.id}`)}
-                      >
-                        <PiEyeBold className="h-4 w-4" />
-                        {tc("view")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-10 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
-                        onClick={() => router.push(`/documents/cash-orders/${selectedItem.id}/edit`)}
-                        disabled={!canEditDocument(selectedItem)}
-                      >
-                        <PiPencilBold className="h-4 w-4" />
-                        {tc("edit")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-10 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
-                        onClick={() => postMutation.mutate(selectedItem.id)}
-                        disabled={!canPostDocument(selectedItem) || postMutation.isPending}
-                      >
-                        <PiCheckCircleBold className="h-4 w-4" />
-                        {t("post")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-10 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
-                        onClick={() => unpostMutation.mutate(selectedItem.id)}
-                        disabled={!canUnpostDocument(selectedItem) || unpostMutation.isPending}
-                      >
-                        <PiXCircleBold className="h-4 w-4" />
-                        {t("unpost")}
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="h-10 rounded-sm"
-                        onClick={() => setIsDeleteOpen(true)}
-                        disabled={!canEditDocument(selectedItem)}
-                      >
-                        <PiTrashBold className="h-4 w-4" />
-                        {tc("delete")}
-                      </Button>
-                    </>
-                  ) : null}
+                  </div>
                 </div>
+
+                {activeHistorySelection ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                      onClick={() => openCashOrderDocument(activeHistorySelection)}
+                    >
+                      <PiEyeBold className="h-4 w-4" />
+                      Открыть
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                      onClick={() =>
+                        router.push(
+                          localePath(
+                            `/documents/cash-orders/${activeHistorySelection.id}/edit`,
+                          ),
+                        )
+                      }
+                      disabled={!canEditDocument(activeHistorySelection)}
+                    >
+                      <PiPencilBold className="h-4 w-4" />
+                      Изменить
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                      onClick={() => postMutation.mutate(activeHistorySelection.id)}
+                      disabled={
+                        !canPostDocument(activeHistorySelection) || postMutation.isPending
+                      }
+                    >
+                      <PiCheckCircleBold className="h-4 w-4" />
+                      Провести
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                      onClick={() => unpostMutation.mutate(activeHistorySelection.id)}
+                      disabled={
+                        !canUnpostDocument(activeHistorySelection) || unpostMutation.isPending
+                      }
+                    >
+                      <PiXCircleBold className="h-4 w-4" />
+                      Отмена проведения
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-8 rounded-sm"
+                      onClick={() => setIsDeleteOpen(true)}
+                      disabled={!canEditDocument(activeHistorySelection)}
+                    >
+                      <PiTrashBold className="h-4 w-4" />
+                      Удалить
+                    </Button>
+                  </div>
+                ) : null}
               </div>
 
-              <div className="overflow-x-auto rounded-sm border border-[#b8b8b8]">
-                <table className="w-full min-w-[960px] border-collapse text-sm text-[#1f2937]">
+              <div className="overflow-auto rounded-sm border border-[#b8b8b8]">
+                <table className="w-full min-w-[1480px] border-collapse text-sm text-[#1f2937]">
                   <thead className="bg-[#ededed] text-left">
                     <tr className="[&>th]:border-b [&>th]:border-r [&>th]:border-[#d0d0d0] [&>th]:px-3 [&>th]:py-2 [&>th:last-child]:border-r-0">
-                      <th>{tc("date")}</th>
-                      <th>{tc("number")}</th>
-                      <th>{tf("type")}</th>
-                      <th>{tf("counterparty")}</th>
-                      <th>{tc("amount")}</th>
-                      <th>{tf("description")}</th>
-                      <th>{tc("status")}</th>
+                      <th className="w-[34px] px-2" />
+                      <th>Дата</th>
+                      <th>Номер</th>
+                      <th>Тип документа</th>
+                      <th>Касса</th>
+                      <th>Направление</th>
+                      <th>Корреспондент</th>
+                      <th>Основание</th>
+                      <th>Вал.</th>
+                      <th className="text-right">Приход</th>
+                      <th className="text-right">Расход</th>
                     </tr>
                   </thead>
                   <tbody>
                     {isLoading ? (
                       <tr>
-                        <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
+                        <td colSpan={11} className="px-3 py-6 text-center text-muted-foreground">
                           Загрузка...
                         </td>
                       </tr>
                     ) : filteredHistory.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
-                          {tc("noData")}
+                        <td colSpan={11} className="px-3 py-6 text-center text-muted-foreground">
+                          Для выбранной кассы и периода записи не найдены.
                         </td>
                       </tr>
                     ) : (
                       filteredHistory.map((doc) => {
                         const isIncoming = doc.order_type === "incoming";
-                        const isSelected = selectedItem?.id === doc.id;
+                        const isSelected = activeHistorySelection?.id === doc.id;
                         return (
                           <tr
                             key={doc.id}
                             onClick={() => setSelectedItem(doc)}
-                            onDoubleClick={() =>
-                              router.push(
-                                canEditDocument(doc)
-                                  ? `/documents/cash-orders/${doc.id}/edit`
-                                  : `/documents/cash-orders/${doc.id}`,
-                              )
-                            }
+                            onDoubleClick={() => openCashOrderDocument(doc)}
                             className={cn(
-                              "cursor-pointer border-b border-[#ececec] hover:bg-[#f7f7f7]",
-                              isSelected && "bg-[#eef4ff]",
+                              "cursor-pointer border-b border-[#ececec] hover:bg-[#f8f1ce]",
+                              isSelected && "bg-[#f4e8a7]",
                             )}
                           >
+                            <td
+                              className={cn(
+                                "w-[34px] px-2 py-2 text-center text-xs",
+                                doc.status === "posted" && "text-[#5f9f5f]",
+                                doc.status === "draft" && "text-[#9c8b4a]",
+                                doc.status === "cancelled" && "text-[#b45b5b]",
+                              )}
+                            >
+                              {doc.status === "posted"
+                                ? "▣"
+                                : doc.status === "cancelled"
+                                  ? "×"
+                                  : "▢"}
+                            </td>
                             <td className="px-3 py-2 font-mono text-xs text-muted-foreground">
-                              {new Date(normalizeDate(doc.date)).toLocaleDateString()}
+                              {formatHistoryDateTime(doc.date)}
                             </td>
                             <td className="px-3 py-2 font-mono font-semibold text-primary">
-                              {doc.number}
+                              {doc.number || "-"}
                             </td>
-                            <td className="px-3 py-2">
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "rounded-sm",
-                                  isIncoming
-                                    ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                                    : "border-amber-300 bg-amber-50 text-amber-700",
-                                )}
-                              >
-                                {isIncoming ? tf("incoming") : tf("outgoing")}
-                              </Badge>
+                            <td className="max-w-[210px] truncate px-3 py-2" title={getCashOrderDocumentTypeLabel(doc)}>
+                              {getCashOrderDocumentTypeLabel(doc)}
                             </td>
-                            <td className="px-3 py-2">{doc.counterparty_name}</td>
+                            <td className="max-w-[150px] truncate px-3 py-2">
+                              {doc.cash_desk || DEFAULT_CASH_DESK}
+                            </td>
+                            <td className="max-w-[130px] truncate px-3 py-2">
+                              {getCashOrderDirectionLabel(doc)}
+                            </td>
+                            <td className="max-w-[220px] truncate px-3 py-2" title={doc.counterparty_name || ""}>
+                              {doc.counterparty_name || "-"}
+                            </td>
+                            <td className="max-w-[320px] truncate px-3 py-2" title={doc.basis || doc.purpose || ""}>
+                              {doc.basis || doc.purpose || "-"}
+                            </td>
+                            <td className="px-3 py-2 font-mono">
+                              {doc.currency_code || selectedCurrency?.code || "-"}
+                            </td>
                             <td
                               className={cn(
                                 "px-3 py-2 text-right font-mono font-semibold",
-                                isIncoming ? "text-emerald-700" : "text-rose-700",
+                                isIncoming && "text-emerald-700",
                               )}
                             >
-                              {isIncoming ? "+" : "-"}
-                              {formatAmount(toNumber(doc.amount))} {doc.currency_code || ""}
+                              {isIncoming ? formatAmount(toNumber(doc.amount)) : ""}
                             </td>
-                            <td className="max-w-[340px] truncate px-3 py-2" title={doc.purpose}>
-                              {doc.purpose}
-                            </td>
-                            <td className="px-3 py-2">
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "rounded-sm",
-                                  doc.status === "posted" &&
-                                    "border-emerald-300 bg-emerald-50 text-emerald-700",
-                                  doc.status === "draft" &&
-                                    "border-slate-300 bg-slate-50 text-slate-700",
-                                  doc.status === "cancelled" &&
-                                    "border-rose-300 bg-rose-50 text-rose-700",
-                                )}
-                              >
-                                {t(doc.status)}
-                              </Badge>
+                            <td
+                              className={cn(
+                                "px-3 py-2 text-right font-mono font-semibold",
+                                !isIncoming && "text-rose-700",
+                              )}
+                            >
+                              {!isIncoming ? formatAmount(toNumber(doc.amount)) : ""}
                             </td>
                           </tr>
                         );
@@ -980,7 +1180,10 @@ export default function CashOrdersPage() {
 
               <div className="flex items-center justify-between rounded-sm border border-[#d6d6d6] bg-[#fafafa] px-3 py-2 text-sm text-muted-foreground">
                 <span>
-                  {tc("entries")}: {filteredHistory.length}
+                  Записей: {filteredHistory.length}
+                  {activeHistorySelection
+                    ? ` | Выбрано: ${activeHistorySelection.number || ""}`
+                    : ""}
                 </span>
                 <span className="flex items-center gap-2">
                   <PiClockCounterClockwiseBold className="h-4 w-4" />
@@ -998,14 +1201,16 @@ export default function CashOrdersPage() {
             <AlertDialogTitle>{t("cashOrders.alerts.deleteTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
               {t.rich("cashOrders.alerts.deleteConfirmation", {
-                number: selectedItem?.number || "",
+                number: activeHistorySelection?.number || selectedItem?.number || "",
               })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => selectedItem && deleteMutation.mutate(selectedItem.id)}
+              onClick={() =>
+                activeHistorySelection && deleteMutation.mutate(activeHistorySelection.id)
+              }
               className="bg-destructive text-destructive-foreground"
             >
               {deleteMutation.isPending ? tc("deleting") : tc("delete")}

@@ -254,7 +254,7 @@ class SalesDocument(BaseDocument):
             return
             
         from django.db.models import Sum
-        rate = self.rate or 1
+        rate = getattr(self, 'rate', 1) or 1
         
         agg = self.lines.aggregate(
             total=Sum('amount'), 
@@ -610,7 +610,7 @@ class SalesDocumentLine(models.Model):
         self.total_with_vat = self.amount + self.vat_amount
         
         # 3. Total (Base Currency) - Snapshot
-        rate = to_d(self.document.rate or 1)
+        rate = to_d(getattr(self.document, 'rate', 1) or 1)
         
         self.price_base = (price * rate).quantize(Decimal("0.01"))
         self.amount_base = (self.amount * rate).quantize(Decimal("0.01"))
@@ -834,6 +834,9 @@ class PurchaseDocumentLine(models.Model):
 
         from decimal import Decimal
 
+        def to_d(val):
+            return Decimal(str(val)) if val is not None else Decimal('0')
+
         if self.package_id:
             if self.package.item_id != self.item_id:
                 raise ValidationError(_("Selected package does not belong to selected item."))
@@ -843,23 +846,27 @@ class PurchaseDocumentLine(models.Model):
         else:
             self.coefficient = Decimal('1')
 
-        if self.quantity <= 0:
+        qty = to_d(self.quantity)
+        price = to_d(self.price)
+        vat_rate = to_d(self.vat_rate)
+        coefficient = to_d(self.coefficient)
+
+        if qty <= 0:
             raise ValidationError(_("Quantity must be greater than zero."))
-        if self.price < 0:
+        if price < 0:
             raise ValidationError(_("Price cannot be negative."))
-        if self.coefficient <= 0:
+        if coefficient <= 0:
             raise ValidationError(_("Coefficient must be greater than zero."))
 
         # Calculate Amounts
-        self.amount = self.quantity * self.price
-        self.vat_amount = self.amount * (self.vat_rate / 100)
+        self.amount = (qty * price).quantize(Decimal("0.01"))
+        self.vat_amount = (self.amount * vat_rate / Decimal("100")).quantize(Decimal("0.01"))
         self.total_with_vat = self.amount + self.vat_amount
         
         # Base Currency (Snapshot)
-        rate = self.document.rate or 1
-        if not isinstance(rate, Decimal): rate = Decimal(str(rate))
+        rate = to_d(self.document.rate or 1)
         
-        self.price_base = (self.price * rate).quantize(Decimal("0.01"))
+        self.price_base = (price * rate).quantize(Decimal("0.01"))
         self.amount_base = (self.amount * rate).quantize(Decimal("0.01"))
         # We don't store vat_amount_base, but could if needed.
 
