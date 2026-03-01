@@ -46,10 +46,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://${SERVER_IP:-localhost}/api/v1
+        NEXT_PUBLIC_API_URL: /api/v1
     restart: always
     environment:
-      - NEXT_PUBLIC_API_URL=http://${SERVER_IP:-localhost}/api/v1
+      - NEXT_PUBLIC_API_URL=/api/v1
     depends_on:
       - backend
 
