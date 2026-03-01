@@ -5,7 +5,8 @@ Registers are read-only views of accumulated data.
 from rest_framework import serializers
 from registers.models import (
     StockBalance, StockMovement, StockBatch, StockReservation,
-    SettlementsBalance, CounterpartyStockBalance, GoodsInTransit
+    SettlementsBalance, CounterpartyStockBalance, GoodsInTransit,
+    ItemPrice
 )
 
 
@@ -114,3 +115,17 @@ class GoodsInTransitSerializer(serializers.ModelSerializer):
             'is_overdue', 'days_until_arrival',
             'created_at', 'updated_at'
         ]
+
+class ItemPriceSerializer(serializers.ModelSerializer):
+    """Serializer for ItemPrice (Periodic Register)."""
+    item_name = serializers.CharField(source='item.name', read_only=True)
+    currency_code = serializers.CharField(source='currency.code', read_only=True)
+    price_type_display = serializers.CharField(source='get_price_type_display', read_only=True)
+    
+    class Meta:
+        model = ItemPrice
+        fields = [
+            'id', 'tenant', 'item', 'item_name', 'date', 'price_type', 
+            'price_type_display', 'price', 'currency', 'currency_code', 'created_at'
+        ]
+        read_only_fields = ['tenant', 'created_at']

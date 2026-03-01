@@ -1,27 +1,51 @@
-"use client"
+"use client";
 
-import { useMemo, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { toast } from "sonner"
-import api from "@/lib/api"
-import { Counterparty, CounterpartyType } from "@/types"
-import { mapApiError } from "@/lib/error-mapper"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { CommandBar, CommandBarAction } from "@/components/ui/command-bar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+import api from "@/lib/api";
+import { Counterparty, CounterpartyType } from "@/types";
+import {
+  PiFloppyDiskBold,
+  PiCheckCircleBold,
+  PiTrashBold,
+  PiArrowLeftBold,
+  PiPlusBold,
+} from "react-icons/pi";
+
+import { mapApiError } from "@/lib/error-mapper";
 
 interface CounterpartyFormProps {
-  initialData?: Counterparty
-  mode: "create" | "edit"
+  initialData?: Counterparty;
+  mode: "create" | "edit";
 }
+
+type ExtraFieldFormData = {
+  key: string;
+  value: string;
+};
 
 type CounterpartyFormData = Omit<
   Counterparty,
-  "id" | "tenant" | "created_at" | "updated_at" | "contacts"
->
-
-const DIRECTORY_COUNTERPARTY_GROUPS_STORAGE_KEY = "directory-counterparty-groups"
-const DEFAULT_GROUPS = ["Учредители", "Прочие", "Поставщики", "Покупатели"]
+  "id" | "tenant" | "created_at" | "updated_at" | "contacts" | "extra_fields"
+> & {
+  extra_fields: ExtraFieldFormData[];
+};
 
 const defaultFormData: CounterpartyFormData = {
   name: "",
@@ -31,479 +55,344 @@ const defaultFormData: CounterpartyFormData = {
   phone: "",
   email: "",
   is_active: true,
-}
+  extra_fields: [],
+};
 
-const fieldClassName =
-  "h-9 rounded-none border border-[#bcbcbc] bg-white px-2 text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+const normalizeExtraFields = (
+  extra_fields: Record<string, string | number | boolean> | undefined,
+): ExtraFieldFormData[] => {
+  if (!extra_fields) return [];
+  return Object.entries(extra_fields).map(([key, value]) => ({
+    key,
+    value: String(value),
+  }));
+};
 
-const toolbarButtonClassName =
-  "h-10 rounded-sm border border-[#9b8e00] bg-[#f4d000] px-5 text-sm font-medium text-black hover:bg-[#ffe04d]"
+export function CounterpartyForm({ initialData, mode }: CounterpartyFormProps) {
+  const t = useTranslations("directories");
+  const tc = useTranslations("common");
+  const tf = useTranslations("fields");
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
-const secondaryButtonClassName =
-  "h-10 rounded-sm border border-[#bcbcbc] bg-white px-5 text-sm font-medium text-black hover:bg-[#f3f3f3]"
-
-function getStoredGroups(): string[] {
-  if (typeof window === "undefined") {
-    return DEFAULT_GROUPS
-  }
-
-  try {
-    const rawValue = window.localStorage.getItem(
-      DIRECTORY_COUNTERPARTY_GROUPS_STORAGE_KEY,
-    )
-    if (!rawValue) {
-      return DEFAULT_GROUPS
-    }
-
-    const parsedValue = JSON.parse(rawValue)
-    if (!Array.isArray(parsedValue)) {
-      return DEFAULT_GROUPS
-    }
-
-    const cleaned = parsedValue
-      .map((entry) => String(entry || "").trim())
-      .filter(Boolean)
-
-    return cleaned.length > 0 ? cleaned : DEFAULT_GROUPS
-  } catch {
-    return DEFAULT_GROUPS
-  }
-}
-
-function persistGroups(groups: string[]) {
-  if (typeof window === "undefined") {
-    return
-  }
-
-  window.localStorage.setItem(
-    DIRECTORY_COUNTERPARTY_GROUPS_STORAGE_KEY,
-    JSON.stringify(groups),
-  )
-}
-
-function normalizeCounterpartyType(type: unknown): CounterpartyType {
-  const value = String(type ?? "").toLowerCase()
-  if (value === "customer" || value === "supplier" || value === "agent") {
-    return value
-  }
-  return "other"
-}
-
-function getDefaultGroupByType(type: CounterpartyType): string {
-  if (type === "supplier") {
-    return DEFAULT_GROUPS[2]
-  }
-  if (type === "customer") {
-    return DEFAULT_GROUPS[3]
-  }
-  return DEFAULT_GROUPS[1]
-}
-
-export function CounterpartyForm({
-  initialData,
-  mode,
-}: CounterpartyFormProps) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const queryClient = useQueryClient()
-  const isGroupMode =
-    mode === "create" &&
-    (searchParams.get("group") === "1" || searchParams.get("mode") === "group")
-
-  const [activeTab, setActiveTab] = useState<"main" | "supplier-prices">("main")
-  const [groupOptions, setGroupOptions] = useState<string[]>(() => getStoredGroups())
-  const [managerName, setManagerName] = useState(
-    initialData?.contacts?.[0]?.name || "",
-  )
-  const [parentGroup, setParentGroup] = useState<string>(
-    initialData
-      ? getDefaultGroupByType(normalizeCounterpartyType(initialData.type))
-      : "",
-  )
-  const [telegramChatId, setTelegramChatId] = useState("0")
-  const [notifyTelegram, setNotifyTelegram] = useState(false)
   const [formData, setFormData] = useState<CounterpartyFormData>(
     initialData
       ? {
           name: initialData.name,
           inn: initialData.inn,
-          type: normalizeCounterpartyType(initialData.type),
+          type: initialData.type,
           address: initialData.address,
           phone: initialData.phone,
           email: initialData.email,
           is_active: initialData.is_active,
+          extra_fields: normalizeExtraFields(initialData.extra_fields),
         }
       : defaultFormData,
-  )
+  );
 
-  const formTitle = useMemo(() => {
-    if (mode === "edit") {
-      return `${formData.name || "Контрагент"} (Контрагенты)`
-    }
+  const addExtraField = () => {
+    setFormData((prev) => ({
+      ...prev,
+      extra_fields: [...prev.extra_fields, { key: "", value: "" }],
+    }));
+  };
 
-    return isGroupMode
-      ? "Контрагенты (создание группы)"
-      : "Контрагенты (создание)"
-  }, [formData.name, isGroupMode, mode])
+  const updateExtraField = (
+    index: number,
+    patch: Partial<ExtraFieldFormData>,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      extra_fields: prev.extra_fields.map((field, i) =>
+        i === index ? { ...field, ...patch } : field,
+      ),
+    }));
+  };
+
+  const removeExtraField = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      extra_fields: prev.extra_fields.filter((_, i) => i !== index),
+    }));
+  };
 
   const saveMutation = useMutation({
     mutationFn: async (data: CounterpartyFormData) => {
-      const normalizedName = data.name.trim()
-      if (!normalizedName) {
-        throw new Error("Наименование обязательно")
-      }
-
-      if (isGroupMode) {
-        const nextGroups = Array.from(
-          new Set([
-            ...groupOptions,
-            normalizedName,
-          ]),
-        )
-
-        persistGroups(nextGroups)
-        setGroupOptions(nextGroups)
-        return { kind: "group" as const }
-      }
+      const extra_fields = data.extra_fields.reduce(
+        (acc, curr) => {
+          const key = curr.key.trim();
+          // We only include valid keys
+          if (key) {
+            acc[key] = curr.value.trim();
+          }
+          return acc;
+        },
+        {} as Record<string, string | number | boolean>,
+      );
 
       const payload = {
         ...data,
-        name: normalizedName,
-        type: normalizeCounterpartyType(data.type).toUpperCase(),
-      }
-
+        type: data.type.toUpperCase(),
+        extra_fields,
+      };
       if (mode === "edit" && initialData) {
-        return api.put(`/directories/counterparties/${initialData.id}/`, payload)
+        return api.put(
+          `/directories/counterparties/${initialData.id}/`,
+          payload,
+        );
       }
-
-      return api.post("/directories/counterparties/", payload)
+      return api.post("/directories/counterparties/", payload);
     },
-    onSuccess: (result) => {
-      if ((result as { kind?: string } | undefined)?.kind === "group") {
-        toast.success("Группа контрагентов создана")
-        router.push("/directories/counterparties")
-        return
-      }
-
-      toast.success(mode === "edit" ? "Контрагент сохранен" : "Контрагент создан")
-      queryClient.invalidateQueries({ queryKey: ["counterparties"] })
-      router.push("/directories/counterparties")
+    onSuccess: () => {
+      toast.success(
+        mode === "edit" ? "Counterparty updated" : "Counterparty created",
+      );
+      queryClient.invalidateQueries({ queryKey: ["counterparties"] });
+      router.push("/directories/counterparties");
     },
     onError: (err) => {
-      if (err instanceof Error && !("response" in err)) {
-        toast.error(err.message)
-        return
-      }
-
-      const { title, description } = mapApiError(err)
-      toast.error(title, { description })
+      const { title, description } = mapApiError(err);
+      toast.error(title, { description });
     },
-  })
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      if (!initialData) {
-        return null
-      }
-
-      return api.delete(`/directories/counterparties/${initialData.id}/`)
+      if (initialData)
+        return api.delete(`/directories/counterparties/${initialData.id}/`);
     },
     onSuccess: () => {
-      toast.success("Контрагент удален")
-      queryClient.invalidateQueries({ queryKey: ["counterparties"] })
-      router.push("/directories/counterparties")
+      toast.success("Counterparty deleted");
+      queryClient.invalidateQueries({ queryKey: ["counterparties"] });
+      router.push("/directories/counterparties");
     },
-    onError: () => toast.error("Не удалось удалить контрагента"),
-  })
+    onError: () => toast.error("Failed to delete"),
+  });
+
+  const actions: CommandBarAction[] = [
+    {
+      label: tc("saveAndClose"),
+      icon: <PiCheckCircleBold />,
+      onClick: () => saveMutation.mutate(formData),
+      variant: "default",
+      shortcut: "Ctrl+Enter",
+    },
+    {
+      label: tc("save"),
+      icon: <PiFloppyDiskBold />,
+      onClick: () => saveMutation.mutate(formData),
+      variant: "secondary",
+      shortcut: "Ctrl+S",
+    },
+    ...(mode === "edit"
+      ? [
+          {
+            label: tc("delete"),
+            icon: <PiTrashBold />,
+            onClick: () => {
+              if (
+                confirm("Are you sure you want to delete this counterparty?")
+              ) {
+                deleteMutation.mutate();
+              }
+            },
+            variant: "destructive" as const,
+          },
+        ]
+      : []),
+    {
+      label: tc("cancel"),
+      icon: <PiArrowLeftBold />,
+      onClick: () => router.back(),
+      variant: "ghost",
+    },
+  ];
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#e9e9e9] px-3 py-2 text-[#3e3e3e]">
-      <div className="mx-auto w-full max-w-[1260px] border border-[#c9c9c9] bg-[#efefef] shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center justify-between border-b border-[#d2d2d2] px-3 py-2">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">←</button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">→</button>
-            </div>
-            <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
-            <h1 className="text-[20px] font-medium text-black">{formTitle}</h1>
-          </div>
-          <div className="flex items-center gap-4 text-lg text-[#777]">
-            <span>◌</span>
-            <span>⋮</span>
-            <span>□</span>
-            <span>×</span>
-          </div>
+    <div className="flex flex-col h-[calc(100vh-4rem)] bg-background">
+      <CommandBar mainActions={actions} className="border-b shrink-0" />
+
+      <div className="p-8 max-w-2xl mx-auto w-full overflow-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">
+            {mode === "create" ? t("addCounterparty") : formData.name}
+          </h1>
+          <p className="text-muted-foreground">
+            {mode === "create"
+              ? "Create a new business partner card"
+              : "Edit business partner details"}
+          </p>
         </div>
 
-        <div className="flex gap-6 border-b border-[#d8d8d8] px-3 pt-3">
-          <button
-            type="button"
-            className={`border border-b-0 px-4 py-2 text-sm ${
-              activeTab === "main"
-                ? "bg-white text-black"
-                : "bg-transparent text-[#2856a7] underline"
-            }`}
-            onClick={() => setActiveTab("main")}
-          >
-            Основное
-          </button>
-          <button
-            type="button"
-            className={`border border-b-0 px-4 py-2 text-sm ${
-              activeTab === "supplier-prices"
-                ? "bg-white text-black"
-                : "bg-transparent text-[#2856a7] underline"
-            }`}
-            onClick={() => setActiveTab("supplier-prices")}
-          >
-            Цены поставщиков
-          </button>
-        </div>
-
-        <div className="px-3 py-4">
-          <div className="mb-5 flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              className={toolbarButtonClassName}
-              onClick={() => saveMutation.mutate(formData)}
-            >
-              Записать и закрыть
-            </Button>
-            <Button
-              type="button"
-              className={secondaryButtonClassName}
-              onClick={() => saveMutation.mutate(formData)}
-            >
-              Записать
-            </Button>
-            {mode === "edit" ? (
-              <Button
-                type="button"
-                className={secondaryButtonClassName}
-                onClick={() => {
-                  if (confirm("Удалить контрагента?")) {
-                    deleteMutation.mutate()
-                  }
-                }}
+        <div className="grid gap-6 border p-6 rounded-lg bg-card">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">
+                {tc("name")} <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) =>
+                  setFormData({ ...formData, name: e.target.value })
+                }
+                placeholder="Company Name"
+                required
+                className="font-bold"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="type">{tf("type")}</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(v) =>
+                  setFormData({ ...formData, type: v as CounterpartyType })
+                }
               >
-                Удалить
-              </Button>
-            ) : null}
-            <div className="ml-auto">
-              <Button
-                type="button"
-                className={secondaryButtonClassName}
-                onClick={() => router.back()}
-              >
-                Еще
-              </Button>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="customer">Customer</SelectItem>
+                  <SelectItem value="supplier">Supplier</SelectItem>
+                  <SelectItem value="agent">Agent</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
-          {activeTab === "main" ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-[180px_110px_170px_1fr] items-center gap-3">
-                <span className="text-[15px]">Код:</span>
-                <Input
-                  value={initialData?.id ? String(initialData.id) : "0"}
-                  readOnly
-                  className={`${fieldClassName} w-full bg-[#f6f6f6]`}
-                />
-                <span className="text-[15px] text-right">ИНН/ПИНФЛ:</span>
-                <Input
-                  value={formData.inn}
-                  onChange={(event) =>
-                    setFormData((current) => ({
-                      ...current,
-                      inn: event.target.value,
-                    }))
-                  }
-                  className={fieldClassName}
-                />
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="inn">{tf("inn")} (Tax ID)</Label>
+            <Input
+              id="inn"
+              value={formData.inn}
+              onChange={(e) =>
+                setFormData({ ...formData, inn: e.target.value })
+              }
+              placeholder="123456789"
+              className="font-mono"
+            />
+          </div>
 
-              <div className="grid grid-cols-[180px_1fr] items-center gap-3">
-                <span className="text-[15px]">Наименование:</span>
-                <Input
-                  value={formData.name}
-                  onChange={(event) =>
-                    setFormData((current) => ({
-                      ...current,
-                      name: event.target.value,
-                    }))
-                  }
-                  className={`${fieldClassName} border-[#d6b200] shadow-[inset_0_0_0_1px_#f0d55a]`}
-                />
-              </div>
+          <div className="space-y-2">
+            <Label htmlFor="address">{tf("address")}</Label>
+            <Textarea
+              id="address"
+              value={formData.address}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
+              placeholder="Full legal address"
+              rows={3}
+            />
+          </div>
 
-              <div className="grid grid-cols-[180px_1fr_44px_44px] items-center gap-3">
-                <span className="text-[15px]">Менеджер:</span>
-                <Input
-                  value={managerName}
-                  onChange={(event) => setManagerName(event.target.value)}
-                  className={fieldClassName}
-                />
-                <button
-                  type="button"
-                  className="h-9 border border-[#bcbcbc] bg-white text-sm"
-                >
-                  ▾
-                </button>
-                <button
-                  type="button"
-                  className="h-9 border border-[#bcbcbc] bg-white text-sm"
-                >
-                  ⧉
-                </button>
-              </div>
-
-              <div className="grid grid-cols-[180px_1fr] items-center gap-3">
-                <span className="text-[15px]">Адрес:</span>
-                <Input
-                  value={formData.address}
-                  onChange={(event) =>
-                    setFormData((current) => ({
-                      ...current,
-                      address: event.target.value,
-                    }))
-                  }
-                  className={fieldClassName}
-                />
-              </div>
-
-              <div className="grid grid-cols-[180px_1fr] items-center gap-3">
-                <span className="text-[15px]">Телефон:</span>
-                <Input
-                  value={formData.phone}
-                  onChange={(event) =>
-                    setFormData((current) => ({
-                      ...current,
-                      phone: event.target.value,
-                    }))
-                  }
-                  className={fieldClassName}
-                />
-              </div>
-
-              <div className="grid grid-cols-[180px_1fr_44px_44px] items-center gap-3">
-                <span className="text-[15px]">Родитель:</span>
-                <select
-                  value={parentGroup}
-                  onChange={(event) => setParentGroup(event.target.value)}
-                  className={fieldClassName}
-                >
-                  <option value=""> </option>
-                  {groupOptions.map((groupName) => (
-                    <option key={groupName} value={groupName}>
-                      {groupName}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="h-9 border border-[#bcbcbc] bg-white text-sm"
-                >
-                  ▾
-                </button>
-                <button
-                  type="button"
-                  className="h-9 border border-[#bcbcbc] bg-white text-sm"
-                >
-                  ⧉
-                </button>
-              </div>
-
-              <div className="grid grid-cols-[180px_1fr] items-center gap-3">
-                <span className="text-[15px]">Telegram chat ID:</span>
-                <Input
-                  value={telegramChatId}
-                  onChange={(event) => setTelegramChatId(event.target.value)}
-                  className={`${fieldClassName} max-w-[540px]`}
-                />
-              </div>
-
-              <div className="grid grid-cols-[180px_1fr] items-center gap-3">
-                <span className="text-[15px]">Отправить уведомление telegram:</span>
-                <label className="flex items-center gap-3 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={notifyTelegram}
-                    onChange={(event) => setNotifyTelegram(event.target.checked)}
-                    className="h-4 w-4"
-                  />
-                  <span>{notifyTelegram ? "Да" : "Нет"}</span>
-                </label>
-              </div>
-
-              <div className="grid grid-cols-[180px_1fr] items-center gap-3">
-                <span className="text-[15px]">Тип:</span>
-                <select
-                  value={formData.type}
-                  onChange={(event) =>
-                    setFormData((current) => ({
-                      ...current,
-                      type: event.target.value as CounterpartyType,
-                    }))
-                  }
-                  className={`${fieldClassName} max-w-[320px]`}
-                >
-                  <option value="customer">Покупатель</option>
-                  <option value="supplier">Поставщик</option>
-                  <option value="agent">Агент</option>
-                  <option value="other">Прочее</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-[180px_1fr] items-center gap-3">
-                <span className="text-[15px]">E-mail:</span>
-                <Input
-                  type="email"
-                  value={formData.email}
-                  onChange={(event) =>
-                    setFormData((current) => ({
-                      ...current,
-                      email: event.target.value,
-                    }))
-                  }
-                  className={`${fieldClassName} max-w-[540px]`}
-                />
-              </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="phone">{tf("phone")}</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
+                placeholder="+1-000-0000"
+              />
             </div>
-          ) : (
-            <div className="border border-[#cfcfcf] bg-white p-5 text-sm">
-              <div className="mb-4 flex items-center justify-between">
-                <span className="font-medium text-black">Цены поставщиков</span>
-                <Button
-                  type="button"
-                  className={secondaryButtonClassName}
-                  onClick={() => setActiveTab("main")}
-                >
-                  Вернуться
-                </Button>
-              </div>
-              <div className="grid grid-cols-[220px_1fr_160px] border-t border-l border-[#cbcbcb] text-sm">
-                <div className="border-r border-b border-[#cbcbcb] bg-[#f6f6f6] px-3 py-2">
-                  Поставщик
-                </div>
-                <div className="border-r border-b border-[#cbcbcb] bg-[#f6f6f6] px-3 py-2">
-                  Номенклатура
-                </div>
-                <div className="border-b border-[#cbcbcb] bg-[#f6f6f6] px-3 py-2">
-                  Цена
-                </div>
-                <div className="border-r border-b border-[#cbcbcb] px-3 py-2">
-                  {formData.name || "-"}
-                </div>
-                <div className="border-r border-b border-[#cbcbcb] px-3 py-2">
-                  Данные будут доступны после сохранения
-                </div>
-                <div className="border-b border-[#cbcbcb] px-3 py-2">0,00</div>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">{tf("email")}</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                placeholder="info@company.com"
+              />
             </div>
-          )}
+          </div>
+
+          <div className="space-y-4 pt-4 border-t">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label>
+                  {t("additionalAttributes", {
+                    defaultValue: "Дополнительные реквизиты",
+                  })}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t("additionalAttributesHint", {
+                    defaultValue:
+                      "Custom properties like Region, Manager, Color",
+                  })}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addExtraField}
+              >
+                <PiPlusBold className="mr-1" />
+                {tc("add")}
+              </Button>
+            </div>
+
+            {formData.extra_fields.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Нет дополнительных реквизитов
+              </p>
+            )}
+
+            <div className="space-y-2">
+              {formData.extra_fields.map((field, index) => (
+                <div key={index} className="flex gap-2 items-start">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Property Name (e.g. Region)"
+                      value={field.key}
+                      onChange={(e) =>
+                        updateExtraField(index, { key: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Value"
+                      value={field.value}
+                      onChange={(e) =>
+                        updateExtraField(index, { value: e.target.value })
+                      }
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 text-red-500 hover:text-red-700 hover:bg-red-100"
+                    onClick={() => removeExtraField(index)}
+                  >
+                    <PiTrashBold />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 pt-4 border-t">
+            <Switch
+              id="is_active"
+              checked={formData.is_active}
+              onCheckedChange={(checked) =>
+                setFormData({ ...formData, is_active: checked })
+              }
+            />
+            <Label htmlFor="is_active">{tf("isActive")}</Label>
+          </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

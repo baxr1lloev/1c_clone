@@ -12,6 +12,7 @@ from .viewsets import (
     SettlementsBalanceViewSet,
     CounterpartyStockBalanceViewSet,
     GoodsInTransitViewSet,
+    ItemPriceViewSet,
 )
 from .operational_views import (
     StockInfoView,
@@ -28,6 +29,7 @@ router.register(r'stock-reservations', StockReservationViewSet, basename='stock-
 router.register(r'settlements', SettlementsBalanceViewSet, basename='settlement')
 router.register(r'counterparty-stock', CounterpartyStockBalanceViewSet, basename='counterparty-stock')
 router.register(r'goods-in-transit', GoodsInTransitViewSet, basename='goods-in-transit')
+router.register(r'item-prices', ItemPriceViewSet, basename='item-price')
 
 urlpatterns = [
     path('', include(router.urls)),

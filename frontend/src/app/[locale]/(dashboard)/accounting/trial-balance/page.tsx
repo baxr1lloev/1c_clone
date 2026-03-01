@@ -1,15 +1,17 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
-import { DataTable } from '@/components/data-table/data-table';
-import { ColumnDef } from '@tanstack/react-table';
-import { DrillDownModal } from '@/components/ui/drilldown-modal';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import api from "@/lib/api";
+import { DataTable } from "@/components/data-table/data-table";
+import { ColumnDef } from "@tanstack/react-table";
+import { DrillDownModal } from "@/components/ui/drilldown-modal";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { PiSpinnerBold } from "react-icons/pi";
 
 interface TrialBalanceRow {
   account_code: string;
@@ -23,25 +25,82 @@ interface TrialBalanceRow {
 }
 
 export default function TrialBalancePage() {
-  const [period, setPeriod] = useState('');
+  const [period, setPeriod] = useState("");
   const [drillDownOpen, setDrillDownOpen] = useState(false);
   const [drillDownConfig, setDrillDownConfig] = useState<{
     title: string;
     endpoint: string;
   } | null>(null);
 
-  const { data: trialBalanceData, isLoading } = useQuery({
-    queryKey: ['trial-balance', period],
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Polling for task status
+  const { data: taskStatus } = useQuery({
+    queryKey: ["task-status", taskId],
     queryFn: async () => {
-      const params = period ? `?period=${period}` : '';
+      const response = await api.get(`/api/reports/task-status/${taskId}/`);
+      return response.data;
+    },
+    enabled: !!taskId && isGenerating,
+    refetchInterval: isGenerating ? 2000 : false,
+  });
+
+  // Check task status updates
+  useEffect(() => {
+    if (taskStatus?.status === "SUCCESS") {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setTaskId(null);
+        toast.success("Report generated successfully");
+        queryClient.invalidateQueries({ queryKey: ["trial-balance", period] });
+      }, 0);
+    } else if (
+      taskStatus?.status === "FAILURE" ||
+      taskStatus?.status === "REVOKED"
+    ) {
+      setTimeout(() => {
+        setIsGenerating(false);
+        setTaskId(null);
+        toast.error("Failed to generate report");
+      }, 0);
+    }
+  }, [taskStatus, period, queryClient]);
+
+  const generateMutation = useMutation({
+    mutationFn: async () => {
+      const params = period ? `?period=${period}&async=true` : "?async=true";
       const response = await api.get(`/api/reports/trial-balance/${params}`);
       return response.data;
     },
+    onSuccess: (data) => {
+      if (data.task_id) {
+        setTaskId(data.task_id);
+        setIsGenerating(true);
+        toast.info("Generating report in background...");
+      }
+    },
+    onError: () => {
+      toast.error("Failed to start report generation");
+    },
   });
 
-  const handleDrillDown = (account: string, side: 'debit' | 'credit') => {
+  const { data: trialBalanceData, isLoading } = useQuery({
+    queryKey: ["trial-balance", period],
+    queryFn: async () => {
+      if (!period) return { rows: [] };
+      const response = await api.get(
+        `/api/reports/trial-balance/?period=${period}`,
+      );
+      return response.data;
+    },
+    enabled: !!period && !isGenerating,
+  });
+
+  const handleDrillDown = (account: string, side: "debit" | "credit") => {
     setDrillDownConfig({
-      title: `${side === 'debit' ? 'Debit' : 'Credit'} for Account ${account}`,
+      title: `${side === "debit" ? "Debit" : "Credit"} for Account ${account}`,
       endpoint: `/api/reports/trial-balance/drilldown/?account=${account}&side=${side}&period=${period}`,
     });
     setDrillDownOpen(true);
@@ -49,8 +108,8 @@ export default function TrialBalancePage() {
 
   const columns: ColumnDef<TrialBalanceRow>[] = [
     {
-      accessorKey: 'account_code',
-      header: 'Account',
+      accessorKey: "account_code",
+      header: "Account",
       cell: ({ row }) => (
         <div>
           <div className="font-medium">{row.original.account_code}</div>
@@ -61,65 +120,65 @@ export default function TrialBalancePage() {
       ),
     },
     {
-      accessorKey: 'opening_debit',
-      header: 'Opening Debit',
+      accessorKey: "opening_debit",
+      header: "Opening Debit",
       cell: ({ row }) => (
         <Button
           variant="link"
           className="p-0 h-auto font-normal"
-          onClick={() => handleDrillDown(row.original.account_code, 'debit')}
+          onClick={() => handleDrillDown(row.original.account_code, "debit")}
         >
           ${row.original.opening_debit.toFixed(2)}
         </Button>
       ),
     },
     {
-      accessorKey: 'opening_credit',
-      header: 'Opening Credit',
+      accessorKey: "opening_credit",
+      header: "Opening Credit",
       cell: ({ row }) => (
         <Button
           variant="link"
           className="p-0 h-auto font-normal"
-          onClick={() => handleDrillDown(row.original.account_code, 'credit')}
+          onClick={() => handleDrillDown(row.original.account_code, "credit")}
         >
           ${row.original.opening_credit.toFixed(2)}
         </Button>
       ),
     },
     {
-      accessorKey: 'period_debit',
-      header: 'Period Debit',
+      accessorKey: "period_debit",
+      header: "Period Debit",
       cell: ({ row }) => (
         <Button
           variant="link"
           className="p-0 h-auto font-normal"
-          onClick={() => handleDrillDown(row.original.account_code, 'debit')}
+          onClick={() => handleDrillDown(row.original.account_code, "debit")}
         >
           ${row.original.period_debit.toFixed(2)}
         </Button>
       ),
     },
     {
-      accessorKey: 'period_credit',
-      header: 'Period Credit',
+      accessorKey: "period_credit",
+      header: "Period Credit",
       cell: ({ row }) => (
         <Button
           variant="link"
           className="p-0 h-auto font-normal"
-          onClick={() => handleDrillDown(row.original.account_code, 'credit')}
+          onClick={() => handleDrillDown(row.original.account_code, "credit")}
         >
           ${row.original.period_credit.toFixed(2)}
         </Button>
       ),
     },
     {
-      accessorKey: 'closing_debit',
-      header: 'Closing Debit',
+      accessorKey: "closing_debit",
+      header: "Closing Debit",
       cell: ({ row }) => `$${row.original.closing_debit.toFixed(2)}`,
     },
     {
-      accessorKey: 'closing_credit',
-      header: 'Closing Credit',
+      accessorKey: "closing_credit",
+      header: "Closing Credit",
       cell: ({ row }) => `$${row.original.closing_credit.toFixed(2)}`,
     },
   ];
@@ -135,13 +194,28 @@ export default function TrialBalancePage() {
           <CardTitle>Period Selection</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="w-64">
-            <Label>Period</Label>
-            <Input
-              type="month"
-              value={period}
-              onChange={(e) => setPeriod(e.target.value)}
-            />
+          <div className="flex items-end gap-4 max-w-lg">
+            <div className="flex-1">
+              <Label>Period</Label>
+              <Input
+                type="month"
+                value={period}
+                onChange={(e) => setPeriod(e.target.value)}
+              />
+            </div>
+            <Button
+              onClick={() => generateMutation.mutate()}
+              disabled={!period || isGenerating || generateMutation.isPending}
+            >
+              {isGenerating || generateMutation.isPending ? (
+                <>
+                  <PiSpinnerBold className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                "Generate Report"
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>

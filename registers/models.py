@@ -4,6 +4,72 @@ from tenants.models import Tenant
 from directories.models import Warehouse, Item, Counterparty, Contract, Currency
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
+from decimal import Decimal
+
+
+class ItemPrice(models.Model):
+    """
+    Периодический регистр сведений "Цены номенклатуры" (Item Prices).
+    Stores price history for items based on 1C philosophy.
+    """
+    PRICE_TYPE_CHOICES = [
+        ('PURCHASE', _('Purchase Price')),
+        ('SELLING', _('Selling Price')),
+        ('WHOLESALE', _('Wholesale Price')),
+    ]
+    
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name='price_history')
+    date = models.DateField(_('Date'), help_text="Дата установки цены")
+    price_type = models.CharField(_('Price Type'), max_length=20, choices=PRICE_TYPE_CHOICES, default='SELLING')
+    
+    price = models.DecimalField(_('Price'), max_digits=15, decimal_places=2)
+    currency = models.ForeignKey(Currency, on_delete=models.PROTECT)
+    
+    # Audit Trace
+    content_type = models.ForeignKey(ContentType, on_delete=models.PROTECT, null=True, blank=True)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    document = GenericForeignKey('content_type', 'object_id')
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        # One price per type per day
+        unique_together = ('tenant', 'item', 'price_type', 'date')
+        verbose_name = _('Item Price')
+        verbose_name_plural = _('Item Prices')
+        ordering = ['-date']
+        indexes = [
+            models.Index(fields=['tenant', 'item', 'date']),
+        ]
+        
+    def __str__(self):
+        return f"{self.item} - {self.get_price_type_display()} @ {self.date}: {self.price} {self.currency}"
+        
+    @classmethod
+    def get_latest_price(cls, item, price_type='SELLING', date=None):
+        """
+        Срез Последних (Slice of Last Records).
+        Get the effective price for an item on a specific date.
+        """
+        from django.utils import timezone
+        
+        target_date = date or timezone.now().date()
+        
+        price_record = cls.objects.filter(
+            tenant=item.tenant,
+            item=item,
+            price_type=price_type,
+            date__lte=target_date
+        ).order_by('-date').first()
+        
+        if price_record:
+            return {
+                'price': price_record.price,
+                'currency': price_record.currency,
+                'date': price_record.date
+            }
+        return None
 
 
 

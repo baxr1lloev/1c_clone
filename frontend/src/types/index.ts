@@ -91,6 +91,7 @@ export interface Counterparty extends BaseModel {
   email: string;
   is_active: boolean;
   contacts: ContactPerson[];
+  extra_fields?: Record<string, string | number | boolean>;
 }
 
 export interface Contract extends BaseModel {
@@ -144,6 +145,7 @@ export interface Item extends BaseModel {
 
   category: string;
   is_active: boolean;
+  extra_fields?: Record<string, string | number | boolean>;
 }
 
 export interface Project extends BaseModel {

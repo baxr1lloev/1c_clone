@@ -348,6 +348,13 @@ class PeriodClosingViewSet(viewsets.ModelViewSet):
         
         period = datetime.strptime(period_str, '%Y-%m-%d').date()
         
+        is_async = request.data.get('async', False)
+        
+        if is_async:
+            from accounting.tasks import close_period_task
+            task = close_period_task.delay(request.user.tenant.id, period_str, request.user.id, "Auto closed via UI")
+            return Response({'task_id': task.id, 'status': 'PENDING'})
+
         result = PeriodClosingService.close_period_full(
             tenant=request.user.tenant,
             period=period,

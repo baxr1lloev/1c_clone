@@ -11,7 +11,8 @@ from django.db.models import Sum, Avg, Count, F
 
 from registers.models import (
     StockBalance, StockMovement, StockBatch, StockReservation,
-    SettlementsBalance, CounterpartyStockBalance, GoodsInTransit
+    SettlementsBalance, CounterpartyStockBalance, GoodsInTransit,
+    ItemPrice
 )
 
 from .serializers import (
@@ -22,6 +23,7 @@ from .serializers import (
     SettlementsBalanceSerializer,
     CounterpartyStockBalanceSerializer,
     GoodsInTransitSerializer,
+    ItemPriceSerializer,
 )
 
 
@@ -211,3 +213,19 @@ class GoodsInTransitViewSet(TenantFilterMixin, viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['status', 'risk_status', 'supplier', 'destination_warehouse']
     ordering_fields = ['expected_date', 'shipped_date']
     ordering = ['expected_date']
+
+class ItemPriceViewSet(TenantFilterMixin, viewsets.ModelViewSet):
+    """
+    API endpoint for item prices (Srez Poslednix register).
+    Unlike other registers, this one can be edited directly to set new prices.
+    """
+    queryset = ItemPrice.objects.select_related('item', 'currency').all()
+    serializer_class = ItemPriceSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields = ['item', 'price_type', 'currency']
+    ordering_fields = ['date', 'created_at']
+    ordering = ['-date']
+
+    def perform_create(self, serializer):
+        serializer.save(tenant=self.request.user.tenant)

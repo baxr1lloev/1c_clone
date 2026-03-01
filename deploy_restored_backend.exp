@@ -1,0 +1,7 @@
+#!/usr/bin/expect -f
+set timeout 1800
+spawn ssh -o StrictHostKeyChecking=no root@76.13.79.42 "cd 1c_clone && git fetch origin main && git reset --hard origin/main && docker compose up -d backend"
+expect {
+    "assword:" { send "sxmuves@G123\n" }
+}
+expect eof

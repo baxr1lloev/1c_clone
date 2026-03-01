@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { useTranslations, useLocale } from "next-intl";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, startOfMonth, type Locale } from "date-fns";
-import { ru } from "date-fns/locale";
+import { format, startOfMonth } from "date-fns";
 import {
   PiCalendarBold,
   PiCheckCircleBold,
@@ -73,29 +71,25 @@ const TASK_ICONS: Record<string, React.ReactNode> = {
 };
 
 // Generate month options for the last 12 months
-function getMonthOptions(dateLocale?: Locale) {
+function getMonthOptions() {
   const options = [];
   const now = new Date();
   for (let i = 0; i < 12; i++) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
     options.push({
       value: format(date, "yyyy-MM-dd"),
-      label: format(date, "MMMM yyyy", { locale: dateLocale }),
+      label: format(date, "MMMM yyyy"),
     });
   }
   return options;
 }
 
 export function PeriodClosingWizard() {
-  const t = useTranslations("accounting");
-  const tc = useTranslations("common");
-  const tf = useTranslations("fields");
-  const locale = useLocale();
-  const dateLocale = locale === "ru" ? ru : undefined;
   const [selectedPeriod, setSelectedPeriod] = useState(() =>
     format(startOfMonth(new Date()), "yyyy-MM-dd"),
   );
   const [executingTask, setExecutingTask] = useState<string | null>(null);
+  const [closeTaskId, setCloseTaskId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // Fetch wizard status
@@ -132,44 +126,83 @@ export function PeriodClosingWizard() {
     onError: (
       error: Error & { response?: { data?: { message?: string } } },
     ) => {
-      toast.error(error.response?.data?.message || tc("errorSaving"));
+      toast.error(error.response?.data?.message || "Task failed");
     },
     onSettled: () => {
       setExecutingTask(null);
     },
   });
 
-  // Execute all tasks
+  // Poll task status
+  const { data: closeTaskStatus } = useQuery({
+    queryKey: ["task-status", closeTaskId],
+    queryFn: async () => {
+      const response = await api.get(
+        `/api/reports/task-status/${closeTaskId}/`,
+      );
+      return response.data;
+    },
+    enabled: !!closeTaskId,
+    refetchInterval: executingTask === "ALL" ? 2000 : false,
+  });
+
+  useEffect(() => {
+    if (closeTaskStatus?.status === "SUCCESS") {
+      setTimeout(() => {
+        setExecutingTask(null);
+        setCloseTaskId(null);
+        toast.success("Period closed successfully!");
+        refetch();
+        queryClient.invalidateQueries({ queryKey: ["periods"] });
+      }, 0);
+    } else if (
+      closeTaskStatus?.status === "FAILURE" ||
+      closeTaskStatus?.status === "REVOKED"
+    ) {
+      setTimeout(() => {
+        setExecutingTask(null);
+        setCloseTaskId(null);
+        toast.error("Period Close background task failed");
+      }, 0);
+    }
+  }, [closeTaskStatus, queryClient, refetch]);
+
+  // Execute all tasks asynchronously via Celery
   const closeFullMutation = useMutation({
     mutationFn: async () => {
       const res = (await api.post("/vat/period-closing/close_full/", {
         period: selectedPeriod,
-      })) as { success?: boolean };
+        async: true,
+      })) as { task_id?: string; success?: boolean };
       return res;
     },
     onMutate: () => {
       setExecutingTask("ALL");
     },
     onSuccess: (data) => {
-      if (data.success) {
-        toast.success("Период успешно закрыт!");
+      if (data.task_id) {
+        setCloseTaskId(data.task_id);
+        toast.info("Period closing process started in background...");
+      } else if (data.success) {
+        // Synchronous fallback
+        toast.success("Period closed successfully!");
+        setExecutingTask(null);
+        refetch();
+        queryClient.invalidateQueries({ queryKey: ["periods"] });
       } else {
-        toast.error(tc("errorSaving"));
+        toast.error("Some tasks failed");
+        setExecutingTask(null);
       }
-      refetch();
-      queryClient.invalidateQueries({ queryKey: ["periods"] });
     },
     onError: (
       error: Error & { response?: { data?: { message?: string } } },
     ) => {
-      toast.error(error.response?.data?.message || tc("errorSaving"));
-    },
-    onSettled: () => {
+      toast.error(error.response?.data?.message || "Close failed");
       setExecutingTask(null);
     },
   });
 
-  const monthOptions = getMonthOptions(dateLocale);
+  const monthOptions = getMonthOptions();
 
   const getTaskStatusIcon = (task: ClosingTask) => {
     if (executingTask === task.code || executingTask === "ALL") {
@@ -197,7 +230,7 @@ export function PeriodClosingWizard() {
             <PiChartLineUpBold className="h-6 w-6" />
             Закрытие периода
           </h1>
-          <p className="text-muted-foreground">{t("periodClosing")}</p>
+          <p className="text-muted-foreground">Period Closing Wizard</p>
         </div>
 
         <div className="flex items-center gap-4">
@@ -205,7 +238,7 @@ export function PeriodClosingWizard() {
             <PiCalendarBold className="h-4 w-4 text-muted-foreground" />
             <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder={tf("period")} />
+                <SelectValue placeholder="Select period" />
               </SelectTrigger>
               <SelectContent>
                 {monthOptions.map((opt) => (
@@ -232,9 +265,7 @@ export function PeriodClosingWizard() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg">
-                {format(new Date(selectedPeriod), "MMMM yyyy", {
-                  locale: dateLocale,
-                })}
+                {format(new Date(selectedPeriod), "MMMM yyyy")}
               </CardTitle>
               <Badge variant={wizardStatus.is_closed ? "default" : "secondary"}>
                 {wizardStatus.is_closed ? "Открыт" : "Открыт"}
@@ -242,14 +273,14 @@ export function PeriodClosingWizard() {
             </div>
             <CardDescription>
               {wizardStatus.is_closed
-                ? `Закрыто: ${wizardStatus.closed_by}, ${wizardStatus.closed_at ? format(new Date(wizardStatus.closed_at), "dd.MM.yyyy HH:mm") : ""}`
-                : "Выполните все задачи для закрытия периода"}
+                ? `Closed by ${wizardStatus.closed_by} on ${wizardStatus.closed_at ? format(new Date(wizardStatus.closed_at), "dd.MM.yyyy HH:mm") : "unknown"}`
+                : "Complete all tasks to close the period"}
             </CardDescription>
           </CardHeader>
           {wizardStatus.profit_loss !== 0 && (
             <CardContent>
               <div className="text-sm">
-                <span className="text-muted-foreground">Прибыль/Убыток: </span>
+                <span className="text-muted-foreground">Profit/Loss: </span>
                 <span
                   className={cn(
                     "font-bold",
@@ -273,7 +304,7 @@ export function PeriodClosingWizard() {
         <CardHeader>
           <CardTitle>Закрытие периода</CardTitle>
           <CardDescription>
-            Выполните каждую задачу для закрытия периода
+            Execute each task in order to close the period
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">

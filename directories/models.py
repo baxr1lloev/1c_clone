@@ -3,6 +3,7 @@ from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from tenants.models import Tenant
 from .category_model import ItemCategory
+from decimal import Decimal
 
 class Currency(models.Model):
     """
@@ -50,6 +51,24 @@ class ExchangeRate(models.Model):
         
     def __str__(self):
         return f"{self.currency} @ {self.date}: {self.rate}"
+        
+    @classmethod
+    def get_latest_rate(cls, currency, date=None):
+        """
+        Срез Последних (Slice of Last Records).
+        Get the exchange rate effective on the given date.
+        If no rate is set for the exact date, it takes the most recent previous rate.
+        """
+        from django.utils import timezone
+        
+        target_date = date or timezone.now().date()
+        
+        rate_record = cls.objects.filter(
+            currency=currency,
+            date__lte=target_date
+        ).order_by('-date').first()
+        
+        return rate_record.rate if rate_record else Decimal('1.0')
 
 
 class Counterparty(models.Model):
@@ -69,6 +88,9 @@ class Counterparty(models.Model):
     phone = models.CharField(_('Phone'), max_length=50, blank=True)
     email = models.EmailField(_('Email'), blank=True)
     address = models.TextField(_('Address'), blank=True)
+    
+    # JSONB field for custom properties (1C "Дополнительные реквизиты")
+    extra_fields = models.JSONField(_('Additional Attributes'), default=dict, blank=True)
     
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -175,6 +197,9 @@ class Item(models.Model):
     selling_price = models.DecimalField(_('Selling Price'), max_digits=15, decimal_places=2, default=0)
     
     category = models.ForeignKey('ItemCategory', on_delete=models.SET_NULL, null=True, blank=True, related_name='items')
+    
+    # JSONB field for custom properties (1C "Дополнительные реквизиты")
+    extra_fields = models.JSONField(_('Additional Attributes'), default=dict, blank=True)
     
     class Meta:
         unique_together = ('tenant', 'sku')

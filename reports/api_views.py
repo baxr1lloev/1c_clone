@@ -4,6 +4,20 @@ from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from datetime import datetime, date
 from .trial_balance_service import TrialBalanceService
+from celery.result import AsyncResult
+from accounting.tasks import calculate_trial_balance_task
+
+class TaskStatusAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, task_id):
+        task_result = AsyncResult(task_id)
+        result = {
+            "task_id": task_id,
+            "status": task_result.status,
+            "result": task_result.result if task_result.ready() else None
+        }
+        return Response(result)
 
 class TrialBalanceAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -24,6 +38,13 @@ class TrialBalanceAPIView(APIView):
              end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
         else:
              end_date = date.today()
+
+        is_async = request.GET.get('async') == 'true'
+        
+        if is_async:
+            period_str = start_date.strftime('%Y-%m-01')
+            task = calculate_trial_balance_task.delay(tenant.id, period_str)
+            return Response({'task_id': task.id, 'status': 'PENDING'})
 
         data = TrialBalanceService.get_trial_balance(tenant, start_date, end_date)
         

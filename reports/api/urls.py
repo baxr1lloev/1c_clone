@@ -5,7 +5,7 @@ from django.urls import path
 from .drilldown import ReportDrillDownView
 from .account_card import AccountCardView
 from .analysis import AccountAnalysisView
-from ..api_views import TrialBalanceAPIView, ProfitLossAPIView, AccountCardAPIView
+from ..api_views import TrialBalanceAPIView, ProfitLossAPIView, AccountCardAPIView, TaskStatusAPIView
 from .advanced_reports import (
     ReconciliationView, # This ReconciliationView is used for 'audit/reconciliation/'
     StockBalanceAsOfDateView,
@@ -20,9 +20,10 @@ from .reconciliation_view import ReconciliationView as ReconciliationCheckView #
 from .sequence_view import SequenceRestorationView
 
 urlpatterns = [
-    # Reports # Added comment
-    path('trial-balance/', TrialBalanceAPIView.as_view(), name='trial-balance'), # Modified: name changed
-    path('profit-loss/', ProfitLossAPIView.as_view(), name='profit-loss'), # Added: Profit-loss path
+    # Reports
+    path('task-status/<str:task_id>/', TaskStatusAPIView.as_view(), name='task-status'),
+    path('trial-balance/', TrialBalanceAPIView.as_view(), name='trial-balance'),
+    path('profit-loss/', ProfitLossAPIView.as_view(), name='profit-loss'),
     path('account-card-report/', AccountCardAPIView.as_view(), name='account-card-report'),
     path('account-card/', AccountCardView.as_view(), name='api-account-card'),
     path('account-analysis/<int:account_id>/', AccountAnalysisView.as_view(), name='api-account-analysis'),
