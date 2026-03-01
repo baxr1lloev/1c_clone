@@ -1,212 +1,157 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Calendar, Search, ArrowRightLeft } from 'lucide-react';
-import { DrillDownCell } from '@/components/ui/drill-down-cell';
-import { format } from 'date-fns';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog"
+import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import api from "@/lib/api"
+import type { Counterparty, PaginatedResponse } from "@/types"
 
-export default function SettlementsAsOfDatePage() {
-    const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
-    const [counterpartyId, setCounterpartyId] = useState('');
-    const [selectedHistory, setSelectedHistory] = useState<{ item: any, counterpartyId: string } | null>(null);
+const buttonClassName = "h-9 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
 
-    const { data: report, isLoading, refetch } = useQuery({
-        queryKey: ['settlements-as-of-date', date, counterpartyId],
-        queryFn: async () => {
-            const params = new URLSearchParams();
-            if (date) params.append('date', date);
-            if (counterpartyId) params.append('counterparty', counterpartyId);
-            return api.get(`/reports/settlements-as-of-date/?${params.toString()}`);
-        },
-    });
-
-    const handleHistoryClick = (item: any) => {
-        setSelectedHistory({
-            item,
-            counterpartyId: item.counterparty_id
-        });
-    };
-
-    return (
-        <div className="space-y-6">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold tracking-tight">Settlements Balance (As Of Date)</h1>
-                <p className="text-muted-foreground">
-                    Level 7: «I can restore history» — View debt status at any point in the past.
-                </p>
-            </div>
-
-            <Card>
-                <CardHeader className="pb-4">
-                    <CardTitle className="text-lg">Filter Settings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-wrap gap-4 items-end">
-                        <div className="space-y-2">
-                            <Label className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4" /> As Of Date
-                            </Label>
-                            <Input
-                                type="date"
-                                value={date}
-                                onChange={(e) => setDate(e.target.value)}
-                                className="w-40"
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label>Counterparty ID (Optional)</Label>
-                            <Input
-                                placeholder="ID"
-                                value={counterpartyId}
-                                onChange={(e) => setCounterpartyId(e.target.value)}
-                                className="w-24"
-                            />
-                        </div>
-
-                        <Button onClick={() => refetch()} disabled={isLoading}>
-                            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                            Update Report
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Counterparty</TableHead>
-                                <TableHead>Contract</TableHead>
-                                <TableHead>Currency</TableHead>
-                                <TableHead className="text-right">Amount</TableHead>
-                                <TableHead>Status</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {report?.counterparties?.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center">
-                                        No settlements found for this date.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                report?.counterparties?.map((item: any, i: number) => (
-                                    <TableRow key={i} className="group hover:bg-muted/50">
-                                        <TableCell className="font-medium">
-                                            <Button
-                                                variant="link"
-                                                className="p-0 h-auto font-medium decoration-dashed underline-offset-4"
-                                                onClick={() => handleHistoryClick(item)}
-                                            >
-                                                {item.counterparty_name}
-                                            </Button>
-                                        </TableCell>
-                                        <TableCell>{item.contract_name || '-'}</TableCell>
-                                        <TableCell>{item.currency}</TableCell>
-                                        <TableCell className={`text-right font-mono ${item.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            {item.amount.toLocaleString()}
-                                        </TableCell>
-                                        <TableCell>
-                                            {item.amount > 0 ? (
-                                                <span className="inline-flex items-center rounded-md bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">Receivable</span>
-                                            ) : (
-                                                <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">Payable</span>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-
-            {/* History Modal */}
-            <Dialog open={!!selectedHistory} onOpenChange={(open) => !open && setSelectedHistory(null)}>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Settlement History</DialogTitle>
-                        <DialogDescription>
-                            Detailed history for {selectedHistory?.item.counterparty_name} (Up to {date})
-                        </DialogDescription>
-                    </DialogHeader>
-                    {selectedHistory && (
-                        <SettlementHistoryTable
-                            counterpartyId={selectedHistory.counterpartyId}
-                            endDate={date}
-                        />
-                    )}
-                </DialogContent>
-            </Dialog>
-        </div>
-    );
+type SettlementRow = {
+  counterparty_id: number
+  counterparty_name: string
+  phone?: string
+  currency?: string
+  amount?: number
 }
 
-function SettlementHistoryTable({ counterpartyId, endDate }: { counterpartyId: string, endDate: string }) {
-    const { data, isLoading } = useQuery({
-        queryKey: ['settlement-history', counterpartyId, endDate],
-        queryFn: async () => {
-            const params = new URLSearchParams();
-            if (counterpartyId) params.append('counterparty', counterpartyId);
-            if (endDate) params.append('end', endDate);
-            params.append('start', '2020-01-01');
-            return api.get(`/reports/settlement-history/?${params.toString()}`);
-        },
-    });
+export default function SettlementsAsOfDatePage() {
+  const router = useRouter()
+  const [selectedCounterpartyRowId, setSelectedCounterpartyRowId] = useState<number | null>(null)
+  const [dateFrom, setDateFrom] = useState("2026-02-28")
+  const [dateTo, setDateTo] = useState("2026-02-28")
+  const [counterpartyId, setCounterpartyId] = useState("")
+  const [reportType, setReportType] = useState("Сальдовая")
 
-    if (isLoading) {
-        return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
-    }
+  const { data: counterparties = [] } = useQuery({
+    queryKey: ["counterparties"],
+    queryFn: async () => {
+      const response = await api.get<PaginatedResponse<Counterparty>>("/directories/counterparties/")
+      return response.results
+    },
+  })
 
-    return (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Document</TableHead>
-                    <TableHead>Contract</TableHead>
-                    <TableHead className="text-right">Change</TableHead>
-                    <TableHead className="text-right">Running Balance</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {data?.movements?.map((m: any) => (
-                    <TableRow key={m.id}>
-                        <TableCell className="font-mono text-xs">
-                            {format(new Date(m.date), 'yyyy-MM-dd HH:mm')}
-                        </TableCell>
-                        <TableCell>
-                            <DrillDownCell
-                                value={`${m.document_type} #${m.document_number}`}
-                                steps={[{ label: 'Open Document', url: m.document_url }]}
-                            />
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{m.contract_name}</TableCell>
-                        <TableCell className={`text-right font-mono ${m.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {m.amount > 0 ? '+' : ''}{m.amount.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-bold">
-                            {m.running_balance.toLocaleString()}
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
-    );
+  const { data: report, isLoading, refetch } = useQuery({
+    queryKey: ["settlements-as-of-date", dateTo, counterpartyId],
+    queryFn: async () => {
+      const params = new URLSearchParams()
+      if (dateTo) params.append("date", dateTo)
+      if (counterpartyId) params.append("counterparty", counterpartyId)
+      return api.get(`/reports/settlements-as-of-date/?${params.toString()}`)
+    },
+  })
+
+  const rows = useMemo(() => {
+    const source = Array.isArray(report?.counterparties) ? report.counterparties : []
+    const counterpartyMap = new Map(counterparties.map((item) => [item.id, item]))
+
+    return source.map((entry: SettlementRow) => {
+      const currentCounterparty = counterpartyMap.get(entry.counterparty_id)
+      return {
+        counterparty_id: entry.counterparty_id,
+        counterparty_name: entry.counterparty_name,
+        phone: currentCounterparty?.phone || "",
+        currency: entry.currency || "USD",
+        amount: Number(entry.amount) || 0,
+      }
+    })
+  }, [counterparties, report])
+
+  return (
+    <div className="min-h-[calc(100vh-4rem)] bg-[#e9e9e9] px-1 py-1 text-[#3e3e3e]">
+      <div className="mx-auto h-[calc(100vh-4.6rem)] w-full overflow-hidden border border-[#c9c9c9] bg-[#efefef] shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">←</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">→</button>
+            </div>
+            <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
+            <h1 className="text-[18px] font-medium text-black">Отчет по поставщикам</h1>
+          </div>
+          <div className="flex items-center gap-3 text-lg text-[#777]"><span>⎙</span><span>🔗</span><span>⋮</span><span>×</span></div>
+        </div>
+
+        <div className="space-y-3 border-b border-[#d7d7d7] px-2 py-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" className={buttonClassName} onClick={() => refetch()}>Сформировать</Button>
+            <span className="text-sm">Период с:</span>
+            <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0" />
+            <span className="text-sm">по:</span>
+            <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0" />
+            {["Сальдовая", "Оборотно-сальдовая"].map((value) => (
+              <button key={value} type="button" className={`h-9 border px-3 text-sm ${reportType === value ? "border-[#76b46f] bg-[#eef9ee] text-[#198f38]" : "border-[#bcbcbc] bg-white"}`} onClick={() => setReportType(value)}>{value}</button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-[110px_360px] items-center gap-2">
+            <span className="text-sm">Контрагент:</span>
+            <select value={counterpartyId} onChange={(event) => setCounterpartyId(event.target.value)} className="h-9 rounded-none border border-[#bcbcbc] bg-white px-2 text-sm">
+              <option value=""> </option>
+              {counterparties.map((counterparty) => <option key={counterparty.id} value={String(counterparty.id)}>{counterparty.name}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="h-[calc(100%-118px)] overflow-auto px-2 py-3">
+          <div className="mb-2 text-[15px] text-black">
+            ООО &quot;XUSHNUR SHOHNUR OMAD OPTOVIY BAZA&quot;
+          </div>
+          <div className="mb-4 text-center text-[15px] font-semibold text-black">
+            Сальдовая ведомость по поставщикам на 28.02.2026
+          </div>
+
+          <table className="min-w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-[#f3f3f3]">
+                <th className="border border-[#bdbdbd] px-3 py-2 text-left font-normal">Контрагент</th>
+                <th className="border border-[#bdbdbd] px-3 py-2 text-left font-normal">Телефон</th>
+                <th className="border border-[#bdbdbd] px-3 py-2 text-right font-normal">UZB</th>
+                <th className="border border-[#bdbdbd] px-3 py-2 text-right font-normal">USD</th>
+                <th className="border border-[#bdbdbd] px-3 py-2 text-right font-normal">RUB</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr><td colSpan={5} className="border border-[#bdbdbd] px-3 py-8 text-center">Загрузка...</td></tr>
+              ) : rows.length === 0 ? (
+                <tr><td colSpan={5} className="border border-[#bdbdbd] px-3 py-8 text-center">Нет данных за выбранный период</td></tr>
+              ) : (
+                rows.map((row: { counterparty_id: number; counterparty_name: string; phone?: string; currency?: string; amount: number }) => {
+                  const uzb = row.currency === "UZS" || row.currency === "UZB" ? row.amount : 0
+                  const usd = row.currency === "USD" ? row.amount : 0
+                  const rub = row.currency === "RUB" ? row.amount : 0
+                  const valueClassName = "text-right " + (row.amount < 0 ? "text-[#bf0000]" : "text-black")
+                  const selectedClassName =
+                    selectedCounterpartyRowId === row.counterparty_id ? "bg-[#f8efba]" : ""
+
+                  return (
+                    <tr
+                      key={row.counterparty_id}
+                      className="bg-white hover:bg-[#fbf7da]"
+                      onClick={() => setSelectedCounterpartyRowId(row.counterparty_id)}
+                      onDoubleClick={() =>
+                        router.push(`/directories/counterparties/${row.counterparty_id}`)
+                      }
+                    >
+                      <td className={`border border-[#bdbdbd] px-3 py-2 ${selectedClassName}`}>
+                        <span className="text-[#2e56a6]">{row.counterparty_name}</span>
+                      </td>
+                      <td className={`border border-[#bdbdbd] px-3 py-2 ${selectedClassName}`}>{row.phone || ""}</td>
+                      <td className={`border border-[#bdbdbd] px-3 py-2 ${valueClassName} ${selectedClassName}`}>{uzb === 0 ? "" : uzb.toFixed(2)}</td>
+                      <td className={`border border-[#bdbdbd] px-3 py-2 ${valueClassName} ${selectedClassName}`}>{usd === 0 ? "" : usd.toFixed(2)}</td>
+                      <td className={`border border-[#bdbdbd] px-3 py-2 ${valueClassName} ${selectedClassName}`}>{rub === 0 ? "" : rub.toFixed(2)}</td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
 }

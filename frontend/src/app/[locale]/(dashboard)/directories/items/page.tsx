@@ -1,241 +1,266 @@
-﻿'use client';
+"use client"
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
-import { useQuery } from '@tanstack/react-query';
-import { ColumnDef, SortingState } from '@tanstack/react-table';
-import api from '@/lib/api';
-import { DataTable } from '@/components/data-table/data-table';
-import { ReferenceLink } from '@/components/ui/reference-link';
-import { Button } from '@/components/ui/button';
-import { StatusBar } from '@/components/ui/status-bar';
-import { GroupBySelector } from '@/components/data-table/group-by-selector';
-import { SavedViews, SavedView } from '@/components/data-table/saved-views';
-import { HelpPanel } from '@/components/layout/help-panel';
-import { ColumnCustomization } from '@/components/data-table/column-customization';
-import { CommandBar, CommandBarAction } from '@/components/ui/command-bar';
-import { PiPlusBold, PiPencilBold } from 'react-icons/pi';
-import type { Item, PaginatedResponse } from '@/types';
+import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import api from "@/lib/api"
+import type { Item, PaginatedResponse } from "@/types"
+
+const buttonClassName =
+  "h-9 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
+
+type DirectoryRow =
+  | { kind: "group"; key: string; categoryId: string; name: string; code: string }
+  | { kind: "item"; key: string; item: Item }
 
 export default function ItemsPage() {
-  const tc = useTranslations('common');
-  const router = useRouter();
-  const [searchValue, setSearchValue] = useState('');
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-  const [activeFilter, setActiveFilter] = useState<string>('all');
-  const [groupBy, setGroupBy] = useState<string | null>(null);
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const router = useRouter()
+  const [searchValue, setSearchValue] = useState("")
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const [showOnlyActive, setShowOnlyActive] = useState(false)
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ['items'],
+  const { data: items = [], isLoading, refetch } = useQuery({
+    queryKey: ["items"],
     queryFn: async () => {
-      const response = await api.get<PaginatedResponse<Item>>('/directories/items/');
-      return response.results;
+      const response = await api.get<PaginatedResponse<Item>>("/directories/items/")
+      return response.results
     },
-  });
+  })
 
-  // Actions
-  const handleCreate = () => router.push('/directories/items/new');
-  const handleEdit = (item: Item) => router.push(`/directories/items/${item.id}/edit`);
-  const handleView = (item: Item) => router.push(`/directories/items/${item.id}`);
-
-  // Load saved view
-  const handleLoadView = (view: SavedView) => {
-    setActiveFilter(view.filters.active || 'all');
-    setSorting(view.sorting);
-    setColumnVisibility(view.columnVisibility);
-    setGroupBy(view.groupBy);
-  };
-
-  // Filtering
-  const filteredData = useMemo(() => {
-    if (!data) return [];
-    let filtered = data;
-
-    if (activeFilter === 'active') {
-      filtered = filtered.filter(item => item.is_active);
-    } else if (activeFilter === 'inactive') {
-      filtered = filtered.filter(item => !item.is_active);
-    }
-
-    if (searchValue) {
-      filtered = filtered.filter(item =>
-        item.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-        item.sku?.toLowerCase().includes(searchValue.toLowerCase())
-      );
-    }
-
-    return filtered;
-  }, [data, activeFilter, searchValue]);
-
-  const mainActions: CommandBarAction[] = [
-    {
-      label: tc('create'),
-      icon: <PiPlusBold />,
-      onClick: handleCreate,
-      variant: 'default',
-      shortcut: 'Ctrl+N'
-    }
-  ];
-
-  const selectionActions: CommandBarAction[] = selectedItem ? [
-    {
-      label: tc('edit'),
-      icon: <PiPencilBold />,
-      onClick: () => handleEdit(selectedItem),
-      variant: 'ghost',
-      shortcut: 'Enter'
-    }
-  ] : [];
-
-  // Row className for conditional highlighting
-  const getItemRowClassName = (item: Item) => {
-    if (!item.is_active) return 'bg-gray-50 dark:bg-gray-900/50 text-muted-foreground';
-    // Could add low stock highlighting here if needed
-    return '';
-  };
-
-  const columns: ColumnDef<Item>[] = [
-    {
-      accessorKey: 'sku',
-      header: 'Article',
-      cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.getValue('sku')}</span>
-      ),
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const response = await api.get("/directories/categories/")
+      return Array.isArray(response) ? response : (response?.results ?? [])
     },
-    {
-      accessorKey: 'name',
-      header: 'Name',
-      cell: ({ row }) => (
-        <ReferenceLink
-          id={row.original.id}
-          type="item"
-          label={row.getValue('name')}
-          showIcon={true}
-          className="font-medium"
-        />
-      ),
-    },
-    {
-      accessorKey: 'sale_price',
-      header: 'Price',
-      cell: ({ row }) => {
-        const rawPrice = row.getValue('sale_price');
-        const price = typeof rawPrice === 'number' ? rawPrice : Number(rawPrice);
-        return Number.isFinite(price) ? `$${price.toFixed(2)}` : '-';
+  })
+
+  const visibleItems = useMemo(() => {
+    const query = searchValue.trim().toLowerCase()
+    return items.filter((item) => {
+      const matchesSearch =
+        query.length === 0 ||
+        item.name.toLowerCase().includes(query) ||
+        String(item.sku || "").toLowerCase().includes(query)
+      const matchesActive = !showOnlyActive || item.is_active !== false
+      return matchesSearch && matchesActive
+    })
+  }, [items, searchValue, showOnlyActive])
+
+  const rows = useMemo<DirectoryRow[]>(() => {
+    const bucketByCategory = new Map<string, Item[]>()
+
+    visibleItems.forEach((item) => {
+      const key = item.category == null ? "__uncategorized__" : String(item.category)
+      const bucket = bucketByCategory.get(key) ?? []
+      bucket.push(item)
+      bucketByCategory.set(key, bucket)
+    })
+
+    const orderedGroups = [
+      ...categories.map((category: { id: number; name: string }) => ({
+        id: String(category.id),
+        name: category.name,
+        code: String(category.id),
+      })),
+      {
+        id: "__uncategorized__",
+        name: "Без группы",
+        code: "",
       },
-    },
-    {
-      accessorKey: 'base_unit',
-      header: 'Base Unit',
-      cell: ({ row }) => row.original.base_unit || row.original.unit || '-',
-    },
-    {
-      id: 'packages',
-      header: 'Packaging',
-      cell: ({ row }) => {
-        const units = row.original.units || row.original.packages || [];
-        if (!units.length) return '-';
-        const defaultUnit = units.find((u) => u.is_default) || units[0];
-        return `${units.length} (${defaultUnit.name})`;
-      },
-    },
-  ];
+    ]
+
+    const result: DirectoryRow[] = []
+
+    orderedGroups.forEach((group) => {
+      const groupItems = bucketByCategory.get(group.id) ?? []
+      if (groupItems.length === 0 && searchValue.trim().length > 0) {
+        return
+      }
+
+      result.push({
+        kind: "group",
+        key: `group-${group.id}`,
+        categoryId: group.id,
+        name: group.name,
+        code: group.code,
+      })
+
+      groupItems
+        .sort((left, right) => left.name.localeCompare(right.name))
+        .forEach((item) => {
+          result.push({
+            kind: "item",
+            key: `item-${item.id}`,
+            item,
+          })
+        })
+    })
+
+    return result
+  }, [categories, searchValue, visibleItems])
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
-      <DataTable
-        columns={columns}
-        data={filteredData}
-        isLoading={isLoading}
-        onRowClick={setSelectedItem}
-        onRowDoubleClick={handleView}
-        getRowClassName={getItemRowClassName}
-        commandBar={
-          <div className="flex items-center justify-between w-full">
-            <CommandBar
-              mainActions={mainActions}
-              selectionActions={selectionActions}
-              onRefresh={() => refetch()}
-              onSearch={setSearchValue}
-              searchValue={searchValue}
-              searchPlaceholder="Search items..."
-            />
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <Button
-                  variant={activeFilter === 'all' ? 'default' : 'outline'}
-                  size="sm"
-                  className="h-7 text-xs px-3"
-                  onClick={() => setActiveFilter('all')}
-                >
-                  All
-                </Button>
-                <Button
-                  variant={activeFilter === 'active' ? 'default' : 'outline'}
-                  size="sm"
-                  className="h-7 text-xs px-3"
-                  onClick={() => setActiveFilter('active')}
-                >
-                  Active
-                </Button>
-                <Button
-                  variant={activeFilter === 'inactive' ? 'default' : 'outline'}
-                  size="sm"
-                  className="h-7 text-xs px-3"
-                  onClick={() => setActiveFilter('inactive')}
-                >
-                  Inactive
-                </Button>
-                {activeFilter !== 'all' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs px-2"
-                    onClick={() => setActiveFilter('all')}
-                  >
-                    Clear
-                  </Button>
-                )}
-              </div>
-              <GroupBySelector
-                columns={columns}
-                groupBy={groupBy}
-                onGroupByChange={setGroupBy}
-                tableName="items"
-              />
-              <SavedViews
-                tableName="items"
-                currentState={{
-                  filters: { active: activeFilter },
-                  sorting,
-                  columnVisibility,
-                  groupBy
-                }}
-                onLoadView={handleLoadView}
-              />
-              <ColumnCustomization
-                columns={columns}
-                columnVisibility={columnVisibility}
-                onColumnVisibilityChange={setColumnVisibility}
-                tableName="items"
-              />
-              <HelpPanel context="item-list" />
+    <div className="min-h-[calc(100vh-4rem)] bg-[#e9e9e9] px-1 py-1 text-[#3e3e3e]">
+      <div className="mx-auto h-[calc(100vh-4.6rem)] w-full overflow-hidden border border-[#c9c9c9] bg-[#efefef] shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">←</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">→</button>
             </div>
+            <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
+            <h1 className="text-[18px] font-medium text-black">Номенклатура</h1>
           </div>
-        }
-      />
+          <div className="flex items-center gap-4 text-lg text-[#777]">
+            <span>◌</span>
+            <span>⋮</span>
+            <span>×</span>
+          </div>
+        </div>
 
-      {/* Status Bar */}
-      <StatusBar
-        totalRecords={data?.length || 0}
-        filteredCount={activeFilter !== 'all' || searchValue ? filteredData.length : undefined}
-        selectedCount={selectedItem ? 1 : 0}
-        isLoading={isLoading}
-      />
+        <div className="flex items-center gap-2 border-b border-[#d9d9d9] px-2 py-2">
+          <Button
+            type="button"
+            className={buttonClassName}
+            onClick={() => router.push("/directories/items/new")}
+          >
+            Создать
+          </Button>
+          <Button
+            type="button"
+            className={buttonClassName}
+            onClick={() => router.push("/directories/items/new?group=1")}
+          >
+            Создать группу
+          </Button>
+          <button
+            type="button"
+            className="h-9 w-9 border border-[#bcbcbc] bg-white text-[#4a84c6]"
+            onClick={() => refetch()}
+          >
+            ⟳
+          </button>
+          <label className="ml-2 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={showOnlyActive}
+              onChange={(event) => setShowOnlyActive(event.target.checked)}
+              className="h-4 w-4"
+            />
+            Только активные
+          </label>
+          <div className="ml-auto flex items-center gap-2">
+            <Input
+              value={searchValue}
+              onChange={(event) => setSearchValue(event.target.value)}
+              placeholder="Поиск (Ctrl+F)"
+              className="h-9 w-[270px] rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
+            <button
+              type="button"
+              className="h-9 w-9 border border-[#bcbcbc] bg-white text-[#4a84c6]"
+            >
+              🔍
+            </button>
+            <Button type="button" className={buttonClassName}>
+              Еще
+            </Button>
+          </div>
+        </div>
+
+        <div className="h-[calc(100%-98px)] overflow-auto">
+          <table className="min-w-full border-collapse text-sm">
+            <thead>
+              <tr className="bg-[#f3f3f3]">
+                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Наименование</th>
+                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">↓</th>
+                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Код</th>
+                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Единица измер...</th>
+                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Валюта</th>
+                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Артикул</th>
+                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Размер</th>
+                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Штрих код</th>
+                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Вид товара</th>
+                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Тип товара</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={10} className="border border-[#cbcbcb] px-3 py-8 text-center">
+                    Загрузка...
+                  </td>
+                </tr>
+              ) : rows.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="border border-[#cbcbcb] px-3 py-8 text-center">
+                    Нет данных
+                  </td>
+                </tr>
+              ) : (
+                rows.map((row) => {
+                  if (row.kind === "group") {
+                    return (
+                      <tr
+                        key={row.key}
+                        className={selectedKey === row.key ? "bg-[#f8efba]" : "bg-white hover:bg-[#fbf7da]"}
+                        onClick={() => setSelectedKey(row.key)}
+                      >
+                        <td className="border border-[#cbcbcb] px-3 py-2 font-medium">
+                          <span className="mr-2 text-[#a77b00]">▸ 📁</span>
+                          {row.name}
+                        </td>
+                        <td className="border border-[#cbcbcb] px-3 py-2" />
+                        <td className="border border-[#cbcbcb] px-3 py-2">{row.code}</td>
+                        <td className="border border-[#cbcbcb] px-3 py-2" />
+                        <td className="border border-[#cbcbcb] px-3 py-2" />
+                        <td className="border border-[#cbcbcb] px-3 py-2" />
+                        <td className="border border-[#cbcbcb] px-3 py-2" />
+                        <td className="border border-[#cbcbcb] px-3 py-2" />
+                        <td className="border border-[#cbcbcb] px-3 py-2" />
+                        <td className="border border-[#cbcbcb] px-3 py-2" />
+                      </tr>
+                    )
+                  }
+
+                  const item = row.item
+                  const typeLabel = String(item.item_type ?? "")
+                    .toLowerCase()
+                    .includes("service")
+                    ? "Услуга / Работа"
+                    : "Материал"
+
+                  return (
+                    <tr
+                      key={row.key}
+                      className={selectedKey === row.key ? "bg-[#fbf3c7]" : "bg-white hover:bg-[#fbf7da]"}
+                      onClick={() => setSelectedKey(row.key)}
+                      onDoubleClick={() => router.push(`/directories/items/${item.id}`)}
+                    >
+                      <td className="border border-[#cbcbcb] px-3 py-2">
+                        <span className="mr-2 text-[#6489a8]">▭</span>
+                        {item.name}
+                      </td>
+                      <td className="border border-[#cbcbcb] px-3 py-2" />
+                      <td className="border border-[#cbcbcb] px-3 py-2">{item.id}</td>
+                      <td className="border border-[#cbcbcb] px-3 py-2">{item.base_unit || item.unit || "шт"}</td>
+                      <td className="border border-[#cbcbcb] px-3 py-2">USD</td>
+                      <td className="border border-[#cbcbcb] px-3 py-2">{item.sku || ""}</td>
+                      <td className="border border-[#cbcbcb] px-3 py-2" />
+                      <td className="border border-[#cbcbcb] px-3 py-2" />
+                      <td className="border border-[#cbcbcb] px-3 py-2">Материал</td>
+                      <td className="border border-[#cbcbcb] px-3 py-2">{typeLabel}</td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
-

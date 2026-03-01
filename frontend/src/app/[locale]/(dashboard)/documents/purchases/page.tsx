@@ -1,370 +1,492 @@
-﻿'use client';
+'use client';
 
-import { useState, useMemo } from 'react';
-import { useTranslations } from 'next-intl';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ColumnDef } from '@tanstack/react-table';
-import { cn } from '@/lib/utils';
-import api from '@/lib/api';
-import { DataTable } from '@/components/data-table/data-table';
-import { ReferenceLink } from '@/components/ui/reference-link';
-import { LinkableCell } from '@/components/ui/linkable-cell';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { StatusBar } from '@/components/ui/status-bar';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
-import { PiPencilBold, PiTrashBold, PiArrowsDownUpBold, PiCheckCircleBold, PiXCircleBold, PiEyeBold } from 'react-icons/pi';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getDocumentRowClassName } from '@/components/data-table/row-styles';
-import { GroupBySelector } from '@/components/data-table/group-by-selector';
-import { SavedViews, SavedView } from '@/components/data-table/saved-views';
-import { HelpPanel } from '@/components/layout/help-panel';
-import { ColumnCustomization } from '@/components/data-table/column-customization';
-import type { PurchaseDocument, PaginatedResponse, DocumentStatus } from '@/types';
-import { CommandBar, CommandBarAction } from '@/components/ui/command-bar';
+import { useQuery } from '@tanstack/react-query';
+import {
+  PiArrowsClockwiseBold,
+  PiCaretLeftBold,
+  PiCaretRightBold,
+  PiEyeBold,
+  PiMagnifyingGlassBold,
+  PiPlusBold,
+  PiPrinterBold,
+} from 'react-icons/pi';
+import { toast } from 'sonner';
 
-const decorationPurchases: PurchaseDocument[] = [
+import api from '@/lib/api';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import type { DocumentStatus, PaginatedResponse } from '@/types';
+
+interface PurchaseListItem {
+  id: number;
+  number: string;
+  date: string;
+  status: DocumentStatus;
+  status_display?: string;
+  counterparty?: number | null;
+  counterparty_name?: string;
+  warehouse?: number | null;
+  warehouse_name?: string;
+  currency?: number | null;
+  currency_code?: string;
+  total_amount: number | string;
+  total_amount_base?: number | string;
+  posted_at?: string | null;
+  comment?: string;
+}
+
+const fallbackPurchases: PurchaseListItem[] = [
   {
-    id: 1, tenant: 1, number: 'PUR-2024-0001', date: '2024-01-15', status: 'posted', is_posted: true,
-    comment: 'Office supplies', warehouse: 1, supplier: 1, contract: null, currency: 1, exchange_rate: 1, base_currency_rate: 1,
-    subtotal: 100, tax_amount: 12, total_amount: 112, total_amount_base: 112,
-    lines: [], created_by: 1, posted_by: 1, posted_at: '2024-01-15', created_at: '2024-01-15', updated_at: '2024-01-15',
-    supplier_detail: { id: 1, name: 'Office Depot', ...({} as any) }
+    id: 1,
+    number: '450',
+    date: '2026-01-02T12:00:00',
+    status: 'posted',
+    status_display: 'Проведен',
+    counterparty: 1,
+    counterparty_name: 'ООО LesTexSnab Plus',
+    warehouse: 1,
+    warehouse_name: 'BOZOR 6 QATOR',
+    currency: 1,
+    currency_code: 'USD',
+    total_amount: 14763.48,
   },
-  { id: 2, tenant: 1, number: 'PR-2024-0002', date: '2024-01-19', status: 'draft', is_posted: false, comment: '', supplier: 2, contract: null, warehouse: 1, currency: 1, exchange_rate: 1, base_currency_rate: 1, subtotal: 3200, tax_amount: 320, total_amount: 3520, total_amount_base: 3520, lines: [], created_by: 1, posted_by: null, posted_at: null, created_at: '2024-01-19', updated_at: '2024-01-19' },
-  { id: 3, tenant: 1, number: 'PR-2024-0003', date: '2024-01-20', status: 'posted', is_posted: true, comment: '', supplier: 1, contract: 1, warehouse: 2, currency: 1, exchange_rate: 1, base_currency_rate: 1, subtotal: 1800, tax_amount: 180, total_amount: 1980, total_amount_base: 1980, lines: [], created_by: 1, posted_by: 1, posted_at: '2024-01-20', created_at: '2024-01-20', updated_at: '2024-01-20' },
+  {
+    id: 2,
+    number: '451',
+    date: '2026-01-05T12:00:00',
+    status: 'draft',
+    status_display: 'Черновик',
+    counterparty: 2,
+    counterparty_name: 'ООО PKP Almis',
+    warehouse: 2,
+    warehouse_name: 'TAMOJNI SKLAD',
+    currency: 2,
+    currency_code: 'RUB',
+    total_amount: 14067.95,
+  },
+  {
+    id: 3,
+    number: '453',
+    date: '2026-01-10T12:00:00',
+    status: 'posted',
+    status_display: 'Проведен',
+    counterparty: 3,
+    counterparty_name: 'BelKitforest',
+    warehouse: 3,
+    warehouse_name: 'Belarus Bor Sheriki 5 kas',
+    currency: 1,
+    currency_code: 'USD',
+    total_amount: 24904.45,
+  },
 ];
 
-const statusColors: Record<DocumentStatus, string> = {
-  draft: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
-  posted: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
-  cancelled: 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200',
-};
+function normalizePurchaseListResponse(
+  payload: PaginatedResponse<PurchaseListItem> | PurchaseListItem[] | undefined,
+): PurchaseListItem[] {
+  const rows = Array.isArray(payload) ? payload : payload?.results || [];
 
-// 1C-Style Purchase Document List
+  return rows
+    .map((row) => ({
+      id: Number(row.id),
+      number: String(row.number || ''),
+      date: String(row.date || ''),
+      status: (row.status || 'draft') as DocumentStatus,
+      status_display: row.status_display,
+      counterparty:
+        row.counterparty === null || row.counterparty === undefined
+          ? null
+          : Number(row.counterparty),
+      counterparty_name: row.counterparty_name || 'Без контрагента',
+      warehouse:
+        row.warehouse === null || row.warehouse === undefined
+          ? null
+          : Number(row.warehouse),
+      warehouse_name: row.warehouse_name || 'Без склада',
+      currency:
+        row.currency === null || row.currency === undefined ? null : Number(row.currency),
+      currency_code: row.currency_code || '-',
+      total_amount: Number(row.total_amount || 0),
+      total_amount_base: Number(row.total_amount_base || 0),
+      posted_at: row.posted_at || null,
+      comment: row.comment || '',
+    }))
+    .filter((row) => Number.isFinite(row.id));
+}
+
+function formatDateTime(value: string): string {
+  if (!value) {
+    return '-';
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatAmount(value: number | string): string {
+  const numericValue = Number(value || 0);
+  return numericValue.toLocaleString('ru-RU', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+function getStatusLabel(status: DocumentStatus, statusDisplay?: string): string {
+  if (statusDisplay) {
+    return statusDisplay;
+  }
+
+  if (status === 'posted') return 'Проведен';
+  if (status === 'cancelled') return 'Отменен';
+  return 'Черновик';
+}
+
 export default function PurchasesPage() {
-  const t = useTranslations('documents');
-  const tc = useTranslations('common');
-  const tf = useTranslations('fields');
   const router = useRouter();
-  const queryClient = useQueryClient();
-
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<PurchaseDocument | null>(null);
   const [searchValue, setSearchValue] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [groupBy, setGroupBy] = useState<string | null>(null);
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
-  const [sorting, setSorting] = useState<any>([]);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [isReportsOpen, setIsReportsOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<'stock' | 'settlements'>('stock');
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['purchases'],
     queryFn: async () => {
-      try {
-        const response = await api.get<PaginatedResponse<PurchaseDocument>>('/documents/purchases/');
-        return response.results;
-      } catch { return decorationPurchases; }
+      const response = await api.get<PaginatedResponse<PurchaseListItem> | PurchaseListItem[]>(
+        '/documents/purchases/',
+      );
+      return normalizePurchaseListResponse(response);
     },
+    retry: false,
   });
 
-  const postMutation = useMutation({
-    mutationFn: async (id: number) => api.post(`/documents/purchases/${id}/post/`),
-    onSuccess: () => {
-      toast.success('Document posted successfully');
-      queryClient.invalidateQueries({ queryKey: ['purchases'] });
-    },
-    onError: () => toast.error('Failed to post document'),
-  });
+  const filteredRows = useMemo(() => {
+    const rows = data || [];
+    const query = searchValue.trim().toLowerCase();
 
-  const unpostMutation = useMutation({
-    mutationFn: async (id: number) => api.post(`/documents/purchases/${id}/unpost/`),
-    onSuccess: () => {
-      toast.success('Document unposted');
-      queryClient.invalidateQueries({ queryKey: ['purchases'] });
-    },
-    onError: () => toast.error('Failed to unpost document'),
-  });
+    if (!query) {
+      return rows;
+    }
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => api.delete(`/documents/purchases/${id}/`),
-    onSuccess: () => {
-      toast.success('Document deleted');
-      queryClient.invalidateQueries({ queryKey: ['purchases'] });
-      setIsDeleteOpen(false);
-      setSelectedItem(null);
-    },
-    onError: () => toast.error('Failed to delete document'),
-  });
+    return rows.filter((row) => {
+      const searchable = [
+        row.number,
+        row.counterparty_name,
+        row.warehouse_name,
+        row.currency_code,
+        row.comment,
+      ]
+        .join(' ')
+        .toLowerCase();
 
-  // Actions
-  const handleCreate = () => router.push('/documents/purchases/new');
-  const handleEdit = (doc: PurchaseDocument) => router.push(`/documents/purchases/${doc.id}`);
-  const handleView = (doc: PurchaseDocument) => router.push(`/documents/purchases/${doc.id}`);
+      return searchable.includes(query);
+    });
+  }, [data, searchValue]);
 
-  // Load saved view
-  const handleLoadView = (view: SavedView) => {
-    setStatusFilter(view.filters.status || 'all');
-    setSorting(view.sorting);
-    setColumnVisibility(view.columnVisibility);
-    setGroupBy(view.groupBy);
+  const openSelectedReport = () => {
+    setIsReportsOpen(false);
+    router.push(
+      selectedReport === 'stock'
+        ? '/reports/stock-as-of-date'
+        : '/reports/settlements-as-of-date',
+    );
   };
 
-  const mainActions: CommandBarAction[] = [
-    {
-      label: tc('create'),
-      icon: <PiPencilBold />,
-      onClick: handleCreate,
-      variant: 'default',
-      shortcut: 'Ins',
-    },
-  ];
-
-  const selectionActions: CommandBarAction[] = selectedItem ? [
-    {
-      label: tc('edit'),
-      icon: <PiPencilBold />,
-      onClick: () => handleEdit(selectedItem),
-      disabled: selectedItem.status !== 'draft',
-      shortcut: 'F2'
-    },
-    {
-      label: t('post'),
-      icon: <PiCheckCircleBold />,
-      onClick: () => postMutation.mutate(selectedItem.id),
-      disabled: selectedItem.status === 'posted',
-      variant: 'ghost'
-    },
-    {
-      label: t('unpost'),
-      icon: <PiXCircleBold />,
-      onClick: () => unpostMutation.mutate(selectedItem.id),
-      disabled: selectedItem.status !== 'posted',
-      variant: 'ghost'
-    },
-    {
-      label: tc('delete'),
-      icon: <PiTrashBold />,
-      onClick: () => setIsDeleteOpen(true),
-      variant: 'destructive',
-      shortcut: 'Del'
-    }
-  ] : [];
-
-  // Calculate totals
-  const totalSum = useMemo(() => {
-    if (!data) return 0;
-    return data.reduce((sum, doc) => sum + Number(doc.total_amount || 0), 0);
-  }, [data]);
-
-  // Filter data based on status filter and search
-  const filteredData = useMemo(() => {
-    if (!data) return [];
-    let filtered = data;
-
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(doc => doc.status === statusFilter);
+  const effectiveSelectedId = useMemo(() => {
+    if (filteredRows.length === 0) {
+      return null;
     }
 
-    if (searchValue) {
-      filtered = filtered.filter(doc =>
-        doc.number.toLowerCase().includes(searchValue.toLowerCase()) ||
-        doc.comment?.toLowerCase().includes(searchValue.toLowerCase())
+    return filteredRows.some((row) => row.id === selectedId)
+      ? selectedId
+      : filteredRows[0].id;
+  }, [filteredRows, selectedId]);
+
+  const selectedRow = useMemo(
+    () => filteredRows.find((row) => row.id === effectiveSelectedId) || null,
+    [effectiveSelectedId, filteredRows],
+  );
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isEditable = Boolean(
+        target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName),
       );
+
+      if (event.key === 'Enter' && !isEditable && selectedRow) {
+        event.preventDefault();
+        router.push(`/documents/purchases/${selectedRow.id}`);
+        return;
+      }
+
+      if (isEditable || filteredRows.length === 0) {
+        return;
+      }
+
+      const currentIndex = filteredRows.findIndex((row) => row.id === effectiveSelectedId);
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const nextIndex =
+          currentIndex < 0 ? 0 : Math.min(currentIndex + 1, filteredRows.length - 1);
+        setSelectedId(filteredRows[nextIndex].id);
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const nextIndex = currentIndex <= 0 ? 0 : currentIndex - 1;
+        setSelectedId(filteredRows[nextIndex].id);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [effectiveSelectedId, filteredRows, router, selectedRow]);
+
+  const handleOpenSelected = () => {
+    if (!selectedRow) {
+      return;
     }
 
-    return filtered;
-  }, [data, statusFilter, searchValue]);
-
-  const columns: ColumnDef<PurchaseDocument>[] = [
-    {
-      accessorKey: 'date',
-      header: ({ column }) => (
-        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')} className="-ml-4 h-8 text-xs">
-          {tc('date')} <PiArrowsDownUpBold className="ml-2 h-3 w-3" />
-        </Button>
-      ),
-      cell: ({ row }) => <span className="font-mono">{new Date(row.getValue('date')).toLocaleDateString()}</span>,
-      footer: () => <span className="text-muted-foreground">{tc('total')}:</span>,
-    },
-    {
-      accessorKey: 'number',
-      header: tc('number'),
-      cell: ({ row }) => (
-        <ReferenceLink
-          id={row.original.id}
-          type="purchase-document"
-          label={row.getValue('number')}
-          className="font-mono text-primary font-bold"
-        />
-      ),
-    },
-    {
-      accessorKey: 'supplier',
-      header: tf('supplier'),
-      cell: ({ row }) => {
-        const val = row.getValue('supplier');
-        return <LinkableCell id={val as number} type="counterparty" label={`Supplier #${val}`} />;
-      },
-    },
-    {
-      accessorKey: 'warehouse',
-      header: tf('warehouse'),
-      cell: ({ row }) => {
-        const val = row.getValue('warehouse');
-        return <LinkableCell id={val as number} type="warehouse" label={`WH-#${val}`} />;
-      },
-    },
-
-    {
-      accessorKey: 'total_amount',
-      header: tc('total'),
-      cell: ({ row }) => {
-        const total = parseFloat(row.getValue('total_amount'));
-        return <span className="font-mono font-bold">${total.toFixed(2)}</span>;
-      },
-      footer: () => <span className="font-mono text-primary">${totalSum.toFixed(2)}</span>,
-    },
-    {
-      accessorKey: 'status',
-      header: tc('status'),
-      cell: ({ row }) => {
-        const status = row.getValue('status') as DocumentStatus;
-        return (
-          <Badge variant="outline" className={cn("text-[10px] h-5 px-1", statusColors[status])}>
-            {t(status)}
-          </Badge>
-        );
-      },
-    },
-  ];
+    router.push(`/documents/purchases/${selectedRow.id}`);
+  };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
-      {/* Quick Filters */}
-      <div className="border-b px-4 py-2 bg-muted/20">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground font-medium">Status:</span>
-          <Button
-            variant={statusFilter === 'all' ? 'default' : 'outline'}
-            size="sm"
-            className="h-7 text-xs px-3"
-            onClick={() => setStatusFilter('all')}
-          >
-            All
-          </Button>
-          <Button
-            variant={statusFilter === 'draft' ? 'default' : 'outline'}
-            size="sm"
-            className="h-7 text-xs px-3"
-            onClick={() => setStatusFilter('draft')}
-          >
-            Draft
-          </Button>
-          <Button
-            variant={statusFilter === 'posted' ? 'default' : 'outline'}
-            size="sm"
-            className="h-7 text-xs px-3"
-            onClick={() => setStatusFilter('posted')}
-          >
-            Posted
-          </Button>
-          <Button
-            variant={statusFilter === 'cancelled' ? 'default' : 'outline'}
-            size="sm"
-            className="h-7 text-xs px-3"
-            onClick={() => setStatusFilter('cancelled')}
-          >
-            Cancelled
-          </Button>
-          {statusFilter !== 'all' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs px-2"
-              onClick={() => setStatusFilter('all')}
-            >
-              Clear
+    <div className="flex h-[calc(100vh-4rem)] flex-col bg-[#efefef] text-[#2f2f2f]">
+      <div className="border-b border-[#cfcfcf] bg-[#f7f7f7] px-3 py-2">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="outline" size="icon-sm" disabled>
+              <PiCaretLeftBold className="h-4 w-4" />
             </Button>
-          )}
+            <Button type="button" variant="outline" size="icon-sm" disabled>
+              <PiCaretRightBold className="h-4 w-4" />
+            </Button>
+            <h1 className="ml-2 text-lg font-semibold">Поступление номенклатуры</h1>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <PiMagnifyingGlassBold className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7f7f7f]" />
+              <Input
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
+                className="h-8 w-[240px] border-[#cfcfcf] bg-white pl-8 text-sm"
+                placeholder="Поиск (Ctrl+F)"
+              />
+            </div>
+            <Button type="button" variant="outline" size="icon-sm" onClick={() => refetch()}>
+              <PiArrowsClockwiseBold className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" className="h-8 bg-white" onClick={() => router.push('/documents/purchases/new')}>
+            <PiPlusBold className="h-4 w-4" />
+            Создать
+          </Button>
+          <Button type="button" variant="outline" className="h-8 bg-white" onClick={() => setIsReportsOpen(true)}>
+            РћС‚С‡РµС‚С‹
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8 bg-white"
+            onClick={handleOpenSelected}
+            disabled={!selectedRow}
+          >
+            <PiEyeBold className="h-4 w-4" />
+            Открыть
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="h-8 bg-white"
+            onClick={() => toast.info('Печать будет открываться из карточки документа.')}
+          >
+            <PiPrinterBold className="h-4 w-4" />
+            Печать
+          </Button>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2 text-sm">
+          <span className="shrink-0 text-[#666]">Ссылка:</span>
+          <button
+            type="button"
+            className="flex h-8 min-w-0 flex-1 items-center rounded border border-[#cfcfcf] bg-white px-2 text-left hover:border-[#b9b9b9]"
+            onClick={handleOpenSelected}
+            disabled={!selectedRow}
+          >
+            <span className="truncate">
+              {selectedRow
+                ? `Поступление номенклатуры ${selectedRow.number} от ${formatDateTime(selectedRow.date)}`
+                : 'Выберите документ'}
+            </span>
+          </button>
         </div>
       </div>
 
-      <DataTable
-        columns={columns}
-        data={filteredData}
-        isLoading={isLoading}
+      <div className="flex-1 overflow-hidden p-3">
+        <div className="flex h-full flex-col overflow-hidden rounded border border-[#cfcfcf] bg-white">
+          <div className="grid grid-cols-[40px_180px_100px_minmax(220px,1fr)_220px_90px_140px] border-b border-[#cfcfcf] bg-[#f3f3f3] text-xs font-medium text-[#575757]">
+            <div className="px-2 py-2"> </div>
+            <div className="border-l border-[#d8d8d8] px-2 py-2">Дата</div>
+            <div className="border-l border-[#d8d8d8] px-2 py-2">Номер</div>
+            <div className="border-l border-[#d8d8d8] px-2 py-2">Контрагент</div>
+            <div className="border-l border-[#d8d8d8] px-2 py-2">Склад</div>
+            <div className="border-l border-[#d8d8d8] px-2 py-2">Валюта</div>
+            <div className="border-l border-[#d8d8d8] px-2 py-2 text-right">Сумма</div>
+          </div>
 
-        // Interaction
-        onRowClick={setSelectedItem}
-        onRowDoubleClick={(row) => row.status === 'draft' ? handleEdit(row) : handleView(row)}
-        getRowClassName={(row) => getDocumentRowClassName(row.status)}
+          <div className="flex-1 overflow-auto">
+            {isLoading ? (
+              <div className="p-6 text-sm text-[#6f6f6f]">Загрузка списка документов...</div>
+            ) : isError ? (
+              <div className="p-6 text-sm text-[#8a5a5a]">
+                Не удалось загрузить список документов. Проверьте вход в систему и попробуйте
+                обновить список.
+              </div>
+            ) : filteredRows.length === 0 ? (
+              <div className="p-6 text-sm text-[#6f6f6f]">
+                Документы пока не созданы. Используйте кнопку &quot;Создать&quot;, чтобы
+                оформить первое поступление.
+                {fallbackPurchases.length > 0
+                  ? ' Демо-строки отключены, чтобы не открывать несуществующие документы.'
+                  : ''}
+              </div>
+            ) : (
+              filteredRows.map((row) => {
+                const isSelected = row.id === effectiveSelectedId;
 
-        // Toolbar
-        commandBar={
-          <div className="flex items-center justify-between w-full">
-            <CommandBar
-              mainActions={mainActions}
-              selectionActions={selectionActions}
-              onRefresh={() => refetch()}
-              onSearch={setSearchValue}
-              searchValue={searchValue}
-              searchPlaceholder="Search number..."
-            />
-            <div className="flex items-center gap-2">
-              <GroupBySelector
-                columns={columns}
-                groupBy={groupBy}
-                onGroupByChange={setGroupBy}
-                tableName="purchase_documents"
-              />
-              <SavedViews
-                tableName="purchase_documents"
-                currentState={{
-                  filters: { status: statusFilter },
-                  sorting,
-                  columnVisibility,
-                  groupBy
-                }}
-                onLoadView={handleLoadView}
-              />
-              <ColumnCustomization
-                columns={columns}
-                columnVisibility={columnVisibility}
-                onColumnVisibilityChange={setColumnVisibility}
-                tableName="purchase_documents"
-              />
-              <HelpPanel context="purchase-list" />
+                return (
+                  <button
+                    key={row.id}
+                    type="button"
+                    className={cn(
+                      'grid w-full grid-cols-[40px_180px_100px_minmax(220px,1fr)_220px_90px_140px] border-b border-[#ececec] text-left text-sm',
+                      'hover:bg-[#f8f1ce]',
+                      isSelected && 'bg-[#f4e8a7]',
+                    )}
+                    onClick={() => setSelectedId(row.id)}
+                    onDoubleClick={() => router.push(`/documents/purchases/${row.id}`)}
+                  >
+                    <div className="flex items-center justify-center px-2 py-2 text-[#5f9f5f]">
+                      {row.status === 'posted' ? '▣' : '▢'}
+                    </div>
+                    <div className="truncate border-l border-[#f2f2f2] px-2 py-2 font-mono">
+                      {formatDateTime(row.date)}
+                    </div>
+                    <div className="truncate border-l border-[#f2f2f2] px-2 py-2 font-mono">
+                      {row.number}
+                    </div>
+                    <div className="truncate border-l border-[#f2f2f2] px-2 py-2">
+                      {row.counterparty_name}
+                    </div>
+                    <div className="truncate border-l border-[#f2f2f2] px-2 py-2">
+                      {row.warehouse_name}
+                    </div>
+                    <div className="truncate border-l border-[#f2f2f2] px-2 py-2 font-mono">
+                      {row.currency_code || '-'}
+                    </div>
+                    <div className="border-l border-[#f2f2f2] px-2 py-2 text-right font-mono">
+                      {formatAmount(row.total_amount)}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          <div className="flex items-center justify-between border-t border-[#cfcfcf] bg-[#f7f7f7] px-3 py-2 text-xs text-[#676767]">
+            <span>
+              Записей: {filteredRows.length}
+              {selectedRow ? ` | Выбрано: ${selectedRow.number} (${getStatusLabel(selectedRow.status, selectedRow.status_display)})` : ''}
+            </span>
+            <span>Двойной клик или Enter открывает документ</span>
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={isReportsOpen} onOpenChange={setIsReportsOpen}>
+        <DialogContent className="sm:max-w-md border border-[#c9c9c9] bg-[#efefef] p-0">
+          <DialogHeader>
+            <DialogTitle className="border-b border-[#d2d2d2] px-4 py-3 text-left text-[18px] font-medium text-black">
+              Отчеты
+            </DialogTitle>
+          </DialogHeader>
+          <div className="px-4 py-4">
+            <div className="space-y-1">
+            <button
+              type="button"
+              className={`block w-full px-3 py-2 text-left text-[16px] ${
+                selectedReport === 'stock'
+                  ? 'bg-white outline outline-1 outline-[#3a3a3a] outline-dotted'
+                  : 'hover:bg-[#f8f1ce]'
+              }`}
+              onClick={() => setSelectedReport('stock')}
+              onDoubleClick={() => {
+                setSelectedReport('stock');
+                setIsReportsOpen(false);
+                router.push('/reports/stock-as-of-date');
+              }}
+            >
+              Материальный отчет
+            </button>
+            <button
+              type="button"
+              className={`block w-full px-3 py-2 text-left text-[16px] ${
+                selectedReport === 'settlements'
+                  ? 'bg-white outline outline-1 outline-[#3a3a3a] outline-dotted'
+                  : 'hover:bg-[#f8f1ce]'
+              }`}
+              onClick={() => setSelectedReport('settlements')}
+              onDoubleClick={() => {
+                setSelectedReport('settlements');
+                setIsReportsOpen(false);
+                router.push('/reports/settlements-as-of-date');
+              }}
+            >
+              Отчет по поставщикам
+            </button>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                className="h-9 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
+                onClick={() => setIsReportsOpen(false)}
+              >
+                Закрыть
+              </button>
+              <button
+                type="button"
+                className="h-9 rounded-sm border border-[#9b8e00] bg-[#f4d000] px-4 text-sm text-black hover:bg-[#ffe04d]"
+                onClick={openSelectedReport}
+              >
+                Открыть
+              </button>
             </div>
           </div>
-        }
-      />
-
-      {/* Status Bar */}
-      <StatusBar
-        totalRecords={data?.length || 0}
-        filteredCount={filteredData.length}
-        selectedCount={selectedItem ? 1 : 0}
-        isLoading={isLoading}
-      />
-
-      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Mark for deletion?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedItem?.number}?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tc('cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={() => selectedItem && deleteMutation.mutate(selectedItem.id)} className="bg-destructive text-destructive-foreground">
-              {deleteMutation.isPending ? 'Deleting...' : tc('delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-

@@ -1,17 +1,32 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { PiTrashBold } from "react-icons/pi";
+import {
+  PiCaretDownBold,
+  PiCheckBold,
+  PiMagnifyingGlassBold,
+  PiPlusBold,
+  PiTrashBold,
+} from "react-icons/pi";
 
 import api from "@/lib/api";
 import { mapApiError } from "@/lib/error-mapper";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type ListResponse<T> = { results?: T[] } | T[];
 
@@ -35,6 +50,9 @@ interface WarehouseOption {
 interface CounterpartyOption {
   id: number;
   name: string;
+  inn?: string;
+  type?: "CUSTOMER" | "SUPPLIER" | "AGENT";
+  phone?: string;
 }
 
 interface ContractOption {
@@ -56,8 +74,24 @@ interface WorkspaceLine {
   itemName: string;
   itemType: "GOODS" | "SERVICE";
   unit: string;
+  basePrice: number;
   quantity: number;
   price: number;
+  isManualPrice: boolean;
+}
+
+interface PriceTypeOption {
+  id: string;
+  code: number;
+  name: string;
+  currencyId: number | null;
+  percent: number;
+}
+
+interface PriceTypeDraft {
+  name: string;
+  currencyId: string;
+  percent: string;
 }
 
 interface SettlementInfo {
@@ -89,13 +123,75 @@ interface CashCreateResponse {
   id: number;
 }
 
+interface ItemCategoryOption {
+  id: number;
+  name: string;
+  code?: string;
+}
+
+interface CounterpartyGroupOption {
+  id: string;
+  name: string;
+  type: CounterpartyOption["type"] | null;
+}
+
+interface CounterpartyDraft {
+  name: string;
+  inn: string;
+  type: "CUSTOMER" | "SUPPLIER" | "AGENT";
+  phone: string;
+  groupId: string | null;
+}
+
+interface SalesItemDraft {
+  name: string;
+  sku: string;
+  unit: string;
+  itemType: "GOODS" | "SERVICE";
+  categoryId: number | null;
+  sellingPrice: string;
+}
+
+const PRICE_TYPE_STORAGE_KEY = "sales-pos-price-types";
+const COUNTERPARTY_GROUPS_STORAGE_KEY = "sales-pos-counterparty-groups";
+const COUNTERPARTY_GROUP_ASSIGNMENTS_STORAGE_KEY = "sales-pos-counterparty-group-assignments";
+const DEFAULT_COUNTERPARTY_GROUPS: CounterpartyGroupOption[] = [
+  { id: "sales-cp-suppliers", name: "Поставщики", type: "SUPPLIER" },
+  { id: "sales-cp-customers", name: "Покупатели", type: "CUSTOMER" },
+  { id: "sales-cp-other", name: "Прочие", type: "AGENT" },
+];
+const DEFAULT_PRICE_TYPE_ID = "wholesale";
+const DEFAULT_PRICE_TYPES: PriceTypeOption[] = [
+  {
+    id: "base",
+    code: 1,
+    name: "Базовая цена",
+    currencyId: null,
+    percent: 0,
+  },
+  {
+    id: DEFAULT_PRICE_TYPE_ID,
+    code: 3,
+    name: "Оптовая",
+    currencyId: null,
+    percent: 0,
+  },
+  {
+    id: "retail",
+    code: 2,
+    name: "Розничная цена",
+    currencyId: null,
+    percent: 10,
+  },
+];
+
 function normalizeListResponse<T>(response: ListResponse<T> | undefined): T[] {
   if (!response) return [];
   if (Array.isArray(response)) return response;
   return response.results || [];
 }
 
-function toNumber(value: string | number | undefined | null, fallback = 0): number {
+function toNumber(value: unknown, fallback = 0): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
@@ -105,6 +201,51 @@ function formatAmount(value: number): string {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+}
+
+function getDefaultPriceTypes(): PriceTypeOption[] {
+  return DEFAULT_PRICE_TYPES.map((priceType) => ({ ...priceType }));
+}
+
+function sanitizePriceTypes(value: unknown): PriceTypeOption[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item, index) => {
+      if (!item || typeof item !== "object") {
+        return null;
+      }
+
+      const raw = item as Record<string, unknown>;
+      const name = String(raw.name ?? "").trim();
+      if (!name) {
+        return null;
+      }
+
+      const rawCurrencyId = raw.currencyId;
+
+      return {
+        id: String(raw.id ?? `custom-${index + 1}`),
+        code: toNumber(raw.code, index + 1),
+        name,
+        currencyId:
+          rawCurrencyId === null ||
+          rawCurrencyId === undefined ||
+          rawCurrencyId === ""
+            ? null
+            : toNumber(rawCurrencyId, 0) || null,
+        percent: toNumber(raw.percent, 0),
+      };
+    })
+    .filter((item): item is PriceTypeOption => Boolean(item))
+    .sort((left, right) => left.code - right.code);
+}
+
+function applyPriceType(basePrice: number, percent: number): number {
+  const nextValue = basePrice * (1 + percent / 100);
+  return Math.max(0, Math.round(nextValue * 100) / 100);
 }
 
 function extractErrorMessages(error: unknown): string[] {
@@ -154,7 +295,27 @@ export default function SalesDocumentsPage() {
     new Date().toISOString().slice(0, 10),
   );
   const [cashDesk, setCashDesk] = useState<string>("Main Cash Desk");
-  const [priceType, setPriceType] = useState<string>("Оптовая");
+  const [priceTypes, setPriceTypes] = useState<PriceTypeOption[]>(() =>
+    getDefaultPriceTypes(),
+  );
+  const [selectedPriceTypeId, setSelectedPriceTypeId] = useState<string>(
+    DEFAULT_PRICE_TYPE_ID,
+  );
+  const [isPriceTypePopoverOpen, setIsPriceTypePopoverOpen] = useState<boolean>(false);
+  const [isPriceTypeListOpen, setIsPriceTypeListOpen] = useState<boolean>(false);
+  const [isPriceTypeCreateOpen, setIsPriceTypeCreateOpen] = useState<boolean>(false);
+  const [priceTypeSearch, setPriceTypeSearch] = useState<string>("");
+  const [priceTypeListSearch, setPriceTypeListSearch] = useState<string>("");
+  const [priceTypeListSelectionId, setPriceTypeListSelectionId] = useState<string>(
+    DEFAULT_PRICE_TYPE_ID,
+  );
+  const [priceTypeDraft, setPriceTypeDraft] = useState<PriceTypeDraft>({
+    name: "",
+    currencyId: "",
+    percent: "0",
+  });
+  const [hasHydratedPriceTypes, setHasHydratedPriceTypes] = useState<boolean>(false);
+  const [hasHydratedCounterpartyUi, setHasHydratedCounterpartyUi] = useState<boolean>(false);
   const [catalogMode, setCatalogMode] = useState<"goods" | "service">("goods");
   const [searchValue, setSearchValue] = useState<string>("");
   const [note, setNote] = useState<string>("");
@@ -164,6 +325,30 @@ export default function SalesDocumentsPage() {
   const [isPaymentMarked, setIsPaymentMarked] = useState<boolean>(true);
   const [lines, setLines] = useState<WorkspaceLine[]>([]);
   const [customMessages, setCustomMessages] = useState<UiMessage[]>([]);
+  const [isCounterpartyListOpen, setIsCounterpartyListOpen] = useState<boolean>(false);
+  const [isCounterpartyCreateOpen, setIsCounterpartyCreateOpen] = useState<boolean>(false);
+  const [counterpartyCreateMode, setCounterpartyCreateMode] = useState<"item" | "group">("item");
+  const [counterpartySearch, setCounterpartySearch] = useState<string>("");
+  const [counterpartyListSelectionId, setCounterpartyListSelectionId] = useState<number | null>(null);
+  const [counterpartyGroups, setCounterpartyGroups] = useState<CounterpartyGroupOption[]>(DEFAULT_COUNTERPARTY_GROUPS);
+  const [counterpartyGroupAssignments, setCounterpartyGroupAssignments] = useState<Record<number, string>>({});
+  const [counterpartyDraft, setCounterpartyDraft] = useState<CounterpartyDraft>({
+    name: "",
+    inn: "",
+    type: "CUSTOMER",
+    phone: "",
+    groupId: "sales-cp-customers",
+  });
+  const [isItemCreateOpen, setIsItemCreateOpen] = useState<boolean>(false);
+  const [itemCreateMode, setItemCreateMode] = useState<"item" | "group">("item");
+  const [itemDraft, setItemDraft] = useState<SalesItemDraft>({
+    name: "",
+    sku: "",
+    unit: "шт",
+    itemType: "GOODS",
+    categoryId: null,
+    sellingPrice: "0",
+  });
 
   const { data: warehousesRaw = [] } = useQuery<ListResponse<WarehouseOption>>({
     queryKey: ["sales-pos-warehouses"],
@@ -213,6 +398,13 @@ export default function SalesDocumentsPage() {
   });
   const items = useMemo(() => normalizeListResponse(itemsRaw), [itemsRaw]);
 
+  const { data: categoriesRaw = [] } = useQuery<ListResponse<ItemCategoryOption>>({
+    queryKey: ["sales-pos-categories"],
+    queryFn: () => api.get<ListResponse<ItemCategoryOption>>("/directories/categories/"),
+    initialData: [],
+  });
+  const categories = useMemo(() => normalizeListResponse(categoriesRaw), [categoriesRaw]);
+
   const defaultWarehouseId = warehouses[0]?.id ?? null;
   const effectiveWarehouseId = warehouseId ?? defaultWarehouseId;
 
@@ -251,6 +443,132 @@ export default function SalesDocumentsPage() {
     [currencies, effectiveCurrencyId],
   );
   const selectedCurrencyCode = selectedCurrency?.code || "USD";
+  const selectedPriceType = useMemo(
+    () =>
+      priceTypes.find((priceType) => priceType.id === selectedPriceTypeId) ||
+      priceTypes[0] ||
+      null,
+    [priceTypes, selectedPriceTypeId],
+  );
+
+  useEffect(() => {
+    try {
+      const storedValue = window.localStorage.getItem(PRICE_TYPE_STORAGE_KEY);
+      const parsedValue = storedValue ? JSON.parse(storedValue) : null;
+      const nextPriceTypes = sanitizePriceTypes(parsedValue);
+      if (nextPriceTypes.length > 0) {
+        setPriceTypes(nextPriceTypes);
+      }
+    } catch {
+      // Fall back to the built-in defaults if local storage is unavailable or invalid.
+    } finally {
+      setHasHydratedPriceTypes(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedPriceTypes) {
+      return;
+    }
+
+    window.localStorage.setItem(PRICE_TYPE_STORAGE_KEY, JSON.stringify(priceTypes));
+  }, [hasHydratedPriceTypes, priceTypes]);
+
+  useEffect(() => {
+    try {
+      const storedGroups = window.localStorage.getItem(COUNTERPARTY_GROUPS_STORAGE_KEY);
+      const parsedGroups = storedGroups ? JSON.parse(storedGroups) : null;
+      if (Array.isArray(parsedGroups) && parsedGroups.length > 0) {
+        const nextGroups = parsedGroups
+          .map((item, index) => {
+            if (!item || typeof item !== "object") {
+              return null;
+            }
+
+            const raw = item as Record<string, unknown>;
+            const name = String(raw.name ?? "").trim();
+            if (!name) {
+              return null;
+            }
+
+            const type = raw.type;
+            return {
+              id: String(raw.id ?? `sales-cp-group-${index + 1}`),
+              name,
+              type:
+                type === "CUSTOMER" || type === "SUPPLIER" || type === "AGENT"
+                  ? type
+                  : null,
+            } satisfies CounterpartyGroupOption;
+          })
+          .filter(Boolean) as CounterpartyGroupOption[];
+
+        if (nextGroups.length > 0) {
+          setCounterpartyGroups(nextGroups);
+        }
+      }
+
+      const storedAssignments = window.localStorage.getItem(
+        COUNTERPARTY_GROUP_ASSIGNMENTS_STORAGE_KEY,
+      );
+      const parsedAssignments = storedAssignments
+        ? JSON.parse(storedAssignments)
+        : null;
+      if (
+        parsedAssignments &&
+        typeof parsedAssignments === "object" &&
+        !Array.isArray(parsedAssignments)
+      ) {
+        const nextAssignments: Record<number, string> = {};
+        for (const [key, value] of Object.entries(
+          parsedAssignments as Record<string, unknown>,
+        )) {
+          const numericKey = Number(key);
+          if (!Number.isFinite(numericKey) || typeof value !== "string") {
+            continue;
+          }
+          nextAssignments[numericKey] = value;
+        }
+        setCounterpartyGroupAssignments(nextAssignments);
+      }
+    } catch {
+      // Ignore invalid saved UI state.
+    } finally {
+      setHasHydratedCounterpartyUi(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedCounterpartyUi) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      COUNTERPARTY_GROUPS_STORAGE_KEY,
+      JSON.stringify(counterpartyGroups),
+    );
+  }, [counterpartyGroups, hasHydratedCounterpartyUi]);
+
+  useEffect(() => {
+    if (!hasHydratedCounterpartyUi) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      COUNTERPARTY_GROUP_ASSIGNMENTS_STORAGE_KEY,
+      JSON.stringify(counterpartyGroupAssignments),
+    );
+  }, [counterpartyGroupAssignments, hasHydratedCounterpartyUi]);
+
+  useEffect(() => {
+    if (priceTypes.length === 0) {
+      return;
+    }
+
+    if (!priceTypes.some((priceType) => priceType.id === selectedPriceTypeId)) {
+      setSelectedPriceTypeId(priceTypes[0].id);
+    }
+  }, [priceTypes, selectedPriceTypeId]);
 
   const counterpartyMap = useMemo(() => {
     const map = new Map<number, CounterpartyOption>();
@@ -259,6 +577,36 @@ export default function SalesDocumentsPage() {
     }
     return map;
   }, [counterparties]);
+
+  const filteredCounterparties = useMemo(() => {
+    const normalizedSearch = counterpartySearch.trim().toLowerCase();
+    if (!normalizedSearch) {
+      return counterparties;
+    }
+
+    return counterparties.filter((counterparty) =>
+      `${counterparty.name || ""} ${counterparty.inn || ""} ${counterparty.phone || ""}`
+        .toLowerCase()
+        .includes(normalizedSearch),
+    );
+  }, [counterparties, counterpartySearch]);
+
+  const groupedCounterparties = useMemo(
+    () =>
+      counterpartyGroups
+        .map((group) => ({
+          group,
+          items: filteredCounterparties.filter((counterparty) => {
+            const assignedGroupId =
+              counterpartyGroupAssignments[counterparty.id] ||
+              counterpartyGroups.find((entry) => entry.type === counterparty.type)?.id ||
+              DEFAULT_COUNTERPARTY_GROUPS[0].id;
+            return assignedGroupId === group.id;
+          }),
+        }))
+        .filter((section) => section.items.length > 0 || !counterpartySearch.trim()),
+    [counterpartyGroupAssignments, counterpartyGroups, counterpartySearch, filteredCounterparties],
+  );
 
   const filteredCatalogItems = useMemo(() => {
     const normalizedSearch = searchValue.trim().toLowerCase();
@@ -277,6 +625,32 @@ export default function SalesDocumentsPage() {
         );
       });
   }, [catalogMode, items, searchValue]);
+  const filteredPriceTypes = useMemo(() => {
+    const normalizedSearch = priceTypeSearch.trim().toLowerCase();
+    if (!normalizedSearch) {
+      return priceTypes;
+    }
+
+    return priceTypes.filter((priceType) => {
+      const searchSource = `${priceType.name} ${priceType.code} ${priceType.percent}`
+        .toLowerCase()
+        .trim();
+      return searchSource.includes(normalizedSearch);
+    });
+  }, [priceTypeSearch, priceTypes]);
+  const listedPriceTypes = useMemo(() => {
+    const normalizedSearch = priceTypeListSearch.trim().toLowerCase();
+    if (!normalizedSearch) {
+      return priceTypes;
+    }
+
+    return priceTypes.filter((priceType) => {
+      const searchSource = `${priceType.name} ${priceType.code} ${priceType.percent}`
+        .toLowerCase()
+        .trim();
+      return searchSource.includes(normalizedSearch);
+    });
+  }, [priceTypeListSearch, priceTypes]);
 
   const totalAmount = useMemo(
     () =>
@@ -389,10 +763,109 @@ export default function SalesDocumentsPage() {
     setCustomMessages([]);
   };
 
+  const handleSelectPriceType = (nextPriceType: PriceTypeOption) => {
+    setSelectedPriceTypeId(nextPriceType.id);
+    setPriceTypeListSelectionId(nextPriceType.id);
+    setIsPriceTypePopoverOpen(false);
+    setIsPriceTypeListOpen(false);
+    setPriceTypeSearch("");
+    setPriceTypeListSearch("");
+
+    if (nextPriceType.currencyId) {
+      setCurrencyId(nextPriceType.currencyId);
+    }
+
+    setLines((prev) =>
+      prev.map((line) =>
+        line.isManualPrice
+          ? line
+          : {
+              ...line,
+              price: applyPriceType(line.basePrice, nextPriceType.percent),
+            },
+      ),
+    );
+  };
+
+  const openCreatePriceTypeDialog = () => {
+    setPriceTypeDraft({
+      name: priceTypeSearch.trim(),
+      currencyId: selectedPriceType?.currencyId
+        ? String(selectedPriceType.currencyId)
+        : effectiveCurrencyId
+          ? String(effectiveCurrencyId)
+          : "",
+      percent: "0",
+    });
+    setIsPriceTypePopoverOpen(false);
+    setIsPriceTypeListOpen(false);
+    setIsPriceTypeCreateOpen(true);
+  };
+
+  const openPriceTypeList = () => {
+    setPriceTypeListSelectionId(selectedPriceType?.id || DEFAULT_PRICE_TYPE_ID);
+    setPriceTypeListSearch("");
+    setIsPriceTypePopoverOpen(false);
+    setIsPriceTypeListOpen(true);
+  };
+
+  const savePriceType = () => {
+    const name = priceTypeDraft.name.trim();
+    if (!name) {
+      toast.error("Введите наименование типа цен.");
+      return;
+    }
+
+    const normalizedPercent = priceTypeDraft.percent.replace(",", ".");
+    const percent = Number(normalizedPercent);
+    if (!Number.isFinite(percent)) {
+      toast.error("Введите корректный процент наценки.");
+      return;
+    }
+
+    if (percent < -100) {
+      toast.error("Процент не может быть меньше -100.");
+      return;
+    }
+
+    const nextCode =
+      priceTypes.reduce(
+        (maxValue, priceType) => Math.max(maxValue, Number(priceType.code) || 0),
+        0,
+      ) + 1;
+
+    const nextPriceType: PriceTypeOption = {
+      id: `custom-${Date.now()}`,
+      code: nextCode,
+      name,
+      currencyId: priceTypeDraft.currencyId
+        ? Number(priceTypeDraft.currencyId)
+        : null,
+      percent,
+    };
+
+    setPriceTypes((prev) => [...prev, nextPriceType].sort((left, right) => left.code - right.code));
+    setIsPriceTypeCreateOpen(false);
+    handleSelectPriceType(nextPriceType);
+    toast.success("Тип цен создан.");
+  };
+
+  const confirmPriceTypeFromList = () => {
+    const nextPriceType = priceTypes.find(
+      (priceType) => priceType.id === priceTypeListSelectionId,
+    );
+    if (!nextPriceType) {
+      return;
+    }
+
+    handleSelectPriceType(nextPriceType);
+  };
+
   const addCatalogItemToLines = (item: DirectoryItem) => {
     const itemType: "GOODS" | "SERVICE" =
       item.item_type || (item.type === "service" ? "SERVICE" : "GOODS");
-    const defaultPrice = toNumber(item.sale_price ?? item.selling_price, 0);
+    const basePrice = toNumber(item.sale_price ?? item.selling_price, 0);
+    const defaultPrice = applyPriceType(basePrice, selectedPriceType?.percent ?? 0);
     const unit = item.base_unit || item.unit || "шт";
 
     setLines((prev) => {
@@ -401,7 +874,9 @@ export default function SalesDocumentsPage() {
         const next = [...prev];
         next[index] = {
           ...next[index],
+          basePrice: next[index].basePrice || basePrice,
           quantity: Number(next[index].quantity || 0) + 1,
+          price: next[index].isManualPrice ? next[index].price : defaultPrice,
         };
         return next;
       }
@@ -413,8 +888,10 @@ export default function SalesDocumentsPage() {
           itemName: item.name,
           itemType,
           unit,
+          basePrice,
           quantity: 1,
           price: defaultPrice,
+          isManualPrice: false,
         },
       ];
     });
@@ -431,6 +908,7 @@ export default function SalesDocumentsPage() {
       next[index] = {
         ...next[index],
         [field]: numericValue < 0 ? 0 : numericValue,
+        ...(field === "price" ? { isManualPrice: true } : {}),
       };
       return next;
     });
@@ -598,6 +1076,174 @@ export default function SalesDocumentsPage() {
     }
   };
 
+  const openCounterpartyListDialog = () => {
+    setCounterpartyListSelectionId(effectiveCounterpartyId);
+    setCounterpartySearch("");
+    setIsCounterpartyListOpen(true);
+  };
+
+  const openCounterpartyCreateDialog = (mode: "item" | "group") => {
+    setCounterpartyCreateMode(mode);
+    setCounterpartyDraft({
+      name: "",
+      inn: "",
+      type: mode === "item" ? "CUSTOMER" : "AGENT",
+      phone: "",
+      groupId:
+        mode === "item"
+          ? "sales-cp-customers"
+          : "sales-cp-other",
+    });
+    setIsCounterpartyCreateOpen(true);
+  };
+
+  const openSalesItemCreateDialog = (mode: "item" | "group") => {
+    setItemCreateMode(mode);
+    setItemDraft({
+      name: searchValue.trim(),
+      sku: `ITEM-${String(items.length + 1).padStart(6, "0")}`,
+      unit: "шт",
+      itemType: catalogMode === "service" ? "SERVICE" : "GOODS",
+      categoryId: null,
+      sellingPrice: "0",
+    });
+    setIsItemCreateOpen(true);
+  };
+
+  const createCounterpartyMutation = useMutation({
+    mutationFn: async () => {
+      const trimmedName = counterpartyDraft.name.trim();
+      if (!trimmedName) {
+        throw new Error("Введите наименование контрагента");
+      }
+
+      if (counterpartyCreateMode === "group") {
+        return {
+          mode: "group" as const,
+          group: {
+            id: `sales-cp-custom-${counterpartyGroups.length + 1}`,
+            name: trimmedName,
+            type: counterpartyDraft.type,
+          },
+        };
+      }
+
+      const createdCounterparty = await api.post<CounterpartyOption>("/directories/counterparties/", {
+        name: trimmedName,
+        inn: counterpartyDraft.inn.trim() || String(counterparties.length + 1),
+        type: counterpartyDraft.type,
+        phone: counterpartyDraft.phone.trim(),
+        email: "",
+        address: "",
+      });
+
+      return {
+        mode: "item" as const,
+        counterparty: createdCounterparty,
+      };
+    },
+    onSuccess: (result) => {
+      if (result.mode === "group") {
+        setCounterpartyGroups((prev) => [...prev, result.group]);
+        setCounterpartyCreateMode("item");
+        setCounterpartyDraft({
+          name: "",
+          inn: "",
+          type: "CUSTOMER",
+          phone: "",
+          groupId: "sales-cp-customers",
+        });
+        setIsCounterpartyCreateOpen(false);
+        toast.success("Группа контрагентов создана.");
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["sales-pos-counterparties"] });
+      if (result.counterparty?.id) {
+        setCounterpartyId(result.counterparty.id);
+        setCounterpartyGroupAssignments((prev) => ({
+          ...prev,
+          [result.counterparty.id]:
+            counterpartyDraft.groupId ||
+            counterpartyGroups.find((group) => group.type === counterpartyDraft.type)?.id ||
+            DEFAULT_COUNTERPARTY_GROUPS[0].id,
+        }));
+      }
+      setCounterpartyCreateMode("item");
+      setCounterpartyDraft({
+        name: "",
+        inn: "",
+        type: "CUSTOMER",
+        phone: "",
+        groupId: "sales-cp-customers",
+      });
+      setIsCounterpartyCreateOpen(false);
+      toast.success("Контрагент создан.");
+    },
+    onError: (error) => {
+      if (error instanceof Error) {
+        toast.error(error.message);
+        return;
+      }
+      const { title, description } = mapApiError(error);
+      toast.error(title, { description });
+    },
+  });
+
+  const createSalesItemMutation = useMutation({
+    mutationFn: async () => {
+      const trimmedName = itemDraft.name.trim();
+      if (!trimmedName) {
+        throw new Error("Введите наименование номенклатуры");
+      }
+
+      if (itemCreateMode === "group") {
+        return api.post<ItemCategoryOption>("/directories/categories/", {
+          name: trimmedName,
+          code: itemDraft.sku.trim(),
+          parent: itemDraft.categoryId,
+        });
+      }
+
+      return api.post<DirectoryItem>("/directories/items/", {
+        name: trimmedName,
+        sku: itemDraft.sku.trim(),
+        item_type: itemDraft.itemType,
+        unit: itemDraft.unit.trim() || "шт",
+        purchase_price: 0,
+        selling_price: Number(itemDraft.sellingPrice || 0),
+        category: itemDraft.categoryId,
+      });
+    },
+    onSuccess: () => {
+      if (itemCreateMode === "group") {
+        queryClient.invalidateQueries({ queryKey: ["sales-pos-categories"] });
+        toast.success("Группа номенклатуры создана.");
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["sales-pos-items"] });
+        toast.success("Номенклатура создана.");
+      }
+      setItemCreateMode("item");
+      setItemDraft({
+        name: "",
+        sku: "",
+        unit: "шт",
+        itemType: "GOODS",
+        categoryId: null,
+        sellingPrice: "0",
+      });
+      setIsItemCreateOpen(false);
+    },
+    onError: (error) => {
+      if (error instanceof Error) {
+        toast.error(error.message);
+        return;
+      }
+      const { title, description } = mapApiError(error);
+      toast.error(title, { description });
+    },
+  });
+
   const acceptInvoiceMutation = useMutation({
     mutationFn: async () => runSalesWorkflow(false),
   });
@@ -669,7 +1315,7 @@ export default function SalesDocumentsPage() {
                         {warehouse.name}
                       </option>
                     ))}
-                  </select>
+                    </select>
                 </div>
                 <div className="col-span-4">
                   <label className="text-xs text-muted-foreground">Касса:</label>
@@ -681,11 +1327,119 @@ export default function SalesDocumentsPage() {
                 </div>
                 <div className="col-span-3">
                   <label className="text-xs text-muted-foreground">Тип цен:</label>
-                  <Input
-                    value={priceType}
-                    onChange={(event) => setPriceType(event.target.value)}
-                    className="h-8"
-                  />
+                  <div className="flex items-stretch gap-1">
+                    <Popover
+                      open={isPriceTypePopoverOpen}
+                      onOpenChange={setIsPriceTypePopoverOpen}
+                    >
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex h-8 min-w-0 flex-1 items-center justify-between rounded-md border bg-background px-2 text-sm shadow-xs"
+                        >
+                          <span className="truncate text-left">
+                            {selectedPriceType?.name || "Выберите тип цен"}
+                          </span>
+                          <PiCaretDownBold className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        align="start"
+                        className="w-[360px] space-y-3 p-0"
+                        sideOffset={6}
+                      >
+                        <div className="border-b px-3 py-3">
+                          <div className="relative">
+                            <PiMagnifyingGlassBold className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              value={priceTypeSearch}
+                              onChange={(event) => setPriceTypeSearch(event.target.value)}
+                              className="h-9 pl-8"
+                              placeholder="Введите строку для поиска"
+                            />
+                          </div>
+                          <div className="mt-3 space-y-1 text-sm">
+                            <button
+                              type="button"
+                              className="text-left text-primary underline-offset-4 hover:underline"
+                              onClick={openPriceTypeList}
+                            >
+                              Показать все для выбора
+                            </button>
+                            <button
+                              type="button"
+                              className="flex items-center gap-1 text-left text-primary underline-offset-4 hover:underline"
+                              onClick={openCreatePriceTypeDialog}
+                            >
+                              <PiPlusBold className="h-4 w-4" />
+                              <span>(создать) для добавления</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="max-h-48 space-y-1 overflow-auto px-3">
+                          {filteredPriceTypes.length > 0 ? (
+                            filteredPriceTypes.map((priceType) => {
+                              const currencyCode =
+                                currencies.find(
+                                  (currency) => currency.id === priceType.currencyId,
+                                )?.code || "Авто";
+
+                              return (
+                                <button
+                                  key={priceType.id}
+                                  type="button"
+                                  className={cn(
+                                    "flex w-full items-center justify-between rounded-md px-2 py-2 text-left text-sm hover:bg-accent",
+                                    priceType.id === selectedPriceType?.id && "bg-accent",
+                                  )}
+                                  onClick={() => handleSelectPriceType(priceType)}
+                                >
+                                  <span className="truncate">{priceType.name}</span>
+                                  <span className="ml-3 shrink-0 text-xs text-muted-foreground">
+                                    {currencyCode} / {formatAmount(priceType.percent)}%
+                                  </span>
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <div className="rounded-md border border-dashed px-3 py-4 text-xs text-muted-foreground">
+                              Совпадений не найдено. Используйте «Показать все» или создайте
+                              новый тип цен.
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between border-t px-3 py-3">
+                          <Button
+                            type="button"
+                            variant="link"
+                            className="h-auto px-0"
+                            onClick={openPriceTypeList}
+                          >
+                            Показать все
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon-sm"
+                            onClick={openCreatePriceTypeDialog}
+                          >
+                            <PiPlusBold className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      onClick={openCreatePriceTypeDialog}
+                      title="Создать тип цен"
+                    >
+                      <PiPlusBold className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -730,7 +1484,10 @@ export default function SalesDocumentsPage() {
                 </thead>
                 <tbody>
                   {filteredCatalogItems.map((item, index) => {
-                    const rowPrice = toNumber(item.sale_price ?? item.selling_price);
+                    const rowPrice = applyPriceType(
+                      toNumber(item.sale_price ?? item.selling_price),
+                      selectedPriceType?.percent ?? 0,
+                    );
                     return (
                       <tr
                         key={item.id}
@@ -770,22 +1527,30 @@ export default function SalesDocumentsPage() {
               <div className="grid grid-cols-12 gap-2">
                 <div className="col-span-5">
                   <label className="text-xs text-muted-foreground">Контрагент:</label>
-                  <select
-                    className="h-8 w-full border rounded px-2 text-sm bg-background"
-                    value={effectiveCounterpartyId || ""}
-                    onChange={(event) =>
-                      setCounterpartyId(
-                        event.target.value ? Number(event.target.value) : null,
-                      )
-                    }
-                  >
+                  <div className="grid grid-cols-[minmax(0,1fr)_32px_32px] gap-1">
+                    <select
+                      className="h-8 w-full border rounded px-2 text-sm bg-background"
+                      value={effectiveCounterpartyId || ""}
+                      onChange={(event) =>
+                        setCounterpartyId(
+                          event.target.value ? Number(event.target.value) : null,
+                        )
+                      }
+                    >
                     <option value="">Выберите покупателя</option>
-                    {counterparties.map((counterparty) => (
-                      <option key={counterparty.id} value={counterparty.id}>
-                        {counterparty.name}
-                      </option>
-                    ))}
-                  </select>
+                      {counterparties.map((counterparty) => (
+                        <option key={counterparty.id} value={counterparty.id}>
+                          {counterparty.name}
+                        </option>
+                      ))}
+                    </select>
+                    <Button type="button" variant="outline" size="icon-sm" onClick={openCounterpartyListDialog}>
+                      <PiCaretDownBold className="h-4 w-4" />
+                    </Button>
+                    <Button type="button" variant="outline" size="icon-sm" onClick={() => openCounterpartyCreateDialog("item")}>
+                      <PiPlusBold className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="col-span-4">
                   <label className="text-xs text-muted-foreground">Договор:</label>
@@ -1035,6 +1800,363 @@ export default function SalesDocumentsPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={isCounterpartyListOpen} onOpenChange={setIsCounterpartyListOpen}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Контрагенты</DialogTitle>
+            <DialogDescription>Выберите контрагента, создайте нового или создайте группу.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                onClick={() => {
+                  if (!counterpartyListSelectionId) return;
+                  setCounterpartyId(counterpartyListSelectionId);
+                  setIsCounterpartyListOpen(false);
+                }}
+                disabled={!counterpartyListSelectionId}
+              >
+                Выбрать
+              </Button>
+              <Button type="button" variant="outline" onClick={() => openCounterpartyCreateDialog("item")}>
+                Создать
+              </Button>
+              <Button type="button" variant="outline" onClick={() => openCounterpartyCreateDialog("group")}>
+                Создать группу
+              </Button>
+              <div className="relative flex-1">
+                <PiMagnifyingGlassBold className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input value={counterpartySearch} onChange={(event) => setCounterpartySearch(event.target.value)} className="pl-8" placeholder="Поиск (Ctrl+F)" />
+              </div>
+            </div>
+            <div className="max-h-[360px] overflow-auto rounded border">
+              {groupedCounterparties.map((section) => (
+                <div key={section.group.id}>
+                  <div className="border-b bg-muted/40 px-3 py-2 text-xs font-medium">{section.group.name}</div>
+                  {section.items.map((counterparty) => (
+                    <button
+                      key={counterparty.id}
+                      type="button"
+                      className={cn(
+                        "grid w-full grid-cols-[minmax(0,1fr)_140px_120px] items-center border-b px-3 py-2 text-left text-sm last:border-b-0 hover:bg-accent",
+                        counterpartyListSelectionId === counterparty.id && "bg-yellow-50 dark:bg-yellow-950/30",
+                      )}
+                      onClick={() => setCounterpartyListSelectionId(counterparty.id)}
+                      onDoubleClick={() => {
+                        setCounterpartyId(counterparty.id);
+                        setIsCounterpartyListOpen(false);
+                      }}
+                    >
+                      <span className="truncate">{counterparty.name}</span>
+                      <span className="font-mono text-xs">{counterparty.inn || "-"}</span>
+                      <span className="truncate text-xs text-muted-foreground">{counterparty.phone || "-"}</span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+              {groupedCounterparties.length === 0 && (
+                <div className="px-3 py-8 text-center text-sm text-muted-foreground">Контрагенты не найдены.</div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCounterpartyCreateOpen} onOpenChange={setIsCounterpartyCreateOpen}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{counterpartyCreateMode === "group" ? "Контрагенты (создание группы)" : "Контрагенты (создание)"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                className="bg-yellow-400 text-black hover:bg-yellow-300"
+                onClick={() => createCounterpartyMutation.mutate()}
+                disabled={createCounterpartyMutation.isPending}
+              >
+                Записать и закрыть
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => createCounterpartyMutation.mutate()}
+                disabled={createCounterpartyMutation.isPending}
+              >
+                Записать
+              </Button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)] sm:items-center">
+              <label className="text-sm">Код:</label>
+              <Input value={String(counterparties.length + counterpartyGroups.length + 1)} readOnly />
+              <label className="text-sm">Наименование:</label>
+              <Input value={counterpartyDraft.name} onChange={(event) => setCounterpartyDraft((prev) => ({ ...prev, name: event.target.value }))} />
+              <label className="text-sm">ИНН:</label>
+              <Input value={counterpartyDraft.inn} onChange={(event) => setCounterpartyDraft((prev) => ({ ...prev, inn: event.target.value }))} />
+              <label className="text-sm">Тип:</label>
+              <select className="h-9 rounded-md border bg-background px-3 text-sm" value={counterpartyDraft.type} onChange={(event) => setCounterpartyDraft((prev) => ({ ...prev, type: event.target.value as CounterpartyDraft["type"] }))}>
+                <option value="CUSTOMER">Покупатель</option>
+                <option value="SUPPLIER">Поставщик</option>
+                <option value="AGENT">Прочие</option>
+              </select>
+              <label className="text-sm">Телефон:</label>
+              <Input value={counterpartyDraft.phone} onChange={(event) => setCounterpartyDraft((prev) => ({ ...prev, phone: event.target.value }))} />
+              <label className="text-sm">Родитель:</label>
+              <select className="h-9 rounded-md border bg-background px-3 text-sm" value={counterpartyDraft.groupId || ""} onChange={(event) => setCounterpartyDraft((prev) => ({ ...prev, groupId: event.target.value || null }))}>
+                <option value="">Без группы</option>
+                {counterpartyGroups.map((group) => (
+                  <option key={group.id} value={group.id}>{group.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isItemCreateOpen} onOpenChange={setIsItemCreateOpen}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>{itemCreateMode === "group" ? "Номенклатура (создание группы)" : "Номенклатура (создание)"}</DialogTitle>
+            <DialogDescription>
+              {itemCreateMode === "group" ? "Создание группы номенклатуры через каталог категорий." : "Созданная номенклатура сразу появится в каталоге."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                className="bg-yellow-400 text-black hover:bg-yellow-300"
+                onClick={() => createSalesItemMutation.mutate()}
+                disabled={createSalesItemMutation.isPending}
+              >
+                Записать и закрыть
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => createSalesItemMutation.mutate()}
+                disabled={createSalesItemMutation.isPending}
+              >
+                Записать
+              </Button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)] sm:items-center">
+              <label className="text-sm">Код/Артикул:</label>
+              <Input value={itemDraft.sku} onChange={(event) => setItemDraft((prev) => ({ ...prev, sku: event.target.value }))} />
+              <label className="text-sm">Наименование:</label>
+              <Input value={itemDraft.name} onChange={(event) => setItemDraft((prev) => ({ ...prev, name: event.target.value }))} />
+              <label className="text-sm">Тип:</label>
+              <select className="h-9 rounded-md border bg-background px-3 text-sm" value={itemDraft.itemType} onChange={(event) => setItemDraft((prev) => ({ ...prev, itemType: event.target.value as SalesItemDraft["itemType"] }))}>
+                <option value="GOODS">Товар</option>
+                <option value="SERVICE">Услуга</option>
+              </select>
+              <label className="text-sm">Ед. изм:</label>
+              <Input value={itemDraft.unit} onChange={(event) => setItemDraft((prev) => ({ ...prev, unit: event.target.value }))} />
+              <label className="text-sm">Родитель:</label>
+              <select className="h-9 rounded-md border bg-background px-3 text-sm" value={itemDraft.categoryId || ""} onChange={(event) => setItemDraft((prev) => ({ ...prev, categoryId: event.target.value ? Number(event.target.value) : null }))}>
+                <option value="">Без группы</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>{category.name}</option>
+                ))}
+              </select>
+              {itemCreateMode === "item" && (
+                <>
+                  <label className="text-sm">Цена продажи:</label>
+                  <Input value={itemDraft.sellingPrice} onChange={(event) => setItemDraft((prev) => ({ ...prev, sellingPrice: event.target.value }))} />
+                </>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPriceTypeListOpen} onOpenChange={setIsPriceTypeListOpen}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Типы цен</DialogTitle>
+            <DialogDescription>
+              Выберите тип цен для документа или создайте новый.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <Button type="button" onClick={confirmPriceTypeFromList}>
+                Выбрать
+              </Button>
+              <Button type="button" variant="outline" onClick={openCreatePriceTypeDialog}>
+                Создать
+              </Button>
+              <div className="relative flex-1">
+                <PiMagnifyingGlassBold className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => openSalesItemCreateDialog("item")}
+                >
+                  Создать
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs"
+                  onClick={() => openSalesItemCreateDialog("group")}
+                >
+                  Создать группу
+                </Button>
+                <Input
+                  value={priceTypeListSearch}
+                  onChange={(event) => setPriceTypeListSearch(event.target.value)}
+                  className="pl-8"
+                  placeholder="Поиск (Ctrl+F)"
+                />
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-md border">
+              <div className="grid grid-cols-[minmax(0,1fr)_80px_100px_120px] border-b bg-muted/40 px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                <span>Наименование</span>
+                <span>Код</span>
+                <span>%</span>
+                <span>Валюта</span>
+              </div>
+              <div className="max-h-[320px] overflow-auto">
+                {listedPriceTypes.length > 0 ? (
+                  listedPriceTypes.map((priceType) => {
+                    const currencyCode =
+                      currencies.find((currency) => currency.id === priceType.currencyId)
+                        ?.code || "Авто";
+
+                    return (
+                      <button
+                        key={priceType.id}
+                        type="button"
+                        className={cn(
+                          "grid w-full grid-cols-[minmax(0,1fr)_80px_100px_120px] items-center border-b px-3 py-2 text-left text-sm last:border-b-0 hover:bg-accent",
+                          priceType.id === priceTypeListSelectionId &&
+                            "bg-yellow-50 dark:bg-yellow-950/30",
+                        )}
+                        onClick={() => setPriceTypeListSelectionId(priceType.id)}
+                        onDoubleClick={() => handleSelectPriceType(priceType)}
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          <PiCheckBold
+                            className={cn(
+                              "h-4 w-4 shrink-0 text-primary",
+                              priceType.id === selectedPriceType?.id
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          <span className="truncate">{priceType.name}</span>
+                        </span>
+                        <span>{priceType.code}</span>
+                        <span>{formatAmount(priceType.percent)}%</span>
+                        <span>{currencyCode}</span>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <div className="px-3 py-10 text-center text-sm text-muted-foreground">
+                    Ничего не найдено.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsPriceTypeListOpen(false)}>
+              Закрыть
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPriceTypeCreateOpen} onOpenChange={setIsPriceTypeCreateOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Типы цен (создание)</DialogTitle>
+            <DialogDescription>
+              Новый тип цен сохраняется локально и сразу доступен для выбора.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 sm:grid-cols-[120px_minmax(0,1fr)] sm:items-center">
+            <label className="text-sm text-muted-foreground">Код:</label>
+            <Input
+              value={
+                priceTypes.reduce(
+                  (maxValue, priceType) => Math.max(maxValue, Number(priceType.code) || 0),
+                  0,
+                ) + 1
+              }
+              readOnly
+            />
+
+            <label className="text-sm text-muted-foreground">Наименование:</label>
+            <Input
+              value={priceTypeDraft.name}
+              onChange={(event) =>
+                setPriceTypeDraft((prev) => ({
+                  ...prev,
+                  name: event.target.value,
+                }))
+              }
+              placeholder="Например, Мелкий опт"
+            />
+
+            <label className="text-sm text-muted-foreground">Валюта:</label>
+            <select
+              className="h-9 w-full rounded-md border bg-background px-3 text-sm"
+              value={priceTypeDraft.currencyId}
+              onChange={(event) =>
+                setPriceTypeDraft((prev) => ({
+                  ...prev,
+                  currencyId: event.target.value,
+                }))
+              }
+            >
+              <option value="">Авто (как в документе)</option>
+              {currencies.map((currency) => (
+                <option key={currency.id} value={currency.id}>
+                  {currency.code} - {currency.name}
+                </option>
+              ))}
+            </select>
+
+            <label className="text-sm text-muted-foreground">%:</label>
+            <Input
+              value={priceTypeDraft.percent}
+              onChange={(event) =>
+                setPriceTypeDraft((prev) => ({
+                  ...prev,
+                  percent: event.target.value,
+                }))
+              }
+              placeholder="0"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button type="button" onClick={savePriceType}>
+              Записать и закрыть
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsPriceTypeCreateOpen(false)}
+            >
+              Отмена
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

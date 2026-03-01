@@ -1,383 +1,172 @@
-"use client";
+"use client"
 
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ColumnDef, SortingState } from "@tanstack/react-table";
-import { cn } from "@/lib/utils";
-import api from "@/lib/api";
-import { DataTable } from "@/components/data-table/data-table";
-import { ReferenceLink } from "@/components/ui/reference-link";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { StatusBar } from "@/components/ui/status-bar";
-import { getCounterpartyRowClassName } from "@/components/data-table/row-styles";
-import { GroupBySelector } from "@/components/data-table/group-by-selector";
-import { SavedViews, SavedView } from "@/components/data-table/saved-views";
-import { HelpPanel } from "@/components/layout/help-panel";
-import { ColumnCustomization } from "@/components/data-table/column-customization";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import {
-  PiPencilBold,
-  PiTrashBold,
-  PiArrowsDownUpBold,
-  PiPlusBold,
-  PiXBold,
-  PiUsersBold,
-} from "react-icons/pi";
-import type {
-  Counterparty,
-  PaginatedResponse,
-  CounterpartyType,
-} from "@/types";
-import { CommandBar, CommandBarAction } from "@/components/ui/command-bar";
+import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import api from "@/lib/api"
+import type { Counterparty, PaginatedResponse } from "@/types"
 
-const typeColors: Record<CounterpartyType, string> = {
-  customer:
-    "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200",
-  supplier: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  agent:
-    "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200",
-  other: "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200",
-};
+const DIRECTORY_COUNTERPARTY_GROUPS_STORAGE_KEY = "directory-counterparty-groups"
+const DEFAULT_GROUPS = ["Учредители", "Прочие", "Поставщики", "Покупатели"]
+const buttonClassName = "h-9 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
 
-function normalizeCounterpartyType(type: unknown): CounterpartyType {
-  const value = String(type ?? "").toLowerCase();
-  if (value === "customer" || value === "supplier" || value === "agent") {
-    return value;
+function getStoredGroups() {
+  if (typeof window === "undefined") {
+    return DEFAULT_GROUPS
   }
-  return "other";
+  try {
+    const rawValue = window.localStorage.getItem(DIRECTORY_COUNTERPARTY_GROUPS_STORAGE_KEY)
+    if (!rawValue) {
+      return DEFAULT_GROUPS
+    }
+    const parsedValue = JSON.parse(rawValue)
+    if (!Array.isArray(parsedValue)) {
+      return DEFAULT_GROUPS
+    }
+    const cleaned = parsedValue.map((entry) => String(entry || "").trim()).filter(Boolean)
+    return cleaned.length > 0 ? cleaned : DEFAULT_GROUPS
+  } catch {
+    return DEFAULT_GROUPS
+  }
+}
+
+function getTypeGroupName(type: unknown) {
+  const normalized = String(type ?? "").toLowerCase()
+  if (normalized === "supplier") return "Поставщики"
+  if (normalized === "customer") return "Покупатели"
+  if (normalized === "agent") return "Прочие"
+  return "Прочие"
 }
 
 export default function CounterpartiesPage() {
-  const t = useTranslations("directories");
-  const tc = useTranslations("common");
-  const tf = useTranslations("fields");
-  const router = useRouter();
-  const queryClient = useQueryClient();
+  const router = useRouter()
+  const [searchValue, setSearchValue] = useState("")
+  const [groupSearchValue, setGroupSearchValue] = useState("")
+  const [selectedGroup, setSelectedGroup] = useState<string>("Контрагенты")
+  const [selectedId, setSelectedId] = useState<number | null>(null)
+  const customGroups = getStoredGroups()
+  const treeGroups = ["Контрагенты", ...customGroups].filter((groupName) =>
+    groupSearchValue.trim().length === 0
+      ? true
+      : groupName.toLowerCase().includes(groupSearchValue.trim().toLowerCase()),
+  )
 
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<Counterparty | null>(null);
-  const [searchValue, setSearchValue] = useState("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
-  const [groupBy, setGroupBy] = useState<string | null>(null);
-  const [columnVisibility, setColumnVisibility] = useState<
-    Record<string, boolean>
-  >({});
-  const [sorting, setSorting] = useState<SortingState>([]);
-
-  const { data, isLoading, refetch } = useQuery({
+  const { data = [], isLoading, refetch } = useQuery({
     queryKey: ["counterparties"],
     queryFn: async () => {
-      const response = await api.get<PaginatedResponse<Counterparty>>(
-        "/directories/counterparties/",
-      );
-      return response.results;
+      const response = await api.get<PaginatedResponse<Counterparty>>("/directories/counterparties/")
+      return response.results
     },
-  });
+  })
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      return api.delete(`/directories/counterparties/${id}/`);
-    },
-    onSuccess: () => {
-      toast.success(tc("deletedSuccessfully"));
-      queryClient.invalidateQueries({ queryKey: ["counterparties"] });
-      setIsDeleteOpen(false);
-      setSelectedItem(null);
-    },
-    onError: () => {
-      toast.error(tc("errorDeleting"));
-    },
-  });
-
-  const handleCreate = () => router.push("/directories/counterparties/new");
-  const handleEdit = (item: Counterparty) =>
-    router.push(`/directories/counterparties/${item.id}`);
-  const handleView = (item: Counterparty) =>
-    router.push(`/directories/counterparties/${item.id}`);
-
-  // Load saved view
-  const handleLoadView = (view: SavedView) => {
-    setTypeFilter(view.filters.type || "all");
-    setSorting(view.sorting);
-    setColumnVisibility(view.columnVisibility);
-    setGroupBy(view.groupBy);
-  };
-
-  // Filtering
   const filteredData = useMemo(() => {
-    if (!data) return [];
-    let filtered = data;
-
-    if (typeFilter !== "all") {
-      filtered = filtered.filter(
-        (item) => normalizeCounterpartyType(item.type) === typeFilter,
-      );
-    }
-
-    if (searchValue) {
-      filtered = filtered.filter((item) =>
-        item.name.toLowerCase().includes(searchValue.toLowerCase()),
-      );
-    }
-
-    return filtered;
-  }, [data, typeFilter, searchValue]);
-
-  const mainActions: CommandBarAction[] = [
-    {
-      label: t("addCounterparty"),
-      icon: <PiPlusBold />,
-      onClick: handleCreate,
-      variant: "default",
-      shortcut: "Ins",
-    },
-  ];
-
-  const selectionActions: CommandBarAction[] = selectedItem
-    ? [
-        {
-          label: tc("edit"),
-          icon: <PiPencilBold />,
-          onClick: () => handleEdit(selectedItem),
-          shortcut: "F2",
-        },
-        {
-          label: tc("delete"),
-          icon: <PiTrashBold />,
-          onClick: () => setIsDeleteOpen(true),
-          variant: "destructive",
-          shortcut: "Del",
-        },
-      ]
-    : [];
-
-  const columns: ColumnDef<Counterparty>[] = [
-    {
-      accessorKey: "name",
-      header: ({ column }) => (
-        <Button
-          variant="ghost"
-          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          className="-ml-4 h-8 text-xs"
-        >
-          {tc("name")} <PiArrowsDownUpBold className="ml-2 h-3 w-3" />
-        </Button>
-      ),
-      cell: ({ row }) => (
-        <ReferenceLink
-          id={row.original.id}
-          type="counterparty"
-          label={row.getValue("name")}
-          showIcon={true}
-          className="font-medium"
-        />
-      ),
-    },
-    {
-      accessorKey: "inn",
-      header: tf("inn"),
-      cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.getValue("inn")}</span>
-      ),
-    },
-    {
-      accessorKey: "type",
-      header: tf("type"),
-      cell: ({ row }) => {
-        const type = normalizeCounterpartyType(row.getValue("type"));
-        return (
-          <Badge
-            variant="outline"
-            className={cn("text-[10px] h-5 px-1", typeColors[type])}
-          >
-            {t(`counterpartiesPage.filters.${type}`)}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "phone",
-      header: tf("phone"),
-      cell: ({ row }) => (
-        <span className="text-xs">{row.getValue("phone")}</span>
-      ),
-    },
-    {
-      accessorKey: "email",
-      header: tf("email"),
-      cell: ({ row }) => (
-        <a
-          href={`mailto:${row.getValue("email")}`}
-          className="text-primary hover:underline text-xs"
-        >
-          {row.getValue("email")}
-        </a>
-      ),
-    },
-    {
-      accessorKey: "is_active",
-      header: tf("isActive"),
-      cell: ({ row }) => {
-        const isActive = row.getValue("is_active") as boolean;
-        return (
-          <Badge
-            variant={isActive ? "default" : "outline"}
-            className="text-[10px] h-5 px-1"
-          >
-            {isActive ? tc("yes") : tc("no")}
-          </Badge>
-        );
-      },
-    },
-  ];
+    const query = searchValue.trim().toLowerCase()
+    return data.filter((item) => {
+      const matchesGroup = selectedGroup === "Контрагенты" || getTypeGroupName(item.type) === selectedGroup
+      const matchesSearch =
+        query.length === 0 ||
+        item.name.toLowerCase().includes(query) ||
+        String(item.phone || "").toLowerCase().includes(query) ||
+        String(item.address || "").toLowerCase().includes(query)
+      return matchesGroup && matchesSearch
+    })
+  }, [data, searchValue, selectedGroup])
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)]">
-      <div className="flex items-center justify-between border-b px-6 py-4 bg-background">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <PiUsersBold className="h-6 w-6 text-primary" />
+    <div className="min-h-[calc(100vh-4rem)] bg-[#e9e9e9] px-1 py-1 text-[#3e3e3e]">
+      <div className="mx-auto h-[calc(100vh-4.6rem)] w-full overflow-hidden border border-[#c9c9c9] bg-[#efefef] shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
+        <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">←</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">→</button>
+            </div>
+            <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
+            <h1 className="text-[18px] font-medium text-black">Контрагенты</h1>
           </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight">{t("title")}</h1>
-            <p className="text-sm text-muted-foreground">
-              {t("counterparties")}
-            </p>
+          <div className="flex items-center gap-4 text-lg text-[#777]"><span>◌</span><span>⋮</span><span>×</span></div>
+        </div>
+
+        <div className="flex items-center gap-2 border-b border-[#d9d9d9] px-2 py-2">
+          <Button type="button" className={buttonClassName} onClick={() => router.push("/directories/counterparties/new")}>Создать</Button>
+          <Button type="button" className={buttonClassName} onClick={() => router.push("/directories/counterparties/new?group=1")}>Создать группу</Button>
+          <button type="button" className="h-9 w-9 border border-[#bcbcbc] bg-white text-[#4a84c6]" onClick={() => refetch()}>⟳</button>
+          <div className="ml-auto flex items-center gap-2">
+            <Input value={searchValue} onChange={(event) => setSearchValue(event.target.value)} placeholder="Поиск (Ctrl+F)" className="h-9 w-[250px] rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0" />
+            <Button type="button" className={buttonClassName}>Еще</Button>
+          </div>
+        </div>
+
+        <div className="grid h-[calc(100%-98px)] grid-cols-[150px_1fr]">
+          <div className="border-r border-[#d0d0d0] bg-[#f2f2f2]">
+            <div className="space-y-2 border-b border-[#d0d0d0] px-2 py-2">
+              <Input
+                value={groupSearchValue}
+                onChange={(event) => setGroupSearchValue(event.target.value)}
+                placeholder="Поиск (Ctrl+F)"
+                className="h-8 rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              />
+              <div className="text-sm">Наименование ↑</div>
+            </div>
+            <div className="h-full overflow-auto px-1 py-1">
+              {treeGroups.map((groupName) => (
+                <button
+                  key={groupName}
+                  type="button"
+                  className={`flex w-full items-center gap-2 px-2 py-1 text-left text-sm ${selectedGroup === groupName ? "bg-[#f8df7b] outline outline-1 outline-[#d7b100]" : "hover:bg-[#f8f8f8]"}`}
+                  onClick={() => setSelectedGroup(groupName)}
+                >
+                  <span className="text-[#a77b00]">{groupName === "Контрагенты" ? "⊕" : "📁"}</span>
+                  <span>{groupName}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="overflow-auto">
+            <table className="min-w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-[#f3f3f3]">
+                  <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Наименование</th>
+                  <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Код</th>
+                  <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Адрес</th>
+                  <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Телефон</th>
+                  <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Отправить уведомление telegram</th>
+                  <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Telegram chat ID</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr><td colSpan={6} className="border border-[#cbcbcb] px-3 py-8 text-center">Загрузка...</td></tr>
+                ) : filteredData.length === 0 ? (
+                  <tr><td colSpan={6} className="border border-[#cbcbcb] px-3 py-8 text-center">Нет данных</td></tr>
+                ) : (
+                  filteredData.map((item, index) => (
+                    <tr
+                      key={item.id}
+                      className={selectedId === item.id ? "bg-[#f8efba]" : "bg-white hover:bg-[#fbf7da]"}
+                      onClick={() => setSelectedId(item.id)}
+                      onDoubleClick={() => router.push(`/directories/counterparties/${item.id}`)}
+                    >
+                      <td className="border border-[#cbcbcb] px-3 py-2">
+                        <span className="mr-2 text-[#6489a8]">▭</span>
+                        {item.name}
+                      </td>
+                      <td className="border border-[#cbcbcb] px-3 py-2">{item.id || index + 1}</td>
+                      <td className="border border-[#cbcbcb] px-3 py-2">{item.address || ""}</td>
+                      <td className="border border-[#cbcbcb] px-3 py-2">{item.phone || ""}</td>
+                      <td className="border border-[#cbcbcb] px-3 py-2">Нет</td>
+                      <td className="border border-[#cbcbcb] px-3 py-2">0</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
-
-      <div className="flex-1 flex flex-col p-6 pt-4 space-y-4">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2">
-          <Button
-            variant={typeFilter === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setTypeFilter("all")}
-            className="h-8"
-          >
-            {t("counterpartiesPage.filters.all")}
-          </Button>
-          <Button
-            variant={typeFilter === "customer" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setTypeFilter("customer")}
-            className="h-8"
-          >
-            {t("counterpartiesPage.filters.customer")}
-          </Button>
-          <Button
-            variant={typeFilter === "supplier" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setTypeFilter("supplier")}
-            className="h-8"
-          >
-            {t("counterpartiesPage.filters.supplier")}
-          </Button>
-          <Button
-            variant={typeFilter === "agent" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setTypeFilter("agent")}
-            className="h-8"
-          >
-            {t("counterpartiesPage.filters.agent")}
-          </Button>
-          <Button
-            variant={typeFilter === "other" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setTypeFilter("other")}
-            className="h-8"
-          >
-            {t("counterpartiesPage.filters.other")}
-          </Button>
-          {typeFilter !== "all" && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTypeFilter("all")}
-              className="h-8 px-2 lg:px-3"
-            >
-              {t("counterpartiesPage.filters.clear")}
-              <PiXBold className="ml-2 h-4 w-4" />
-            </Button>
-          )}
-        </div>
-
-        <div className="flex-1 border rounded-md bg-card overflow-hidden flex flex-col">
-          <DataTable
-            columns={columns}
-            data={filteredData}
-            isLoading={isLoading}
-            onRowClick={setSelectedItem}
-            onRowDoubleClick={handleEdit}
-            commandBar={
-              <div className="flex items-center justify-between w-full p-2 border-b bg-muted/20">
-                <CommandBar
-                  mainActions={mainActions}
-                  selectionActions={selectionActions}
-                  onRefresh={() => refetch()}
-                  onSearch={setSearchValue}
-                  searchValue={searchValue}
-                  searchPlaceholder={tc("searchCounterparties")}
-                />
-                <div className="flex items-center gap-2">
-                  <ColumnCustomization
-                    columns={columns}
-                    columnVisibility={columnVisibility}
-                    onColumnVisibilityChange={setColumnVisibility}
-                    tableName="counterparties"
-                  />
-                  <HelpPanel context="counterparty-list" />
-                </div>
-              </div>
-            }
-          />
-          <StatusBar
-            totalRecords={data?.length || 0}
-            filteredCount={filteredData.length}
-            selectedCount={selectedItem ? 1 : 0}
-            isLoading={isLoading}
-          />
-        </div>
-      </div>
-
-      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {t("counterpartiesPage.alerts.deleteTitle")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t.rich("counterpartiesPage.alerts.deleteConfirmation", {
-                name: selectedItem?.name ?? '',
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{tc("cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() =>
-                selectedItem && deleteMutation.mutate(selectedItem.id)
-              }
-              className="bg-destructive text-destructive-foreground"
-            >
-              {deleteMutation.isPending ? tc("deleting") : tc("delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
-  );
+  )
 }

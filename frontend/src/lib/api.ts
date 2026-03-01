@@ -37,6 +37,23 @@ export const clearTokens = (): void => {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
 };
 
+const redirectToLogin = (): void => {
+    if (typeof window === 'undefined') return;
+    if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+    }
+};
+
+const isAuthRequest = (url?: string): boolean => {
+    if (!url) return false;
+
+    return (
+        url.includes('/auth/token/') ||
+        url.includes('/auth/token/refresh/') ||
+        url.includes('/auth/register/')
+    );
+};
+
 // Request interceptor - add auth header
 axiosInstance.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
@@ -72,6 +89,22 @@ axiosInstance.interceptors.response.use(
     async (error: AxiosError) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+        if (error.response?.status !== 401 || !originalRequest) {
+            return Promise.reject(error);
+        }
+
+        // Do not try to refresh on explicit auth endpoints such as login/register.
+        if (isAuthRequest(originalRequest.url)) {
+            return Promise.reject(error);
+        }
+
+        // A second 401 after refresh means the current session is no longer valid.
+        if (originalRequest._retry) {
+            clearTokens();
+            redirectToLogin();
+            return Promise.reject(error);
+        }
+
         // If 401 and not already retrying
         if (error.response?.status === 401 && !originalRequest._retry) {
             if (isRefreshing) {
@@ -97,19 +130,17 @@ axiosInstance.interceptors.response.use(
             const refreshToken = getRefreshToken();
             if (!refreshToken) {
                 clearTokens();
-                if (typeof window !== 'undefined') {
-                    window.location.href = '/login';
-                }
+                redirectToLogin();
                 return Promise.reject(error);
             }
 
             try {
-                const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
+                const response = await axios.post<{ access: string; refresh?: string }>(`${API_BASE_URL}/auth/token/refresh/`, {
                     refresh: refreshToken,
                 });
 
-                const { access } = response.data;
-                setTokens(access, refreshToken);
+                const { access, refresh: nextRefreshToken } = response.data;
+                setTokens(access, nextRefreshToken || refreshToken);
                 processQueue(null, access);
 
                 if (originalRequest.headers) {
@@ -119,9 +150,7 @@ axiosInstance.interceptors.response.use(
             } catch (refreshError) {
                 processQueue(refreshError as AxiosError, null);
                 clearTokens();
-                if (typeof window !== 'undefined') {
-                    window.location.href = '/login';
-                }
+                redirectToLogin();
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;
@@ -132,6 +161,7 @@ axiosInstance.interceptors.response.use(
     }
 );
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Define strict type for API that returns data directly
 interface ApiClient extends Omit<AxiosInstance, 'get' | 'post' | 'put' | 'delete' | 'patch'> {
     get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
@@ -140,6 +170,7 @@ interface ApiClient extends Omit<AxiosInstance, 'get' | 'post' | 'put' | 'delete
     delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
     patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export const api = axiosInstance as ApiClient;
 export default api;

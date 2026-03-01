@@ -105,7 +105,8 @@ class CounterpartyCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating counterparties."""
     class Meta:
         model = Counterparty
-        fields = ['name', 'inn', 'type', 'phone', 'email', 'address']
+        fields = ['id', 'name', 'inn', 'type', 'phone', 'email', 'address']
+        read_only_fields = ['id']
     
     def create(self, validated_data):
         tenant = self.context['request'].user.tenant
@@ -133,7 +134,8 @@ class ContractCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating contracts."""
     class Meta:
         model = Contract
-        fields = ['counterparty', 'number', 'date', 'currency', 'contract_type', 'is_active']
+        fields = ['id', 'counterparty', 'number', 'date', 'currency', 'contract_type', 'is_active']
+        read_only_fields = ['id']
     
     def create(self, validated_data):
         tenant = self.context['request'].user.tenant
@@ -156,7 +158,8 @@ class WarehouseCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating warehouses."""
     class Meta:
         model = Warehouse
-        fields = ['name', 'address', 'warehouse_type', 'is_active']
+        fields = ['id', 'name', 'address', 'warehouse_type', 'is_active']
+        read_only_fields = ['id']
     
     def create(self, validated_data):
         tenant = self.context['request'].user.tenant
@@ -204,7 +207,8 @@ class ItemCreateUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Item
-        fields = ['name', 'sku', 'item_type', 'unit', 'purchase_price', 'selling_price', 'category', 'packages']
+        fields = ['id', 'name', 'sku', 'item_type', 'unit', 'purchase_price', 'selling_price', 'category', 'packages']
+        read_only_fields = ['id']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

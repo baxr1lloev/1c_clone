@@ -107,11 +107,12 @@ class SalesDocumentCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = SalesDocument
         fields = [
-            'number', 'date', 'comment',
+            'id', 'number', 'date', 'comment',
             'counterparty', 'contract', 'warehouse', 'currency',
             'project', 'department', 'manager',
             'lines'
         ]
+        read_only_fields = ['id']
     
     def create(self, validated_data):
         lines_data = validated_data.pop('lines', [])
@@ -122,12 +123,14 @@ class SalesDocumentCreateUpdateSerializer(serializers.ModelSerializer):
         
         for line_data in lines_data:
             SalesDocumentLine.objects.create(document=doc, **line_data)
-            
-        doc.recalculate_totals()
+
+        # Line saves already recalculate totals and bump optimistic-lock version.
+        # Refresh the document instead of recalculating again from a stale instance.
+        doc.refresh_from_db()
         return doc
 
     def update(self, instance, validated_data):
-        lines_data = validated_data.pop('lines', [])
+        lines_data = validated_data.pop('lines', None)
         
         # Update main fields
         for attr, value in validated_data.items():
@@ -140,14 +143,18 @@ class SalesDocumentCreateUpdateSerializer(serializers.ModelSerializer):
         # But let's try to preserve IDs if possible, or just nuke/recreate for simplicity/robustness first.
         
         # For this stage, let's go with "Delete all and Recreate" to avoid sync issues.
-        instance.lines.all().delete()
-        for line_data in lines_data:
-            # Remove id if present to force create
-            if 'id' in line_data:
-                del line_data['id']
-            SalesDocumentLine.objects.create(document=instance, **line_data)
-            
-        instance.recalculate_totals()
+        if lines_data is not None:
+            instance.lines.all().delete()
+            for line_data in lines_data:
+                # Remove id if present to force create
+                if 'id' in line_data:
+                    del line_data['id']
+                SalesDocumentLine.objects.create(document=instance, **line_data)
+
+            if lines_data:
+                instance.refresh_from_db()
+            else:
+                instance.recalculate_totals()
         return instance
 
 
@@ -174,7 +181,11 @@ class PurchaseDocumentLineSerializer(serializers.ModelSerializer):
 
 class PurchaseDocumentListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for purchase document list."""
+    counterparty = serializers.IntegerField(source='counterparty_id', read_only=True)
     counterparty_name = serializers.CharField(source='counterparty.name', read_only=True)
+    warehouse = serializers.IntegerField(source='warehouse_id', read_only=True)
+    warehouse_name = serializers.CharField(source='warehouse.name', read_only=True)
+    currency = serializers.IntegerField(source='currency_id', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     currency_code = serializers.CharField(source='currency.code', read_only=True)
     
@@ -182,7 +193,11 @@ class PurchaseDocumentListSerializer(serializers.ModelSerializer):
         model = PurchaseDocument
         fields = [
             'id', 'number', 'date', 'status', 'status_display',
-            'counterparty_name', 'currency_code', 'total_amount', 'total_amount_base'
+            'counterparty', 'counterparty_name',
+            'warehouse', 'warehouse_name',
+            'currency', 'currency_code',
+            'total_amount', 'total_amount_base',
+            'posted_at',
         ]
 
 
@@ -219,11 +234,12 @@ class PurchaseDocumentCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = PurchaseDocument
         fields = [
-            'number', 'date', 'comment',
+            'id', 'number', 'date', 'comment',
             'counterparty', 'contract', 'warehouse', 'currency', 'rate',
             'project', 'department',
             'lines'
         ]
+        read_only_fields = ['id']
     
     def create(self, validated_data):
         lines_data = validated_data.pop('lines', [])
@@ -418,13 +434,14 @@ class PaymentDocumentCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = PaymentDocument
         fields = [
-            'number', 'date', 'comment',
+            'id', 'number', 'date', 'comment',
             'counterparty', 'contract', 'bank_account', 'bank_operation_type',
             'amount', 'currency', 'rate', 'vat_amount',
             'payment_type', 'purpose', 'basis', 'cash_flow_item',
             'debit_account', 'credit_account',
             'payment_priority', 'payment_kind',
         ]
+        read_only_fields = ['id']
 
     def validate(self, attrs):
         instance = getattr(self, 'instance', None)
@@ -690,10 +707,11 @@ class TransferDocumentCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TransferDocument
         fields = [
-            'number', 'date', 'comment',
+            'id', 'number', 'date', 'comment',
             'from_warehouse', 'to_warehouse', 'counterparty',
             'lines'
         ]
+        read_only_fields = ['id']
     
     def create(self, validated_data):
         lines_data = validated_data.pop('lines', [])

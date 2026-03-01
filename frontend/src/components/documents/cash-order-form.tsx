@@ -1,411 +1,584 @@
-"use client"
+"use client";
 
-import { useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
-import { useTranslations } from "next-intl"
-import { useHotkeys } from "react-hotkeys-hook"
-import { useQueryClient, useMutation, useQuery } from "@tanstack/react-query"
-import { CommandBar, CommandBarAction } from "@/components/ui/command-bar"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { toast } from "sonner"
-import api from "@/lib/api"
-import { CashOrder, CashOrderType } from "@/types"
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
+import { useHotkeys } from "react-hotkeys-hook";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
-    PiFloppyDiskBold,
-    PiCheckCircleBold,
-    PiPrinterBold,
-    PiXBold,
-    PiArrowUpRightBold,
-    PiArrowDownLeftBold
-} from "react-icons/pi"
-import { cn } from "@/lib/utils"
-import { mapApiError } from "@/lib/error-mapper"
-import { PrintPreviewDialog } from "@/components/documents/print-preview-dialog"
-import { ReferenceSelector } from "@/components/ui/reference-selector"
-import { Badge } from "@/components/ui/badge"
-import { DocumentPostings } from "@/components/documents/document-postings"
-import type { Currency } from "@/types"
+  PiArrowLeftBold,
+  PiArrowRightBold,
+  PiPrinterBold,
+  PiXBold,
+} from "react-icons/pi";
+
+import api from "@/lib/api";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { ReferenceSelector } from "@/components/ui/reference-selector";
+import { PrintPreviewDialog } from "@/components/documents/print-preview-dialog";
+import { DocumentPostings } from "@/components/documents/document-postings";
+import { cn } from "@/lib/utils";
+import { mapApiError } from "@/lib/error-mapper";
+import type { CashOrder, CashOrderType, Currency } from "@/types";
 
 interface CashOrderFormProps {
-    mode: 'create' | 'edit'
-    initialData?: CashOrder
-    initialType?: CashOrderType
+  mode: "create" | "edit";
+  initialData?: CashOrder;
+  initialType?: CashOrderType;
 }
 
-export function CashOrderForm({ initialData, mode, initialType = 'incoming' }: CashOrderFormProps) {
-    const t = useTranslations('documents')
-    const tc = useTranslations('common')
-    const tf = useTranslations('fields')
-    const router = useRouter()
-    const queryClient = useQueryClient()
-    const [printOpen, setPrintOpen] = useState(false)
+const DEFAULT_CASH_ORDER_DATE = "2026-03-01T00:00:00";
+const DEFAULT_DEPARTMENT = "Оптовая торговля (общая)";
 
-    // Form State
-    const [formData, setFormData] = useState<Partial<CashOrder>>(initialData || {
-        date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
-        status: 'draft',
-        order_type: initialType,
-        currency: undefined,
-        amount: 0,
-        purpose: "",
-        basis: "",
-        cash_desk: "Main Cash Desk",
-        counterparty_name: "",
-        counterparty: null
-    })
+function toDateTimeInputValue(value?: string | null): string {
+  if (!value) return "2026-03-01T00:00";
 
-    const { data: currencies = [] } = useQuery<Currency[]>({
-        queryKey: ['cash-order-form-currencies'],
-        queryFn: async () => {
-            try {
-                const res = await api.get('/directories/currencies/') as unknown as { results?: Currency[] } | Currency[];
-                return Array.isArray(res) ? res : res.results || [];
-            } catch {
-                return [];
-            }
-        },
-        initialData: []
-    });
+  if (value.includes("T")) {
+    return value.slice(0, 16);
+  }
 
-    const defaultCurrencyId = useMemo(() => {
-        if (currencies.length === 0) return null;
-        const preferred = currencies.find((currency) => currency.is_base) || currencies[0];
-        return preferred?.id ?? null;
-    }, [currencies]);
-    const effectiveCurrencyId = formData.currency || defaultCurrencyId || undefined;
+  return `${value.slice(0, 10)}T00:00`;
+}
 
-    const isPosted = initialData?.is_posted ?? (formData.status === 'posted');
-    const canEdit = mode === 'create' ? true : (!isPosted && (initialData?.can_edit ?? true));
+function toHeaderDateLabel(value?: string | null): string {
+  if (!value) return "01.03.2026 00:00:00";
 
-    // Derived State
-    const isIncoming = formData.order_type === 'incoming';
+  const parsed = new Date(value.includes("T") ? value : `${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
 
-    // Actions
-    const saveMutation = useMutation({
-        mutationFn: async (data: Partial<CashOrder>) => {
-            const payload = {
-                ...data,
-                currency: data.currency || defaultCurrencyId || undefined,
-                // Ensure counterparty_name is set if counterparty ID is not
-                counterparty_name: data.counterparty_name || (data.counterparty ? `ID:${data.counterparty}` : 'Unknown'),
-            };
+  return parsed.toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+}
 
-            if (mode === 'create') return api.post('/documents/cash-orders/', payload);
-            return api.put(`/documents/cash-orders/${initialData!.id}/`, payload);
-        },
-        onSuccess: (response: { id: number }) => {
-            toast.success(tc('savedSuccessfully'));
-            queryClient.invalidateQueries({ queryKey: ['cash-orders'] });
-            if (mode === 'create') {
-                router.push(`/documents/cash-orders/${response.id}`);
-            }
-        },
-        onError: (err) => {
-            const { title, description } = mapApiError(err);
-            toast.error(title, { description });
-        }
-    })
+export function CashOrderForm({
+  initialData,
+  mode,
+  initialType = "incoming",
+}: CashOrderFormProps) {
+  const t = useTranslations("documents");
+  const tc = useTranslations("common");
+  const tf = useTranslations("fields");
+  const locale = useLocale();
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
-    const postMutation = useMutation({
-        mutationFn: async () => api.post(`/documents/cash-orders/${initialData!.id}/post_document/`),
-        onMutate: async () => {
-            setFormData({ ...formData, status: 'posted' });
-            toast.success(t('postedSuccessfully'));
-        },
-        onError: (err: unknown) => {
-            setFormData({ ...formData, status: 'draft' });
-            const { title, description } = mapApiError(err);
-            toast.error(title, { description });
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['cash-orders'] });
-            router.refresh();
-        }
-    })
+  const localePath = (path: string) =>
+    `/${locale}${path.startsWith("/") ? path : `/${path}`}`;
 
-    const unpostMutation = useMutation({
-        mutationFn: async () => api.post(`/documents/cash-orders/${initialData!.id}/unpost_document/`),
-        onMutate: async () => {
-            setFormData({ ...formData, status: 'draft' });
-            toast.success(t('unpostedSuccessfully'));
-        },
-        onError: () => {
-            setFormData({ ...formData, status: 'posted' });
-            toast.error("Failed to unpost");
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['cash-orders'] });
-            router.refresh();
-        }
-    })
+  const [printOpen, setPrintOpen] = useState(false);
+  const [activePane, setActivePane] = useState<"main" | "postings">("main");
+  const [directionLabel, setDirectionLabel] = useState(() =>
+    initialType === "incoming" ? "Покупатель" : "Поставщик",
+  );
+  const [rateValue, setRateValue] = useState("1.00");
 
-    // Shortcuts
-    useHotkeys('ctrl+s', (e) => {
-        e.preventDefault();
-        if (canEdit) saveMutation.mutate(formData);
-    }, { enableOnFormTags: true }, [formData, canEdit]);
+  const [formData, setFormData] = useState<Partial<CashOrder>>(
+    initialData || {
+      date: DEFAULT_CASH_ORDER_DATE,
+      status: "draft",
+      order_type: initialType,
+      currency: undefined,
+      amount: 0,
+      purpose: "",
+      basis: "",
+      cash_desk: "Fayoz Kassa",
+      counterparty_name: "",
+      counterparty: null,
+      number: "",
+    },
+  );
 
-    useHotkeys('ctrl+enter, f9', (e) => {
-        e.preventDefault();
-        if (!isPosted && initialData?.id) postMutation.mutate();
-    }, { enableOnFormTags: true }, [isPosted, initialData]);
+  const { data: currencies = [] } = useQuery<Currency[]>({
+    queryKey: ["cash-order-form-currencies"],
+    queryFn: async () => {
+      try {
+        const response = (await api.get("/directories/currencies/")) as
+          | { results?: Currency[] }
+          | Currency[];
+        return Array.isArray(response) ? response : response.results || [];
+      } catch {
+        return [];
+      }
+    },
+    initialData: [],
+  });
 
-    useHotkeys('esc', () => router.back(), { enableOnFormTags: true });
+  const defaultCurrencyId = useMemo(() => {
+    if (currencies.length === 0) return null;
+    return (currencies.find((currency) => currency.is_base) || currencies[0])?.id ?? null;
+  }, [currencies]);
 
-    // Actions Bar
-    const actions: CommandBarAction[] = [
-        ...(initialData?.can_post ? [{
-            label: t('post'),
-            icon: <PiCheckCircleBold />,
-            onClick: () => postMutation.mutate(),
-            disabled: mode === 'create',
-            shortcut: 'F9',
-            variant: 'default' as const
-        }] : []),
-        ...(canEdit ? [{
-            label: tc('save'),
-            icon: <PiFloppyDiskBold />,
-            onClick: () => saveMutation.mutate(formData),
-            shortcut: 'Ctrl+S',
-            variant: 'secondary' as const
-        }] : []),
-        ...(initialData?.can_unpost ? [{
-            label: t('unpost'),
-            icon: <PiXBold />,
-            onClick: () => unpostMutation.mutate(),
-            variant: 'destructive' as const
-        }] : []),
-        {
-            label: tc('print'),
-            icon: <PiPrinterBold />,
-            onClick: () => setPrintOpen(true),
-            variant: 'ghost' as const
-        }
-    ]
-
+  const effectiveCurrencyId = formData.currency || defaultCurrencyId || undefined;
+  const currentCurrencyCode = useMemo(() => {
     return (
-        <Tabs defaultValue="main" className="h-[calc(100vh-4rem)] flex flex-col bg-background">
-            {/* Header */}
-            <div className="border-b px-4 flex items-center justify-between shrink-0 bg-muted/10">
-                <TabsList className="bg-transparent p-0">
-                    <TabsTrigger value="main" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary">Main</TabsTrigger>
-                    <TabsTrigger value="postings" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary" disabled={!isPosted}>Postings</TabsTrigger>
-                </TabsList>
+      currencies.find((currency) => currency.id === effectiveCurrencyId)?.code ||
+      initialData?.currency_code ||
+      "USD"
+    );
+  }, [currencies, effectiveCurrencyId, initialData?.currency_code]);
 
-                {/* Visual Indicator of Type */}
-                <div className="flex items-center gap-2 px-4 py-2">
-                    <Badge variant={isIncoming ? "default" : "secondary"} className={cn("text-sm px-3 py-1 flex gap-2", isIncoming ? "bg-emerald-600 hover:bg-emerald-700" : "bg-amber-600 hover:bg-amber-700 text-white")}>
-                        {isIncoming ? <PiArrowDownLeftBold className="h-4 w-4" /> : <PiArrowUpRightBold className="h-4 w-4" />}
-                        {isIncoming ? "PKO (Incoming)" : "RKO (Outgoing)"}
-                    </Badge>
-                    {isPosted ?
-                        <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">POSTED</Badge> :
-                        <Badge variant="outline">DRAFT</Badge>
-                    }
-                </div>
+  const isPosted = initialData?.is_posted ?? formData.status === "posted";
+  const canEdit =
+    mode === "create" ? true : !isPosted && (initialData?.can_edit ?? true);
+  const isIncoming = formData.order_type === "incoming";
+
+  const totalAmount = useMemo(() => {
+    const amount = Number(formData.amount || 0);
+    const rate = Number.parseFloat(rateValue.replace(",", "."));
+    const normalizedRate = Number.isFinite(rate) && rate > 0 ? rate : 1;
+    return amount * normalizedRate;
+  }, [formData.amount, rateValue]);
+
+  const headerTitle = useMemo(() => {
+    const baseTitle = isIncoming
+      ? "Приходный кассовый ордер"
+      : "Расходный кассовый ордер";
+
+    if (mode === "create") {
+      return `${baseTitle} (создание)`;
+    }
+
+    const numberLabel = formData.number || initialData?.number || "0";
+    return `${baseTitle} ${numberLabel} от ${toHeaderDateLabel(formData.date || initialData?.date)}`;
+  }, [formData.date, formData.number, initialData?.date, initialData?.number, isIncoming, mode]);
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: Partial<CashOrder>) => {
+      const payload = {
+        ...data,
+        currency: data.currency || defaultCurrencyId || undefined,
+        counterparty_name:
+          data.counterparty_name ||
+          (data.counterparty ? `ID:${data.counterparty}` : "Unknown"),
+      };
+
+      if (mode === "create") {
+        return api.post<{ id: number }>("/documents/cash-orders/", payload);
+      }
+
+      return api.put(`/documents/cash-orders/${initialData!.id}/`, payload);
+    },
+    onSuccess: (response: { id?: number }) => {
+      toast.success(tc("savedSuccessfully"));
+      queryClient.invalidateQueries({ queryKey: ["cash-orders"] });
+      if (mode === "create" && response?.id) {
+        router.push(localePath(`/documents/cash-orders/${response.id}/edit`));
+      }
+    },
+    onError: (error: unknown) => {
+      const { title, description } = mapApiError(error);
+      toast.error(title, { description });
+    },
+  });
+
+  const postMutation = useMutation({
+    mutationFn: async () =>
+      api.post(`/documents/cash-orders/${initialData!.id}/post_document/`),
+    onMutate: async () => {
+      setFormData((current) => ({ ...current, status: "posted" }));
+      toast.success(t("postedSuccessfully"));
+    },
+    onError: (error: unknown) => {
+      setFormData((current) => ({ ...current, status: "draft" }));
+      const { title, description } = mapApiError(error);
+      toast.error(title, { description });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cash-orders"] });
+      router.refresh();
+    },
+  });
+
+  const unpostMutation = useMutation({
+    mutationFn: async () =>
+      api.post(`/documents/cash-orders/${initialData!.id}/unpost_document/`),
+    onMutate: async () => {
+      setFormData((current) => ({ ...current, status: "draft" }));
+      toast.success(t("unpostedSuccessfully"));
+    },
+    onError: () => {
+      setFormData((current) => ({ ...current, status: "posted" }));
+      toast.error("Не удалось отменить проведение");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cash-orders"] });
+      router.refresh();
+    },
+  });
+
+  useHotkeys(
+    "ctrl+s",
+    (event) => {
+      event.preventDefault();
+      if (canEdit) saveMutation.mutate(formData);
+    },
+    { enableOnFormTags: true },
+    [canEdit, formData],
+  );
+
+  useHotkeys(
+    "ctrl+enter, f9",
+    (event) => {
+      event.preventDefault();
+      if (!isPosted && initialData?.id) postMutation.mutate();
+    },
+    { enableOnFormTags: true },
+    [initialData, isPosted],
+  );
+
+  useHotkeys("esc", () => router.back(), { enableOnFormTags: true });
+
+  const handlePrimaryAction = () => {
+    if (mode === "create") {
+      saveMutation.mutate(formData);
+      return;
+    }
+
+    if (!isPosted && initialData?.can_post) {
+      postMutation.mutate();
+      return;
+    }
+
+    router.back();
+  };
+
+  const directionOptions = isIncoming
+    ? ["Покупатель", "Прочие"]
+    : ["Покупатель", "Поставщик", "Прочие"];
+
+  const normalizedDirection = directionOptions.includes(directionLabel)
+    ? directionLabel
+    : directionOptions[0];
+
+  return (
+    <div className="min-h-[calc(100vh-4rem)] bg-[#efefef] p-3 text-[#1f2937]">
+      <div className="rounded-sm border border-[#bfc4cc] bg-white">
+        <div className="flex items-center gap-2 border-b border-[#d6d6d6] px-4 py-3">
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-[#b8b8b8] bg-white"
+            onClick={() => router.back()}
+          >
+            <PiArrowLeftBold className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-[#b8b8b8] bg-white"
+            onClick={() => router.forward()}
+          >
+            <PiArrowRightBold className="h-4 w-4" />
+          </button>
+          <div className="ml-2 text-[26px] font-semibold tracking-tight">{headerTitle}</div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1 border-b border-[#e5e7eb] px-4 py-2 text-sm">
+          <button
+            type="button"
+            onClick={() => setActivePane("main")}
+            className={cn(
+              "rounded-sm px-3 py-2",
+              activePane === "main"
+                ? "bg-[#ececec] font-medium"
+                : "text-[#315d96] underline decoration-dotted underline-offset-2",
+            )}
+          >
+            Основное
+          </button>
+          <span className="px-3 py-2 text-[#315d96] underline decoration-dotted underline-offset-2">
+            Касса
+          </span>
+          <span className="px-3 py-2 text-[#315d96] underline decoration-dotted underline-offset-2">
+            {isIncoming ? "Покупатели" : "Поставщики"}
+          </span>
+          {!isIncoming ? (
+            <span className="px-3 py-2 text-[#315d96] underline decoration-dotted underline-offset-2">
+              Прочие расходы
+            </span>
+          ) : null}
+          {initialData?.id ? (
+            <button
+              type="button"
+              onClick={() => setActivePane("postings")}
+              className={cn(
+                "rounded-sm px-3 py-2",
+                activePane === "postings"
+                  ? "bg-[#ececec] font-medium"
+                  : "text-[#315d96] underline decoration-dotted underline-offset-2",
+              )}
+            >
+              Проводки
+            </button>
+          ) : null}
+        </div>
+
+        {activePane === "main" ? (
+          <div className="space-y-4 p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                className="h-10 rounded-sm bg-[#f5d400] px-5 text-black hover:bg-[#e5c500]"
+                onClick={handlePrimaryAction}
+              >
+                Провести и закрыть
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                onClick={() => saveMutation.mutate(formData)}
+                disabled={!canEdit || saveMutation.isPending}
+              >
+                Записать
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                onClick={() => postMutation.mutate()}
+                disabled={mode === "create" || isPosted || postMutation.isPending}
+              >
+                Провести
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                onClick={() => setPrintOpen(true)}
+              >
+                <PiPrinterBold className="mr-2 h-4 w-4" />
+                {tc("print")}
+              </Button>
+              {initialData?.can_unpost ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                  onClick={() => unpostMutation.mutate()}
+                  disabled={unpostMutation.isPending}
+                >
+                  <PiXBold className="mr-2 h-4 w-4" />
+                  {t("unpost")}
+                </Button>
+              ) : null}
             </div>
 
-            <TabsContent value="main" className="flex-1 flex flex-col m-0 p-0 outline-none overflow-auto">
-                <CommandBar mainActions={actions} className="border-b shrink-0" />
+            <div className="grid gap-3 xl:grid-cols-[1fr_1.15fr_1fr] xl:items-center">
+              <div className="grid gap-2 md:grid-cols-[80px_1fr] md:items-center">
+                <div className="text-sm">{tc("number")}:</div>
+                <Input
+                  value={formData.number || "0"}
+                  onChange={(event) =>
+                    setFormData((current) => ({ ...current, number: event.target.value }))
+                  }
+                  disabled={!canEdit}
+                  className="h-9 rounded-sm border-[#b8b8b8] bg-white font-mono"
+                />
+              </div>
 
-                <div className="p-8 max-w-4xl mx-auto w-full space-y-8">
+              <div className="grid gap-2 md:grid-cols-[60px_1fr] md:items-center">
+                <div className="text-sm">{tc("date")}:</div>
+                <Input
+                  type="datetime-local"
+                  value={toDateTimeInputValue(formData.date)}
+                  onChange={(event) =>
+                    setFormData((current) => ({ ...current, date: event.target.value }))
+                  }
+                  disabled={!canEdit}
+                  className="h-9 rounded-sm border-[#d7b84c] bg-[#fffef6] font-mono"
+                />
+              </div>
 
-                    {/* Top Row: Basic Info */}
-                    <div className="grid grid-cols-12 gap-6">
-                        {/* Operation Type Selector */}
-                        <div className="col-span-12 md:col-span-4 space-y-2">
-                            <Label>Operation Type</Label>
-                            <div className="flex p-1 bg-muted rounded-lg">
-                                <button
-                                    className={cn("flex-1 py-1.5 text-sm font-medium rounded-md transition-all", isIncoming ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground")}
-                                    onClick={() => canEdit && setFormData({ ...formData, order_type: 'incoming' })}
-                                    disabled={!canEdit}
-                                >
-                                    PKO (In)
-                                </button>
-                                <button
-                                    className={cn("flex-1 py-1.5 text-sm font-medium rounded-md transition-all", !isIncoming ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground")}
-                                    onClick={() => canEdit && setFormData({ ...formData, order_type: 'outgoing' })}
-                                    disabled={!canEdit}
-                                >
-                                    RKO (Out)
-                                </button>
-                            </div>
-                        </div>
+              <div className="grid gap-2 md:grid-cols-[60px_1fr] md:items-center">
+                <div className="text-sm">Касса:</div>
+                <Input
+                  value={formData.cash_desk || ""}
+                  onChange={(event) =>
+                    setFormData((current) => ({ ...current, cash_desk: event.target.value }))
+                  }
+                  disabled={!canEdit}
+                  className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                />
+              </div>
+            </div>
 
-                        <div className="col-span-6 md:col-span-4 space-y-2">
-                            <Label>{tc('number')}</Label>
-                            <Input
-                                disabled={!canEdit}
-                                value={formData.number || ''}
-                                onChange={e => setFormData({ ...formData, number: e.target.value })}
-                                placeholder="Auto"
-                                className="font-mono bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent"
-                            />
-                        </div>
+            <div className="grid gap-3 xl:grid-cols-[1.15fr_1fr_1fr] xl:items-center">
+              <div className="grid gap-2 md:grid-cols-[110px_1fr] md:items-center">
+                <div className="text-sm">Направление:</div>
+                <select
+                  value={normalizedDirection}
+                  onChange={(event) => setDirectionLabel(event.target.value)}
+                  className="h-9 rounded-sm border border-[#b8b8b8] bg-white px-3 text-sm outline-none"
+                >
+                  {directionOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                        <div className="col-span-6 md:col-span-4 space-y-2">
-                            <Label>{tc('date')}</Label>
-                            <Input
-                                type="date"
-                                disabled={!canEdit}
-                                value={formData.date?.substring(0, 10)}
-                                onChange={e => setFormData({ ...formData, date: e.target.value })}
-                                className="bg-yellow-50/50 dark:bg-yellow-900/10 focus:bg-background border-transparent"
-                            />
-                        </div>
-                    </div>
+              <div className="grid gap-2 md:grid-cols-[60px_1fr] md:items-center">
+                <div className="text-sm">Касса:</div>
+                <Input
+                  value={formData.cash_desk || ""}
+                  readOnly
+                  className="h-9 rounded-sm border-[#b8b8b8] bg-[#f8f8f8]"
+                />
+              </div>
 
-                    {/* Financial Core */}
-                    <div className="p-6 bg-card border rounded-xl shadow-sm space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Counterparty */}
-                            <div className="space-y-2">
-                                <Label>{tf('counterparty')}</Label>
-                                <ReferenceSelector
-                                    className="bg-background border-input"
-                                    value={formData.counterparty as number}
-                                    onSelect={(val) => setFormData({ ...formData, counterparty: val as number })}
-                                    apiEndpoint="/directories/counterparties/"
-                                    placeholder={isIncoming ? "Payer (Client)" : "Payee (Supplier)"}
-                                    disabled={!canEdit}
-                                />
-                            </div>
-
-                            {/* Basis */}
-                            <div className="space-y-2">
-                                <Label>Basis Document</Label>
-                                <Input
-                                    value={formData.basis || ''}
-                                    onChange={e => setFormData({ ...formData, basis: e.target.value })}
-                                    placeholder="e.g. Invoice #123"
-                                    disabled={!canEdit}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Amount - BIG */}
-                        <div className="pt-4 border-t grid grid-cols-12 gap-6 items-center">
-                            <div className="col-span-12 md:col-span-12">
-                                <Label className="text-lg font-bold text-muted-foreground">Amount</Label>
-                                <div className="relative mt-2">
-                                    <Input
-                                        type="number"
-                                        className="h-16 text-3xl font-bold font-mono pl-4 pr-20 bg-muted/10 border-2 focus:border-primary"
-                                        value={formData.amount}
-                                        onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                                        disabled={!canEdit}
-                                        min="0"
-                                        step="0.01"
-                                    />
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                        <span className="text-lg font-bold text-muted-foreground">
-                                            {currencies.find((c) => c.id === effectiveCurrencyId)?.code || initialData?.currency_code || 'CUR'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="pt-4 border-t grid grid-cols-12 gap-4 items-start">
-                            <div className="col-span-12 md:col-span-4 space-y-1">
-                                <Label className="text-xs">Currency</Label>
-                                <select
-                                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                                    value={effectiveCurrencyId || ''}
-                                    onChange={(e) =>
-                                        setFormData({
-                                            ...formData,
-                                            currency: Number(e.target.value) || undefined,
-                                        })
-                                    }
-                                    disabled={!canEdit}
-                                >
-                                    {currencies.length === 0 ? (
-                                        <option value="">No currencies</option>
-                                    ) : null}
-                                    {currencies.map((c) => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
-                                </select>
-                            </div>
-                            <div className="col-span-12 md:col-span-8 space-y-1">
-                                <Label className="text-xs">Cash Desk</Label>
-                                <Input
-                                    className="h-9"
-                                    value={formData.cash_desk || ''}
-                                    onChange={(e) => setFormData({ ...formData, cash_desk: e.target.value })}
-                                    disabled={!canEdit}
-                                />
-                            </div>
-                            <div className="col-span-12 md:col-span-6 space-y-1">
-                                <Label className="text-xs">Cash Flow Item</Label>
-                                <ReferenceSelector
-                                    value={formData.cash_flow_item as number}
-                                    onSelect={(val) => setFormData({ ...formData, cash_flow_item: val as number })}
-                                    apiEndpoint="/directories/cash-flow-items/"
-                                    placeholder="Select DDS item..."
-                                    disabled={!canEdit}
-                                    className="h-9"
-                                />
-                            </div>
-                            <div className="col-span-12 md:col-span-6 space-y-1">
-                                <Label className="text-xs">Debit Account</Label>
-                                <ReferenceSelector
-                                    value={formData.debit_account as number}
-                                    onSelect={(val) => setFormData({ ...formData, debit_account: val as number })}
-                                    apiEndpoint="/vat/accounts/"
-                                    placeholder="Debit account..."
-                                    displayField="code"
-                                    secondaryField="name"
-                                    disabled={!canEdit}
-                                    className="h-9"
-                                />
-                            </div>
-                            <div className="col-span-12 md:col-span-6 space-y-1">
-                                <Label className="text-xs">Credit Account</Label>
-                                <ReferenceSelector
-                                    value={formData.credit_account as number}
-                                    onSelect={(val) => setFormData({ ...formData, credit_account: val as number })}
-                                    apiEndpoint="/vat/accounts/"
-                                    placeholder="Credit account..."
-                                    displayField="code"
-                                    secondaryField="name"
-                                    disabled={!canEdit}
-                                    className="h-9"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Purpose */}
-                    <div className="space-y-2">
-                        <Label>Purpose / Description</Label>
-                        <Textarea
-                            className="min-h-[100px] resize-none bg-yellow-50/30 dark:bg-yellow-900/5 focus:bg-background"
-                            placeholder="Reason for cash transaction..."
-                            value={formData.purpose || ''}
-                            onChange={e => setFormData({ ...formData, purpose: e.target.value })}
-                            disabled={!canEdit}
-                        />
-                    </div>
+              <div className="grid gap-2 md:grid-cols-[95px_1fr] md:items-center">
+                <div className="text-sm">Статус:</div>
+                <div
+                  className={cn(
+                    "h-9 rounded-sm border px-3 py-2 text-sm",
+                    isPosted
+                      ? "border-[#9ec99e] bg-[#f1fbf1] text-[#2d7a2d]"
+                      : "border-[#d7c37a] bg-[#fff8de] text-[#6c5b1f]",
+                  )}
+                >
+                  {isPosted ? "Проведен" : "Черновик"}
                 </div>
-            </TabsContent>
+              </div>
+            </div>
 
-            <TabsContent value="postings" className="flex-1 p-8 m-0 overflow-auto">
-                {initialData?.id ? (
-                    <DocumentPostings documentId={initialData.id} endpoint="cash-orders" />
-                ) : (
-                    <div className="p-8 text-center text-muted-foreground">Save the document to view postings.</div>
-                )}
-            </TabsContent>
+            <div className="grid gap-3 xl:grid-cols-[1.15fr_300px] xl:items-center">
+              <div className="grid gap-2 md:grid-cols-[110px_1fr] md:items-center">
+                <div className="text-sm">{tf("counterparty")}:</div>
+                <ReferenceSelector
+                  value={formData.counterparty as number}
+                  onSelect={(value) =>
+                    setFormData((current) => ({ ...current, counterparty: value as number }))
+                  }
+                  apiEndpoint="/directories/counterparties/"
+                  placeholder="Выберите контрагента"
+                  disabled={!canEdit}
+                  className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                />
+              </div>
 
-            <PrintPreviewDialog
-                open={printOpen}
-                onOpenChange={setPrintOpen}
-                document={initialData}
-                tenant={initialData?.tenant}
-            />
-        </Tabs>
-    )
+              <div className="rounded-sm border border-[#b8b8b8] bg-[#f8f8f8] px-3 py-2 text-sm">
+                {normalizedDirection === "Покупатель" ? "Покупатели" : normalizedDirection}
+              </div>
+            </div>
+
+            <div className="grid gap-3 xl:grid-cols-[90px_280px_70px_280px_70px_1fr] xl:items-center">
+              <div className="text-sm">{currentCurrencyCode}</div>
+              <Input
+                type="number"
+                value={String(formData.amount ?? 0)}
+                onChange={(event) =>
+                  setFormData((current) => ({
+                    ...current,
+                    amount: Number.parseFloat(event.target.value) || 0,
+                  }))
+                }
+                disabled={!canEdit}
+                className="h-9 rounded-sm border-[#b8b8b8] bg-white text-right font-mono"
+              />
+              <div className="text-sm">Всего:</div>
+              <Input
+                value={totalAmount.toFixed(2)}
+                readOnly
+                className="h-9 rounded-sm border-[#b8b8b8] bg-[#f8f8f8] text-right font-mono"
+              />
+              <div className="text-sm">Курс:</div>
+              <Input
+                value={rateValue}
+                onChange={(event) => setRateValue(event.target.value)}
+                className="h-9 rounded-sm border-[#b8b8b8] bg-white text-right font-mono"
+              />
+            </div>
+
+            <div className="grid gap-3 xl:grid-cols-[110px_1fr_90px_200px] xl:items-center">
+              <div className="text-sm">Валюта:</div>
+              <select
+                value={effectiveCurrencyId || ""}
+                onChange={(event) =>
+                  setFormData((current) => ({
+                    ...current,
+                    currency: Number(event.target.value) || undefined,
+                  }))
+                }
+                disabled={!canEdit}
+                className="h-9 rounded-sm border border-[#b8b8b8] bg-white px-3 text-sm outline-none"
+              >
+                {currencies.map((currency) => (
+                  <option key={currency.id} value={currency.id}>
+                    {currency.code}
+                  </option>
+                ))}
+              </select>
+              <div className="text-sm">Основание:</div>
+              <Input
+                value={formData.basis || ""}
+                onChange={(event) =>
+                  setFormData((current) => ({ ...current, basis: event.target.value }))
+                }
+                disabled={!canEdit}
+                className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+              />
+            </div>
+
+            <div className="grid gap-3 xl:grid-cols-[110px_1fr_120px_1fr] xl:items-center">
+              <div className="text-sm">Примечание:</div>
+              <Input
+                value={formData.purpose || ""}
+                onChange={(event) =>
+                  setFormData((current) => ({ ...current, purpose: event.target.value }))
+                }
+                disabled={!canEdit}
+                className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+              />
+              <div className="text-sm">Организация:</div>
+              <Input
+                value={DEFAULT_DEPARTMENT}
+                readOnly
+                className="h-9 rounded-sm border-[#b8b8b8] bg-[#f8f8f8]"
+              />
+            </div>
+
+            <div className="grid gap-3 border-t border-[#e5e7eb] pt-3 xl:grid-cols-[110px_1fr_130px_1fr] xl:items-center">
+              <div className="text-sm">Создатель:</div>
+              <Input
+                value="Admin"
+                readOnly
+                className="h-9 rounded-sm border-[#b8b8b8] bg-[#f8f8f8]"
+              />
+              <div className="text-sm">Подразделение:</div>
+              <Input
+                value={DEFAULT_DEPARTMENT}
+                readOnly
+                className="h-9 rounded-sm border-[#b8b8b8] bg-[#f8f8f8]"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="min-h-[420px] p-6">
+            {initialData?.id ? (
+              <DocumentPostings documentId={initialData.id} endpoint="cash-orders" />
+            ) : (
+              <div className="rounded-sm border border-[#d0d0d0] bg-[#fafafa] p-6 text-center text-sm text-muted-foreground">
+                Сохраните документ, чтобы посмотреть проводки.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <PrintPreviewDialog
+        open={printOpen}
+        onOpenChange={setPrintOpen}
+        document={initialData}
+        tenant={initialData?.tenant}
+      />
+    </div>
+  );
 }

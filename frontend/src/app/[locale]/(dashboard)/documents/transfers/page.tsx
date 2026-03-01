@@ -1,9 +1,9 @@
 ﻿'use client';
 
-import { useState, useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useMemo, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef, SortingState } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { DataTable } from '@/components/data-table/data-table';
@@ -39,8 +39,10 @@ export default function TransfersPage() {
   const t = useTranslations('documents');
   const tc = useTranslations('common');
   const tf = useTranslations('fields');
+  const locale = useLocale();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const localePath = (path: string) => `/${locale}${path.startsWith('/') ? path : `/${path}`}`;
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<TransferDocument | null>(null);
@@ -48,7 +50,7 @@ export default function TransfersPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [groupBy, setGroupBy] = useState<string | null>(null);
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
-  const [sorting, setSorting] = useState<any>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['transfers'],
@@ -89,9 +91,9 @@ export default function TransfersPage() {
     onError: () => toast.error('Failed to delete document'),
   });
 
-  const handleCreate = () => router.push('/documents/transfers/new');
-  const handleEdit = (doc: TransferDocument) => router.push(`/documents/transfers/${doc.id}`);
-  const handleView = (doc: TransferDocument) => router.push(`/documents/transfers/${doc.id}`);
+  const handleCreate = () => router.push(localePath('/documents/transfers/new'));
+  const handleEdit = (doc: TransferDocument) => router.push(localePath(`/documents/transfers/${doc.id}`));
+  const handleView = (doc: TransferDocument) => router.push(localePath(`/documents/transfers/${doc.id}`));
 
   // Load saved view
   const handleLoadView = (view: SavedView) => {
@@ -168,7 +170,41 @@ export default function TransfersPage() {
           {tc('date')} <PiArrowsDownUpBold className="ml-2 h-3 w-3" />
         </Button>
       ),
-      cell: ({ row }) => <span className="font-mono">{new Date(row.getValue('date')).toLocaleDateString()}</span>,
+      cell: ({ row }) => {
+        const rawValue = row.getValue('date') as string;
+        const parsed = rawValue ? new Date(rawValue) : null;
+        const label = parsed && !Number.isNaN(parsed.getTime())
+          ? parsed.toLocaleString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          })
+          : String(rawValue || '-');
+
+        return (
+          <button
+            type="button"
+            className="font-mono text-left text-xs text-[#2e56a6] hover:underline"
+            onClick={(event) => {
+              event.stopPropagation();
+              setSelectedItem(row.original);
+            }}
+            onDoubleClick={(event) => {
+              event.stopPropagation();
+              if (row.original.status === 'draft') {
+                handleEdit(row.original);
+                return;
+              }
+              handleView(row.original);
+            }}
+          >
+            {label}
+          </button>
+        );
+      },
     },
     {
       accessorKey: 'number',
@@ -178,6 +214,7 @@ export default function TransfersPage() {
           id={row.original.id}
           type="transfer-document"
           label={row.getValue('number')}
+          href={localePath(`/documents/transfers/${row.original.id}`)}
           className="font-mono text-primary font-bold"
         />
       ),
