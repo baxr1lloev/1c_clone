@@ -185,7 +185,7 @@ export default function NewCashOpeningBalancesPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-card p-4 text-foreground">
-      <div className="rounded-sm border border-[#bfc4cc] bg-background">
+      <div className="rounded-sm border border-border bg-background">
         <div className="border-b border-border px-4 py-3 text-[26px] font-semibold tracking-tight">
           Ввод остатков по кассам (создание)
         </div>
@@ -200,7 +200,7 @@ export default function NewCashOpeningBalancesPage() {
           <div className="flex flex-wrap items-center gap-3">
             <Button
               type="button"
-              className="h-10 rounded-sm bg-[#f5d400] px-5 text-foreground hover:bg-[#e5c500]"
+              className="h-10 rounded-sm bg-[#f5d400] px-5 text-black hover:bg-[#e5c500]"
               onClick={() => handleDocumentAction("post-close")}
             >
               Провести и закрыть

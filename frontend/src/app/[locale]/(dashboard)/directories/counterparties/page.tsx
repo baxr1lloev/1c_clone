@@ -100,7 +100,7 @@ export default function CounterpartiesPage() {
         </div>
 
         <div className="grid h-[calc(100%-98px)] grid-cols-[150px_1fr]">
-          <div className="border-r border-border bg-[#f2f2f2]">
+          <div className="border-r border-border bg-muted/30">
             <div className="space-y-2 border-b border-border px-2 py-2">
               <Input
                 value={groupSearchValue}
@@ -115,7 +115,7 @@ export default function CounterpartiesPage() {
                 <button
                   key={groupName}
                   type="button"
-                  className={`flex w-full items-center gap-2 px-2 py-1 text-left text-sm ${selectedGroup === groupName ? "bg-[#f8df7b] outline outline-1 outline-[#d7b100]" : "hover:bg-[#f8f8f8]"}`}
+                  className={`flex w-full items-center gap-2 px-2 py-1 text-left text-sm ${selectedGroup === groupName ? "bg-accent text-accent-foreground outline outline-1 outline-border" : "hover:bg-muted/30"}`}
                   onClick={() => setSelectedGroup(groupName)}
                 >
                   <span className="text-amber-600 dark:text-amber-500">{groupName === "Контрагенты" ? "⊕" : "📁"}</span>

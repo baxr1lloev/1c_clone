@@ -310,7 +310,7 @@ export function WarehouseEditor({
               onChange={(event) =>
                 setFormData((current) => ({ ...current, code: event.target.value }))
               }
-              className="h-11 rounded-none border border-border bg-[#f8f8f8] px-3 text-sm"
+              className="h-11 rounded-none border border-border bg-muted/30 px-3 text-sm"
             />
 
             <label className="text-sm">Наименование:</label>

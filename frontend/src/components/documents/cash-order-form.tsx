@@ -260,7 +260,7 @@ export function CashOrderForm({
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-card p-3 text-foreground">
-      <div className="rounded-sm border border-[#bfc4cc] bg-background">
+      <div className="rounded-sm border border-border bg-background">
         <div className="flex items-center gap-2 border-b border-border px-4 py-3">
           <button
             type="button"
@@ -324,7 +324,7 @@ export function CashOrderForm({
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 type="button"
-                className="h-10 rounded-sm bg-[#f5d400] px-5 text-foreground hover:bg-[#e5c500]"
+                className="h-10 rounded-sm bg-[#f5d400] px-5 text-black hover:bg-[#e5c500]"
                 onClick={handlePrimaryAction}
               >
                 Провести и закрыть
@@ -430,7 +430,7 @@ export function CashOrderForm({
                 <Input
                   value={formData.cash_desk || ""}
                   readOnly
-                  className="h-9 rounded-sm border-border bg-[#f8f8f8]"
+                  className="h-9 rounded-sm border-border bg-muted/30"
                 />
               </div>
 
@@ -464,7 +464,7 @@ export function CashOrderForm({
                 />
               </div>
 
-              <div className="rounded-sm border border-border bg-[#f8f8f8] px-3 py-2 text-sm">
+              <div className="rounded-sm border border-border bg-muted/30 px-3 py-2 text-sm">
                 {normalizedDirection === "Покупатель" ? "Покупатели" : normalizedDirection}
               </div>
             </div>
@@ -487,7 +487,7 @@ export function CashOrderForm({
               <Input
                 value={totalAmount.toFixed(2)}
                 readOnly
-                className="h-9 rounded-sm border-border bg-[#f8f8f8] text-right font-mono"
+                className="h-9 rounded-sm border-border bg-muted/30 text-right font-mono"
               />
               <div className="text-sm">Курс:</div>
               <Input
@@ -541,7 +541,7 @@ export function CashOrderForm({
               <Input
                 value={DEFAULT_DEPARTMENT}
                 readOnly
-                className="h-9 rounded-sm border-border bg-[#f8f8f8]"
+                className="h-9 rounded-sm border-border bg-muted/30"
               />
             </div>
 
@@ -550,13 +550,13 @@ export function CashOrderForm({
               <Input
                 value="Admin"
                 readOnly
-                className="h-9 rounded-sm border-border bg-[#f8f8f8]"
+                className="h-9 rounded-sm border-border bg-muted/30"
               />
               <div className="text-sm">Подразделение:</div>
               <Input
                 value={DEFAULT_DEPARTMENT}
                 readOnly
-                className="h-9 rounded-sm border-border bg-[#f8f8f8]"
+                className="h-9 rounded-sm border-border bg-muted/30"
               />
             </div>
           </div>

@@ -285,7 +285,7 @@ export default function CashDirectoryPage() {
 
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-card p-4 text-foreground">
-      <div className="rounded-sm border border-[#bfc4cc] bg-background">
+      <div className="rounded-sm border border-border bg-background">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div className="text-[26px] font-semibold tracking-tight">{tNav("cashDirectory")}</div>
           <div className="flex flex-wrap items-center gap-2">
@@ -418,7 +418,7 @@ export default function CashDirectoryPage() {
                   className={cn(
                     "block w-full rounded-sm border px-3 py-2 text-left text-base",
                     selectedOperation.id === option.id
-                      ? "border-[#6b7280] border-dashed bg-[#f7f7f7] font-medium"
+                      ? "border-border border-dashed bg-accent font-medium"
                       : "border-transparent bg-transparent hover:bg-muted/50",
                   )}
                 >
@@ -443,7 +443,7 @@ export default function CashDirectoryPage() {
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent
           showCloseButton
-          className="gap-0 rounded-sm border-[#bababa] bg-[#f7f7f7] p-0 sm:max-w-[640px]"
+          className="gap-0 rounded-sm border-border bg-muted/20 p-0 sm:max-w-[640px]"
         >
           <div className="border-b border-border px-5 py-4">
             <DialogHeader className="space-y-0 text-left">
@@ -457,7 +457,7 @@ export default function CashDirectoryPage() {
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 type="button"
-                className="h-10 rounded-sm bg-[#f5d400] px-5 text-foreground hover:bg-[#e5c500]"
+                className="h-10 rounded-sm bg-[#f5d400] px-5 text-black hover:bg-[#e5c500]"
                 onClick={() => handleSaveDraft(true)}
               >
                 {tc("saveAndClose")}
@@ -530,7 +530,7 @@ export default function CashDirectoryPage() {
             </div>
           </div>
 
-          <DialogFooter className="border-t border-border bg-[#f7f7f7] px-5 py-4" />
+          <DialogFooter className="border-t border-border bg-muted/20 px-5 py-4" />
         </DialogContent>
       </Dialog>
     </div>

@@ -271,7 +271,7 @@ export default function PurchasesPage() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col bg-card text-[#2f2f2f]">
-      <div className="border-b border-[#cfcfcf] bg-[#f7f7f7] px-3 py-2">
+      <div className="border-b border-[#cfcfcf] bg-muted/20 px-3 py-2">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Button type="button" variant="outline" size="icon-sm" disabled>
@@ -416,7 +416,7 @@ export default function PurchasesPage() {
             )}
           </div>
 
-          <div className="flex items-center justify-between border-t border-[#cfcfcf] bg-[#f7f7f7] px-3 py-2 text-xs text-[#676767]">
+          <div className="flex items-center justify-between border-t border-[#cfcfcf] bg-muted/20 px-3 py-2 text-xs text-[#676767]">
             <span>
               Записей: {filteredRows.length}
               {selectedRow ? ` | Выбрано: ${selectedRow.number} (${getStatusLabel(selectedRow.status, selectedRow.status_display)})` : ''}
