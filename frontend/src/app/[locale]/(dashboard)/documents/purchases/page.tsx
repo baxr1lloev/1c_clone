@@ -270,8 +270,8 @@ export default function PurchasesPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col bg-card text-[#2f2f2f]">
-      <div className="border-b border-[#cfcfcf] bg-muted/20 px-3 py-2">
+    <div className="flex h-[calc(100vh-4rem)] flex-col bg-card text-foreground">
+      <div className="border-b border-border bg-muted/20 px-3 py-2">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Button type="button" variant="outline" size="icon-sm" disabled>
@@ -285,11 +285,11 @@ export default function PurchasesPage() {
 
           <div className="flex items-center gap-2">
             <div className="relative">
-              <PiMagnifyingGlassBold className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#7f7f7f]" />
+              <PiMagnifyingGlassBold className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={searchValue}
                 onChange={(event) => setSearchValue(event.target.value)}
-                className="h-8 w-[240px] border-[#cfcfcf] bg-background pl-8 text-sm"
+                className="h-8 w-[240px] border-border bg-background pl-8 text-sm"
                 placeholder="Поиск (Ctrl+F)"
               />
             </div>
@@ -329,10 +329,10 @@ export default function PurchasesPage() {
         </div>
 
         <div className="mt-3 flex items-center gap-2 text-sm">
-          <span className="shrink-0 text-[#666]">Ссылка:</span>
+          <span className="shrink-0 text-muted-foreground">Ссылка:</span>
           <button
             type="button"
-            className="flex h-8 min-w-0 flex-1 items-center rounded border border-[#cfcfcf] bg-background px-2 text-left hover:border-[#b9b9b9]"
+            className="flex h-8 min-w-0 flex-1 items-center rounded border border-border bg-background px-2 text-left hover:border-border"
             onClick={handleOpenSelected}
             disabled={!selectedRow}
           >
@@ -346,27 +346,27 @@ export default function PurchasesPage() {
       </div>
 
       <div className="flex-1 overflow-hidden p-3">
-        <div className="flex h-full flex-col overflow-hidden rounded border border-[#cfcfcf] bg-background">
-          <div className="grid grid-cols-[40px_180px_100px_minmax(220px,1fr)_220px_90px_140px] border-b border-[#cfcfcf] bg-muted text-xs font-medium text-[#575757]">
+        <div className="flex h-full flex-col overflow-hidden rounded border border-border bg-background">
+          <div className="grid grid-cols-[40px_180px_100px_minmax(220px,1fr)_220px_90px_140px] border-b border-border bg-muted text-xs font-medium text-muted-foreground">
             <div className="px-2 py-2"> </div>
-            <div className="border-l border-[#d8d8d8] px-2 py-2">Дата</div>
-            <div className="border-l border-[#d8d8d8] px-2 py-2">Номер</div>
-            <div className="border-l border-[#d8d8d8] px-2 py-2">Контрагент</div>
-            <div className="border-l border-[#d8d8d8] px-2 py-2">Склад</div>
-            <div className="border-l border-[#d8d8d8] px-2 py-2">Валюта</div>
-            <div className="border-l border-[#d8d8d8] px-2 py-2 text-right">Сумма</div>
+            <div className="border-l border-border px-2 py-2">Дата</div>
+            <div className="border-l border-border px-2 py-2">Номер</div>
+            <div className="border-l border-border px-2 py-2">Контрагент</div>
+            <div className="border-l border-border px-2 py-2">Склад</div>
+            <div className="border-l border-border px-2 py-2">Валюта</div>
+            <div className="border-l border-border px-2 py-2 text-right">Сумма</div>
           </div>
 
           <div className="flex-1 overflow-auto">
             {isLoading ? (
-              <div className="p-6 text-sm text-[#6f6f6f]">Загрузка списка документов...</div>
+              <div className="p-6 text-sm text-muted-foreground">Загрузка списка документов...</div>
             ) : isError ? (
-              <div className="p-6 text-sm text-[#8a5a5a]">
+              <div className="p-6 text-sm text-destructive">
                 Не удалось загрузить список документов. Проверьте вход в систему и попробуйте
                 обновить список.
               </div>
             ) : filteredRows.length === 0 ? (
-              <div className="p-6 text-sm text-[#6f6f6f]">
+              <div className="p-6 text-sm text-muted-foreground">
                 Документы пока не созданы. Используйте кнопку &quot;Создать&quot;, чтобы
                 оформить первое поступление.
                 {fallbackPurchases.length > 0
@@ -392,22 +392,22 @@ export default function PurchasesPage() {
                     <div className="flex items-center justify-center px-2 py-2 text-[#5f9f5f]">
                       {row.status === 'posted' ? '▣' : '▢'}
                     </div>
-                    <div className="truncate border-l border-[#f2f2f2] px-2 py-2 font-mono">
+                    <div className="truncate border-l border-border px-2 py-2 font-mono">
                       {formatDateTime(row.date)}
                     </div>
-                    <div className="truncate border-l border-[#f2f2f2] px-2 py-2 font-mono">
+                    <div className="truncate border-l border-border px-2 py-2 font-mono">
                       {row.number}
                     </div>
-                    <div className="truncate border-l border-[#f2f2f2] px-2 py-2">
+                    <div className="truncate border-l border-border px-2 py-2">
                       {row.counterparty_name}
                     </div>
-                    <div className="truncate border-l border-[#f2f2f2] px-2 py-2">
+                    <div className="truncate border-l border-border px-2 py-2">
                       {row.warehouse_name}
                     </div>
-                    <div className="truncate border-l border-[#f2f2f2] px-2 py-2 font-mono">
+                    <div className="truncate border-l border-border px-2 py-2 font-mono">
                       {row.currency_code || '-'}
                     </div>
-                    <div className="border-l border-[#f2f2f2] px-2 py-2 text-right font-mono">
+                    <div className="border-l border-border px-2 py-2 text-right font-mono">
                       {formatAmount(row.total_amount)}
                     </div>
                   </button>
@@ -416,7 +416,7 @@ export default function PurchasesPage() {
             )}
           </div>
 
-          <div className="flex items-center justify-between border-t border-[#cfcfcf] bg-muted/20 px-3 py-2 text-xs text-[#676767]">
+          <div className="flex items-center justify-between border-t border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
             <span>
               Записей: {filteredRows.length}
               {selectedRow ? ` | Выбрано: ${selectedRow.number} (${getStatusLabel(selectedRow.status, selectedRow.status_display)})` : ''}

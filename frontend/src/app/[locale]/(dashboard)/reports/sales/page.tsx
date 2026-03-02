@@ -353,7 +353,7 @@ export default function SalesReportPage() {
                               event.stopPropagation();
                               toggleExpanded(group.rowKey);
                             }}
-                            className="inline-flex h-5 w-5 items-center justify-center border border-[#ababab] bg-background text-[12px] leading-none"
+                            className="inline-flex h-5 w-5 items-center justify-center border border-border bg-background text-[12px] leading-none"
                           >
                             {isExpanded ? '−' : '+'}
                           </button>

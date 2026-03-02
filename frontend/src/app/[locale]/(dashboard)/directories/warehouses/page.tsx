@@ -211,13 +211,13 @@ export default function WarehousesPage() {
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="border border-[#bdbdbd] px-3 py-10 text-center text-[#666]">
+                  <td colSpan={5} className="border border-[#bdbdbd] px-3 py-10 text-center text-muted-foreground">
                     Загрузка...
                   </td>
                 </tr>
               ) : filteredWarehouses.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="border border-[#bdbdbd] px-3 py-10 text-center text-[#666]">
+                  <td colSpan={5} className="border border-[#bdbdbd] px-3 py-10 text-center text-muted-foreground">
                     Склады не найдены.
                   </td>
                 </tr>

@@ -367,7 +367,7 @@ export function WarehouseEditor({
         <div className="h-[calc(100%-194px)] overflow-auto px-3 py-3">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-medium text-foreground">Остатки на складе</div>
-            <div className="text-xs text-[#666]">
+            <div className="text-xs text-muted-foreground">
               Всего позиций: {balances.length} | Остаток: {formatNumber(totalQuantity)}
             </div>
           </div>
@@ -384,19 +384,19 @@ export function WarehouseEditor({
             <tbody>
               {mode === "create" ? (
                 <tr>
-                  <td colSpan={4} className="border border-[#bdbdbd] px-3 py-10 text-center text-[#666]">
+                  <td colSpan={4} className="border border-[#bdbdbd] px-3 py-10 text-center text-muted-foreground">
                     После создания склада здесь будут отображаться остатки.
                   </td>
                 </tr>
               ) : isBalancesLoading ? (
                 <tr>
-                  <td colSpan={4} className="border border-[#bdbdbd] px-3 py-10 text-center text-[#666]">
+                  <td colSpan={4} className="border border-[#bdbdbd] px-3 py-10 text-center text-muted-foreground">
                     Загрузка...
                   </td>
                 </tr>
               ) : balances.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="border border-[#bdbdbd] px-3 py-10 text-center text-[#666]">
+                  <td colSpan={4} className="border border-[#bdbdbd] px-3 py-10 text-center text-muted-foreground">
                     На складе пока нет остатков.
                   </td>
                 </tr>

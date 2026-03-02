@@ -277,7 +277,7 @@ export default function StockAsOfDatePage() {
             <Input
               value="USD"
               readOnly
-              className="h-9 rounded-none border border-border bg-[#f6f6f6] text-sm shadow-none focus-visible:ring-0"
+              className="h-9 rounded-none border border-border bg-muted/50 text-sm shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">Производитель:</span>
             <Input
@@ -330,7 +330,7 @@ export default function StockAsOfDatePage() {
                         <td className="border border-[#bdbdbd] px-2 py-1 text-center">
                           <button
                             type="button"
-                            className="inline-flex h-5 w-5 items-center justify-center border border-[#ababab] bg-background text-xs"
+                            className="inline-flex h-5 w-5 items-center justify-center border border-border bg-background text-xs"
                             onClick={() => toggleGroup(group.key)}
                           >
                             {isCollapsed ? "+" : "−"}
@@ -370,7 +370,7 @@ export default function StockAsOfDatePage() {
                               }
                             >
                               <td className={`border border-[#bdbdbd] px-2 py-2 text-center ${selectedClassName}`}>
-                                <span className="text-[#838383]">•</span>
+                                <span className="text-muted-foreground">•</span>
                               </td>
                               <td className={`border border-[#bdbdbd] px-3 py-2 ${selectedClassName}`}>
                                 <span className="cursor-default text-[#2e56a6]">{row.item_name}</span>

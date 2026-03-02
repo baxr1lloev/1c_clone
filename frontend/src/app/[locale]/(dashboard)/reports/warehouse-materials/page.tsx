@@ -316,7 +316,7 @@ export default function WarehouseMaterialsReportPage() {
                         <td className="border border-[#bdbdbd] px-2 py-1 text-center">
                           <button
                             type="button"
-                            className="inline-flex h-5 w-5 items-center justify-center border border-[#ababab] bg-background text-xs"
+                            className="inline-flex h-5 w-5 items-center justify-center border border-border bg-background text-xs"
                             onClick={() =>
                               setCollapsedGroups((current) => ({
                                 ...current,
@@ -352,7 +352,7 @@ export default function WarehouseMaterialsReportPage() {
                                 router.push(localePath(`/directories/items/${row.item_id}`))
                               }
                             >
-                              <td className="border border-[#bdbdbd] px-2 py-2 text-center text-[#838383]">
+                              <td className="border border-[#bdbdbd] px-2 py-2 text-center text-muted-foreground">
                                 •
                               </td>
                               <td className="border border-[#bdbdbd] px-3 py-2 text-right">
