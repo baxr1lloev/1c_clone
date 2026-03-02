@@ -263,12 +263,21 @@ class PurchaseDocumentCreateUpdateSerializer(serializers.ModelSerializer):
         instance.save()
         
         if lines_data is not None:
-            # Replace lines
-            instance.lines.all().delete()
+            existing_lines = {line.id: line for line in instance.lines.all()}
             for line_data in lines_data:
-                if 'id' in line_data:
-                    del line_data['id']
+                line_id = line_data.get('id')
+                if line_id and line_id in existing_lines:
+                    line = existing_lines.pop(line_id)
+                    for attr, value in line_data.items():
+                        setattr(line, attr, value)
+                    line.save()
+                else:
+                    if 'id' in line_data:
+                        del line_data['id']
                 PurchaseDocumentLine.objects.create(document=instance, **line_data)
+        
+            for line in existing_lines.values():
+                line.delete()
 
             if lines_data:
                 instance.refresh_from_db()
@@ -656,11 +665,21 @@ class SalesOrderCreateUpdateSerializer(serializers.ModelSerializer):
         instance.save()
         
         if lines_data is not None:
-            instance.lines.all().delete()
+            existing_lines = {line.id: line for line in instance.lines.all()}
             for line_data in lines_data:
-                if 'id' in line_data:
-                    del line_data['id']
+                line_id = line_data.get('id')
+                if line_id and line_id in existing_lines:
+                    line = existing_lines.pop(line_id)
+                    for attr, value in line_data.items():
+                        setattr(line, attr, value)
+                    line.save()
+                else:
+                    if 'id' in line_data:
+                        del line_data['id']
                 SalesOrderLine.objects.create(document=instance, **line_data)
+        
+            for line in existing_lines.values():
+                line.delete()
 
             if lines_data:
                 instance.refresh_from_db()
@@ -749,11 +768,21 @@ class TransferDocumentCreateUpdateSerializer(serializers.ModelSerializer):
         instance.save()
         
         if lines_data is not None:
-            instance.lines.all().delete()
+            existing_lines = {line.id: line for line in instance.lines.all()}
             for line_data in lines_data:
-                if 'id' in line_data:
-                    del line_data['id']
+                line_id = line_data.get('id')
+                if line_id and line_id in existing_lines:
+                    line = existing_lines.pop(line_id)
+                    for attr, value in line_data.items():
+                        setattr(line, attr, value)
+                    line.save()
+                else:
+                    if 'id' in line_data:
+                        del line_data['id']
                 TransferDocumentLine.objects.create(document=instance, **line_data)
+        
+            for line in existing_lines.values():
+                line.delete()
 
             if lines_data:
                 instance.refresh_from_db()
@@ -838,11 +867,21 @@ class InventoryDocumentCreateUpdateSerializer(serializers.ModelSerializer):
         instance.save()
 
         if lines_data is not None:
-            instance.lines.all().delete()
+            existing_lines = {line.id: line for line in instance.lines.all()}
             for line_data in lines_data:
-                if 'id' in line_data:
-                    del line_data['id']
+                line_id = line_data.get('id')
+                if line_id and line_id in existing_lines:
+                    line = existing_lines.pop(line_id)
+                    for attr, value in line_data.items():
+                        setattr(line, attr, value)
+                    line.save()
+                else:
+                    if 'id' in line_data:
+                        del line_data['id']
                 InventoryDocumentLine.objects.create(document=instance, **line_data)
+        
+            for line in existing_lines.values():
+                line.delete()
 
             if lines_data:
                 instance.refresh_from_db()
