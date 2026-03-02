@@ -11,7 +11,7 @@ import api from "@/lib/api";
 import type { Item, PaginatedResponse } from "@/types";
 
 const buttonClassName =
-  "h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]";
+  "h-9 rounded-sm border border-border bg-background px-4 text-sm text-foreground hover:bg-muted";
 
 type StockReportRow = {
   item_id: number;
@@ -139,22 +139,22 @@ export default function StockAsOfDatePage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#e9e9e9] px-1 py-1 text-[#3e3e3e]">
-      <div className="mx-auto h-[calc(100vh-4.6rem)] w-full overflow-hidden border border-[#c9c9c9] bg-[#efefef] shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
+    <div className="min-h-[calc(100vh-4rem)] bg-background px-1 py-1 text-foreground">
+      <div className="mx-auto h-[calc(100vh-4.6rem)] w-full overflow-hidden border border-border bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b border-border px-2 py-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">
+              <button type="button" className="h-7 w-7 border border-border bg-background text-sm">
                 ←
               </button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">
+              <button type="button" className="h-7 w-7 border border-border bg-background text-sm">
                 →
               </button>
             </div>
-            <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
-            <h1 className="text-[18px] font-medium text-black">Материальный отчет</h1>
+            <span className="text-2xl leading-none text-muted-foreground">☆</span>
+            <h1 className="text-[18px] font-medium text-foreground">Материальный отчет</h1>
           </div>
-          <div className="flex items-center gap-3 text-lg text-[#777]">
+          <div className="flex items-center gap-3 text-lg text-muted-foreground">
             <span>⎙</span>
             <span>🔗</span>
             <span>⋮</span>
@@ -172,14 +172,14 @@ export default function StockAsOfDatePage() {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
+              className="h-9 w-[150px] rounded-none border border-border bg-background text-sm shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">по:</span>
             <Input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
+              className="h-9 w-[150px] rounded-none border border-border bg-background text-sm shadow-none focus-visible:ring-0"
             />
             {["Сплошная", "По партии", "Детализированная", "Сравнительный"].map((value) => (
               <button
@@ -188,7 +188,7 @@ export default function StockAsOfDatePage() {
                 className={`h-9 border px-3 text-sm ${
                   mode === value
                     ? "border-[#76b46f] bg-emerald-50 dark:bg-emerald-950 text-[#198f38]"
-                    : "border-[#bcbcbc] bg-background"
+                    : "border-border bg-background"
                 }`}
                 onClick={() => setMode(value)}
               >
@@ -203,7 +203,7 @@ export default function StockAsOfDatePage() {
                 className={`h-9 border px-3 text-sm ${
                   stockMode === value
                     ? "border-[#d1c100] bg-[#fff4ae] text-[#8e7800]"
-                    : "border-[#bcbcbc] bg-background"
+                    : "border-border bg-background"
                 }`}
                 onClick={() => setStockMode(value)}
               >
@@ -217,13 +217,13 @@ export default function StockAsOfDatePage() {
             <Input
               value=""
               readOnly
-              className="h-9 rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
+              className="h-9 rounded-none border border-border bg-background text-sm shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">Вид товара:</span>
             <Input
               value={itemKindName}
               onChange={(event) => setItemKindName(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
+              className="h-9 rounded-none border border-border bg-background text-sm shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">Движение:</span>
             <label className="flex h-9 items-center">
@@ -236,13 +236,13 @@ export default function StockAsOfDatePage() {
             <Input
               value=""
               readOnly
-              className="h-9 rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
+              className="h-9 rounded-none border border-border bg-background text-sm shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">Номенклатура:</span>
             <select
               value={itemId}
               onChange={(event) => setItemId(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-background px-2 text-sm"
+              className="h-9 rounded-none border border-border bg-background px-2 text-sm"
             >
               <option value=""> </option>
               {items.map((item) => (
@@ -255,7 +255,7 @@ export default function StockAsOfDatePage() {
             <Input
               value=""
               readOnly
-              className="h-9 rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
+              className="h-9 rounded-none border border-border bg-background text-sm shadow-none focus-visible:ring-0"
             />
           </div>
 
@@ -264,7 +264,7 @@ export default function StockAsOfDatePage() {
             <select
               value={warehouseId}
               onChange={(event) => setWarehouseId(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-background px-2 text-sm"
+              className="h-9 rounded-none border border-border bg-background px-2 text-sm"
             >
               <option value=""> </option>
               {warehouses.map((warehouse: { id: number; name: string }) => (
@@ -277,25 +277,25 @@ export default function StockAsOfDatePage() {
             <Input
               value="USD"
               readOnly
-              className="h-9 rounded-none border border-[#bcbcbc] bg-[#f6f6f6] text-sm shadow-none focus-visible:ring-0"
+              className="h-9 rounded-none border border-border bg-[#f6f6f6] text-sm shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">Производитель:</span>
             <Input
               value={manufacturerName}
               onChange={(event) => setManufacturerName(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
+              className="h-9 rounded-none border border-border bg-background text-sm shadow-none focus-visible:ring-0"
             />
           </div>
         </div>
 
         <div className="h-[calc(100%-132px)] overflow-auto px-2 py-3">
-          <div className="mb-4 text-center text-[15px] font-semibold text-black">
+          <div className="mb-4 text-center text-[15px] font-semibold text-foreground">
             Оборотно-сальдовая ведомость по товарам за 28 февраля 2026 г.
           </div>
 
           <table className="min-w-full border-collapse text-sm">
             <thead>
-              <tr className="bg-[#f3f3f3]">
+              <tr className="bg-muted">
                 <th className="w-9 border border-[#bdbdbd] px-2 py-2" />
                 <th className="border border-[#bdbdbd] px-3 py-2 text-left font-normal">Товар</th>
                 <th className="border border-[#bdbdbd] px-3 py-2 text-left font-normal">Артикул</th>
@@ -358,12 +358,12 @@ export default function StockAsOfDatePage() {
                         group.items.map((row) => {
                           const rowKey = `${group.key}-${row.item_id}`;
                           const selectedClassName =
-                            selectedRowKey === rowKey ? "bg-[#f8efba]" : "";
+                            selectedRowKey === rowKey ? "bg-accent" : "";
 
                           return (
                             <tr
                               key={rowKey}
-                              className="bg-background hover:bg-[#fbf7da]"
+                              className="bg-background hover:bg-muted/50 hover:bg-muted/80"
                               onClick={() => setSelectedRowKey(rowKey)}
                               onDoubleClick={() =>
                                 router.push(localePath(`/directories/items/${row.item_id}`))

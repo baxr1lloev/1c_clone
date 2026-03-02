@@ -134,7 +134,7 @@ export function TaxiTabs() {
       <div
         onClick={() => router.push("/")}
         className={cn(
-          "flex items-center justify-center h-7 w-7 rounded-sm cursor-pointer transition-colors text-muted-foreground hover:bg-background hover:text-black mb-0.5 ml-1",
+          "flex items-center justify-center h-7 w-7 rounded-sm cursor-pointer transition-colors text-muted-foreground hover:bg-background hover:text-foreground mb-0.5 ml-1",
           pathname === "/" &&
             "bg-background text-orange-600 shadow-sm ring-1 ring-black/5",
         )}
@@ -156,7 +156,7 @@ export function TaxiTabs() {
             className={cn(
               "group flex items-center gap-2 px-3 h-8 text-xs font-medium cursor-pointer transition-all whitespace-nowrap min-w-30 max-w-55 -mb-px z-10 relative",
               isActive
-                ? "bg-[#FFEFAD] border-[#F0B000] text-black shadow-[0_-2px_5px_rgba(0,0,0,0.05)]" // 1C Active Yellow
+                ? "bg-[#FFEFAD] border-[#F0B000] text-foreground shadow-[0_-2px_5px_rgba(0,0,0,0.05)]" // 1C Active Yellow
                 : "bg-background border-transparent text-muted-foreground hover:bg-gray-50 border-gray-200 mt-1 h-7",
             )}
             onAuxClick={(e) => {
@@ -169,7 +169,7 @@ export function TaxiTabs() {
             <button
               className={cn(
                 "p-0.5 rounded-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/10",
-                isActive && "text-black/50 hover:text-black",
+                isActive && "text-foreground/50 hover:text-foreground",
               )}
               onClick={(e) => handleClose(e, tab.path)}
             >

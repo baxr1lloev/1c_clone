@@ -92,13 +92,13 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-6rem)] bg-[#efefef] px-6 py-5 text-black">
+    <div className="min-h-[calc(100vh-6rem)] bg-card px-6 py-5 text-foreground">
       <div className="mb-5 flex items-center gap-1">
         <Button
           type="button"
           variant="outline"
           size="icon"
-          className="h-8 w-8 rounded-none border-[#9e9e9e] bg-muted/50 text-black shadow-none"
+          className="h-8 w-8 rounded-none border-[#9e9e9e] bg-muted/50 text-foreground shadow-none"
         >
           <PiCaretLeftBold className="h-4 w-4" />
         </Button>
@@ -106,7 +106,7 @@ export default function ReportsPage() {
           type="button"
           variant="outline"
           size="icon"
-          className="h-8 w-8 rounded-none border-[#9e9e9e] bg-muted/50 text-black shadow-none"
+          className="h-8 w-8 rounded-none border-[#9e9e9e] bg-muted/50 text-foreground shadow-none"
         >
           <PiCaretRightBold className="h-4 w-4" />
         </Button>

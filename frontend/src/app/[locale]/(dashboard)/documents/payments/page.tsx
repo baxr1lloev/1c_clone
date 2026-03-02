@@ -268,7 +268,7 @@ export default function PaymentsPage() {
   ];
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col bg-[#efefef]">
+    <div className="flex h-[calc(100vh-4rem)] flex-col bg-card">
       <div className="border-b border-[#cecece] bg-muted/50 px-4 py-3">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-semibold text-[#1d1d1d]">

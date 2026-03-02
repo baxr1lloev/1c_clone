@@ -336,7 +336,7 @@ export function PaymentDocumentForm({
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#efefef] p-3 text-foreground">
+    <div className="min-h-[calc(100vh-4rem)] bg-card p-3 text-foreground">
       <div className="rounded-sm border border-[#bfc4cc] bg-background">
         <div className="flex items-center gap-2 border-b border-border px-4 py-3">
           <button
@@ -428,7 +428,7 @@ export function PaymentDocumentForm({
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 type="button"
-                className="h-10 rounded-sm bg-[#f5d400] px-5 text-black hover:bg-[#e5c500]"
+                className="h-10 rounded-sm bg-[#f5d400] px-5 text-foreground hover:bg-[#e5c500]"
                 onClick={handlePrimaryAction}
               >
                 Провести и закрыть

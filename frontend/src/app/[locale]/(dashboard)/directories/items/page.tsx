@@ -9,7 +9,7 @@ import api from "@/lib/api"
 import type { Item, PaginatedResponse } from "@/types"
 
 const buttonClassName =
-  "h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]"
+  "h-9 rounded-sm border border-border bg-background px-4 text-sm text-foreground hover:bg-muted"
 
 type DirectoryRow =
   | { kind: "group"; key: string; categoryId: string; name: string; code: string }
@@ -103,25 +103,25 @@ export default function ItemsPage() {
   }, [categories, searchValue, visibleItems])
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#e9e9e9] px-1 py-1 text-[#3e3e3e]">
-      <div className="mx-auto h-[calc(100vh-4.6rem)] w-full overflow-hidden border border-[#c9c9c9] bg-[#efefef] shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
+    <div className="min-h-[calc(100vh-4rem)] bg-background px-1 py-1 text-foreground">
+      <div className="mx-auto h-[calc(100vh-4.6rem)] w-full overflow-hidden border border-border bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b border-border px-2 py-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">←</button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">→</button>
+              <button type="button" className="h-7 w-7 border border-border bg-background text-sm">←</button>
+              <button type="button" className="h-7 w-7 border border-border bg-background text-sm">→</button>
             </div>
-            <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
-            <h1 className="text-[18px] font-medium text-black">Номенклатура</h1>
+            <span className="text-2xl leading-none text-muted-foreground">☆</span>
+            <h1 className="text-[18px] font-medium text-foreground">Номенклатура</h1>
           </div>
-          <div className="flex items-center gap-4 text-lg text-[#777]">
+          <div className="flex items-center gap-4 text-lg text-muted-foreground">
             <span>◌</span>
             <span>⋮</span>
             <span>×</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 border-b border-[#d9d9d9] px-2 py-2">
+        <div className="flex items-center gap-2 border-b border-border px-2 py-2">
           <Button
             type="button"
             className={buttonClassName}
@@ -138,7 +138,7 @@ export default function ItemsPage() {
           </Button>
           <button
             type="button"
-            className="h-9 w-9 border border-[#bcbcbc] bg-background text-[#4a84c6]"
+            className="h-9 w-9 border border-border bg-background text-primary"
             onClick={() => refetch()}
           >
             ⟳
@@ -157,11 +157,11 @@ export default function ItemsPage() {
               value={searchValue}
               onChange={(event) => setSearchValue(event.target.value)}
               placeholder="Поиск (Ctrl+F)"
-              className="h-9 w-[270px] rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="h-9 w-[270px] rounded-none border border-border bg-background text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <button
               type="button"
-              className="h-9 w-9 border border-[#bcbcbc] bg-background text-[#4a84c6]"
+              className="h-9 w-9 border border-border bg-background text-primary"
             >
               🔍
             </button>
@@ -174,29 +174,29 @@ export default function ItemsPage() {
         <div className="h-[calc(100%-98px)] overflow-auto">
           <table className="min-w-full border-collapse text-sm">
             <thead>
-              <tr className="bg-[#f3f3f3]">
-                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Наименование</th>
-                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">↓</th>
-                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Код</th>
-                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Единица измер...</th>
-                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Валюта</th>
-                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Артикул</th>
-                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Размер</th>
-                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Штрих код</th>
-                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Вид товара</th>
-                <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Тип товара</th>
+              <tr className="bg-muted">
+                <th className="border border-border px-3 py-2 text-left font-normal">Наименование</th>
+                <th className="border border-border px-3 py-2 text-left font-normal">↓</th>
+                <th className="border border-border px-3 py-2 text-left font-normal">Код</th>
+                <th className="border border-border px-3 py-2 text-left font-normal">Единица измер...</th>
+                <th className="border border-border px-3 py-2 text-left font-normal">Валюта</th>
+                <th className="border border-border px-3 py-2 text-left font-normal">Артикул</th>
+                <th className="border border-border px-3 py-2 text-left font-normal">Размер</th>
+                <th className="border border-border px-3 py-2 text-left font-normal">Штрих код</th>
+                <th className="border border-border px-3 py-2 text-left font-normal">Вид товара</th>
+                <th className="border border-border px-3 py-2 text-left font-normal">Тип товара</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={10} className="border border-[#cbcbcb] px-3 py-8 text-center">
+                  <td colSpan={10} className="border border-border px-3 py-8 text-center">
                     Загрузка...
                   </td>
                 </tr>
               ) : rows.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="border border-[#cbcbcb] px-3 py-8 text-center">
+                  <td colSpan={10} className="border border-border px-3 py-8 text-center">
                     Нет данных
                   </td>
                 </tr>
@@ -206,22 +206,22 @@ export default function ItemsPage() {
                     return (
                       <tr
                         key={row.key}
-                        className={selectedKey === row.key ? "bg-[#f8efba]" : "bg-background hover:bg-[#fbf7da]"}
+                        className={selectedKey === row.key ? "bg-accent" : "bg-background hover:bg-muted/50 hover:bg-muted/80"}
                         onClick={() => setSelectedKey(row.key)}
                       >
-                        <td className="border border-[#cbcbcb] px-3 py-2 font-medium">
-                          <span className="mr-2 text-[#a77b00]">▸ 📁</span>
+                        <td className="border border-border px-3 py-2 font-medium">
+                          <span className="mr-2 text-amber-600 dark:text-amber-500">▸ 📁</span>
                           {row.name}
                         </td>
-                        <td className="border border-[#cbcbcb] px-3 py-2" />
-                        <td className="border border-[#cbcbcb] px-3 py-2">{row.code}</td>
-                        <td className="border border-[#cbcbcb] px-3 py-2" />
-                        <td className="border border-[#cbcbcb] px-3 py-2" />
-                        <td className="border border-[#cbcbcb] px-3 py-2" />
-                        <td className="border border-[#cbcbcb] px-3 py-2" />
-                        <td className="border border-[#cbcbcb] px-3 py-2" />
-                        <td className="border border-[#cbcbcb] px-3 py-2" />
-                        <td className="border border-[#cbcbcb] px-3 py-2" />
+                        <td className="border border-border px-3 py-2" />
+                        <td className="border border-border px-3 py-2">{row.code}</td>
+                        <td className="border border-border px-3 py-2" />
+                        <td className="border border-border px-3 py-2" />
+                        <td className="border border-border px-3 py-2" />
+                        <td className="border border-border px-3 py-2" />
+                        <td className="border border-border px-3 py-2" />
+                        <td className="border border-border px-3 py-2" />
+                        <td className="border border-border px-3 py-2" />
                       </tr>
                     )
                   }
@@ -236,23 +236,23 @@ export default function ItemsPage() {
                   return (
                     <tr
                       key={row.key}
-                      className={selectedKey === row.key ? "bg-[#fbf3c7]" : "bg-background hover:bg-[#fbf7da]"}
+                      className={selectedKey === row.key ? "bg-accent" : "bg-background hover:bg-muted/50 hover:bg-muted/80"}
                       onClick={() => setSelectedKey(row.key)}
                       onDoubleClick={() => router.push(`/directories/items/${item.id}`)}
                     >
-                      <td className="border border-[#cbcbcb] px-3 py-2">
-                        <span className="mr-2 text-[#6489a8]">▭</span>
+                      <td className="border border-border px-3 py-2">
+                        <span className="mr-2 text-blue-600 dark:text-blue-400">▭</span>
                         {item.name}
                       </td>
-                      <td className="border border-[#cbcbcb] px-3 py-2" />
-                      <td className="border border-[#cbcbcb] px-3 py-2">{item.id}</td>
-                      <td className="border border-[#cbcbcb] px-3 py-2">{item.base_unit || item.unit || "шт"}</td>
-                      <td className="border border-[#cbcbcb] px-3 py-2">USD</td>
-                      <td className="border border-[#cbcbcb] px-3 py-2">{item.sku || ""}</td>
-                      <td className="border border-[#cbcbcb] px-3 py-2" />
-                      <td className="border border-[#cbcbcb] px-3 py-2" />
-                      <td className="border border-[#cbcbcb] px-3 py-2">Материал</td>
-                      <td className="border border-[#cbcbcb] px-3 py-2">{typeLabel}</td>
+                      <td className="border border-border px-3 py-2" />
+                      <td className="border border-border px-3 py-2">{item.id}</td>
+                      <td className="border border-border px-3 py-2">{item.base_unit || item.unit || "шт"}</td>
+                      <td className="border border-border px-3 py-2">USD</td>
+                      <td className="border border-border px-3 py-2">{item.sku || ""}</td>
+                      <td className="border border-border px-3 py-2" />
+                      <td className="border border-border px-3 py-2" />
+                      <td className="border border-border px-3 py-2">Материал</td>
+                      <td className="border border-border px-3 py-2">{typeLabel}</td>
                     </tr>
                   )
                 })

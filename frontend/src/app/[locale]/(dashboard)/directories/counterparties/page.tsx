@@ -10,7 +10,7 @@ import type { Counterparty, PaginatedResponse } from "@/types"
 
 const DIRECTORY_COUNTERPARTY_GROUPS_STORAGE_KEY = "directory-counterparty-groups"
 const DEFAULT_GROUPS = ["Учредители", "Прочие", "Поставщики", "Покупатели"]
-const buttonClassName = "h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]"
+const buttonClassName = "h-9 rounded-sm border border-border bg-background px-4 text-sm text-foreground hover:bg-muted"
 
 function getStoredGroups() {
   if (typeof window === "undefined") {
@@ -75,26 +75,26 @@ export default function CounterpartiesPage() {
   }, [data, searchValue, selectedGroup])
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#e9e9e9] px-1 py-1 text-[#3e3e3e]">
-      <div className="mx-auto h-[calc(100vh-4.6rem)] w-full overflow-hidden border border-[#c9c9c9] bg-[#efefef] shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
+    <div className="min-h-[calc(100vh-4rem)] bg-background px-1 py-1 text-foreground">
+      <div className="mx-auto h-[calc(100vh-4.6rem)] w-full overflow-hidden border border-border bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b border-border px-2 py-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">←</button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">→</button>
+              <button type="button" className="h-7 w-7 border border-border bg-background text-sm">←</button>
+              <button type="button" className="h-7 w-7 border border-border bg-background text-sm">→</button>
             </div>
-            <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
-            <h1 className="text-[18px] font-medium text-black">Контрагенты</h1>
+            <span className="text-2xl leading-none text-muted-foreground">☆</span>
+            <h1 className="text-[18px] font-medium text-foreground">Контрагенты</h1>
           </div>
-          <div className="flex items-center gap-4 text-lg text-[#777]"><span>◌</span><span>⋮</span><span>×</span></div>
+          <div className="flex items-center gap-4 text-lg text-muted-foreground"><span>◌</span><span>⋮</span><span>×</span></div>
         </div>
 
-        <div className="flex items-center gap-2 border-b border-[#d9d9d9] px-2 py-2">
+        <div className="flex items-center gap-2 border-b border-border px-2 py-2">
           <Button type="button" className={buttonClassName} onClick={() => router.push("/directories/counterparties/new")}>Создать</Button>
           <Button type="button" className={buttonClassName} onClick={() => router.push("/directories/counterparties/new?group=1")}>Создать группу</Button>
-          <button type="button" className="h-9 w-9 border border-[#bcbcbc] bg-background text-[#4a84c6]" onClick={() => refetch()}>⟳</button>
+          <button type="button" className="h-9 w-9 border border-border bg-background text-primary" onClick={() => refetch()}>⟳</button>
           <div className="ml-auto flex items-center gap-2">
-            <Input value={searchValue} onChange={(event) => setSearchValue(event.target.value)} placeholder="Поиск (Ctrl+F)" className="h-9 w-[250px] rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0" />
+            <Input value={searchValue} onChange={(event) => setSearchValue(event.target.value)} placeholder="Поиск (Ctrl+F)" className="h-9 w-[250px] rounded-none border border-border bg-background text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0" />
             <Button type="button" className={buttonClassName}>Еще</Button>
           </div>
         </div>
@@ -106,7 +106,7 @@ export default function CounterpartiesPage() {
                 value={groupSearchValue}
                 onChange={(event) => setGroupSearchValue(event.target.value)}
                 placeholder="Поиск (Ctrl+F)"
-                className="h-8 rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="h-8 rounded-none border border-border bg-background text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
               />
               <div className="text-sm">Наименование ↑</div>
             </div>
@@ -118,7 +118,7 @@ export default function CounterpartiesPage() {
                   className={`flex w-full items-center gap-2 px-2 py-1 text-left text-sm ${selectedGroup === groupName ? "bg-[#f8df7b] outline outline-1 outline-[#d7b100]" : "hover:bg-[#f8f8f8]"}`}
                   onClick={() => setSelectedGroup(groupName)}
                 >
-                  <span className="text-[#a77b00]">{groupName === "Контрагенты" ? "⊕" : "📁"}</span>
+                  <span className="text-amber-600 dark:text-amber-500">{groupName === "Контрагенты" ? "⊕" : "📁"}</span>
                   <span>{groupName}</span>
                 </button>
               ))}
@@ -128,37 +128,37 @@ export default function CounterpartiesPage() {
           <div className="overflow-auto">
             <table className="min-w-full border-collapse text-sm">
               <thead>
-                <tr className="bg-[#f3f3f3]">
-                  <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Наименование</th>
-                  <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Код</th>
-                  <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Адрес</th>
-                  <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Телефон</th>
-                  <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Отправить уведомление telegram</th>
-                  <th className="border border-[#cbcbcb] px-3 py-2 text-left font-normal">Telegram chat ID</th>
+                <tr className="bg-muted">
+                  <th className="border border-border px-3 py-2 text-left font-normal">Наименование</th>
+                  <th className="border border-border px-3 py-2 text-left font-normal">Код</th>
+                  <th className="border border-border px-3 py-2 text-left font-normal">Адрес</th>
+                  <th className="border border-border px-3 py-2 text-left font-normal">Телефон</th>
+                  <th className="border border-border px-3 py-2 text-left font-normal">Отправить уведомление telegram</th>
+                  <th className="border border-border px-3 py-2 text-left font-normal">Telegram chat ID</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={6} className="border border-[#cbcbcb] px-3 py-8 text-center">Загрузка...</td></tr>
+                  <tr><td colSpan={6} className="border border-border px-3 py-8 text-center">Загрузка...</td></tr>
                 ) : filteredData.length === 0 ? (
-                  <tr><td colSpan={6} className="border border-[#cbcbcb] px-3 py-8 text-center">Нет данных</td></tr>
+                  <tr><td colSpan={6} className="border border-border px-3 py-8 text-center">Нет данных</td></tr>
                 ) : (
                   filteredData.map((item, index) => (
                     <tr
                       key={item.id}
-                      className={selectedId === item.id ? "bg-[#f8efba]" : "bg-background hover:bg-[#fbf7da]"}
+                      className={selectedId === item.id ? "bg-accent" : "bg-background hover:bg-muted/50 hover:bg-muted/80"}
                       onClick={() => setSelectedId(item.id)}
                       onDoubleClick={() => router.push(`/directories/counterparties/${item.id}`)}
                     >
-                      <td className="border border-[#cbcbcb] px-3 py-2">
-                        <span className="mr-2 text-[#6489a8]">▭</span>
+                      <td className="border border-border px-3 py-2">
+                        <span className="mr-2 text-blue-600 dark:text-blue-400">▭</span>
                         {item.name}
                       </td>
-                      <td className="border border-[#cbcbcb] px-3 py-2">{item.id || index + 1}</td>
-                      <td className="border border-[#cbcbcb] px-3 py-2">{item.address || ""}</td>
-                      <td className="border border-[#cbcbcb] px-3 py-2">{item.phone || ""}</td>
-                      <td className="border border-[#cbcbcb] px-3 py-2">Нет</td>
-                      <td className="border border-[#cbcbcb] px-3 py-2">0</td>
+                      <td className="border border-border px-3 py-2">{item.id || index + 1}</td>
+                      <td className="border border-border px-3 py-2">{item.address || ""}</td>
+                      <td className="border border-border px-3 py-2">{item.phone || ""}</td>
+                      <td className="border border-border px-3 py-2">Нет</td>
+                      <td className="border border-border px-3 py-2">0</td>
                     </tr>
                   ))
                 )}

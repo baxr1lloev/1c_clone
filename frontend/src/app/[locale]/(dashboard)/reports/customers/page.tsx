@@ -19,7 +19,7 @@ interface SettlementRow {
 }
 
 const buttonClassName =
-  'h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]';
+  'h-9 rounded-sm border border-border bg-background px-4 text-sm text-foreground hover:bg-muted';
 
 function formatAmount(value: number): string {
   if (!value) return '';
@@ -100,18 +100,18 @@ export default function CustomersReportPage() {
   );
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#e9e9e9] px-1 py-1 text-[#3e3e3e]">
-      <div className="mx-auto h-[calc(100vh-4.6rem)] w-full overflow-hidden border border-[#c9c9c9] bg-[#efefef] shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
+    <div className="min-h-[calc(100vh-4rem)] bg-background px-1 py-1 text-foreground">
+      <div className="mx-auto h-[calc(100vh-4.6rem)] w-full overflow-hidden border border-border bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b border-border px-2 py-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">←</button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">→</button>
+              <button type="button" className="h-7 w-7 border border-border bg-background text-sm">←</button>
+              <button type="button" className="h-7 w-7 border border-border bg-background text-sm">→</button>
             </div>
-            <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
-            <h1 className="text-[18px] font-medium text-black">Отчет по покупателям</h1>
+            <span className="text-2xl leading-none text-muted-foreground">☆</span>
+            <h1 className="text-[18px] font-medium text-foreground">Отчет по покупателям</h1>
           </div>
-          <div className="flex items-center gap-3 text-lg text-[#777]">
+          <div className="flex items-center gap-3 text-lg text-muted-foreground">
             <span>💾</span>
             <span>🖨</span>
             <span>🔍</span>
@@ -130,14 +130,14 @@ export default function CustomersReportPage() {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background shadow-none focus-visible:ring-0"
+              className="h-9 w-[150px] rounded-none border border-border bg-background shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">по:</span>
             <Input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background shadow-none focus-visible:ring-0"
+              className="h-9 w-[150px] rounded-none border border-border bg-background shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">Вид отчета:</span>
             <button
@@ -146,7 +146,7 @@ export default function CustomersReportPage() {
               className={`h-9 border px-3 text-sm ${
                 reportType === 'saldo'
                   ? 'border-[#76b46f] bg-emerald-50 dark:bg-emerald-950 text-[#198f38]'
-                  : 'border-[#bcbcbc] bg-background'
+                  : 'border-border bg-background'
               }`}
             >
               Сальдовая
@@ -157,7 +157,7 @@ export default function CustomersReportPage() {
               className={`h-9 border px-3 text-sm ${
                 reportType === 'turnover'
                   ? 'border-[#76b46f] bg-emerald-50 dark:bg-emerald-950 text-[#198f38]'
-                  : 'border-[#bcbcbc] bg-background'
+                  : 'border-border bg-background'
               }`}
             >
               Оборотно-сальдовая
@@ -169,7 +169,7 @@ export default function CustomersReportPage() {
             <select
               value={counterpartyId}
               onChange={(event) => setCounterpartyId(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-background px-2 text-sm"
+              className="h-9 rounded-none border border-border bg-background px-2 text-sm"
             >
               <option value=""> </option>
               {counterparties
@@ -184,14 +184,14 @@ export default function CustomersReportPage() {
         </div>
 
         <div className="h-[calc(100%-118px)] overflow-auto px-2 py-3">
-          <div className="mb-2 text-[15px] text-black">ООО &quot;XUSHNUR SHOHNUR OMAD OPTOVIY BAZA&quot;</div>
-          <div className="mb-4 text-center text-[15px] font-semibold text-black">
+          <div className="mb-2 text-[15px] text-foreground">ООО &quot;XUSHNUR SHOHNUR OMAD OPTOVIY BAZA&quot;</div>
+          <div className="mb-4 text-center text-[15px] font-semibold text-foreground">
             Остаточная ведомость по покупателям на {dateTo.split('-').reverse().join('.')}
           </div>
 
           <table className="min-w-[950px] border-collapse text-sm">
             <thead>
-              <tr className="bg-[#f3f3f3]">
+              <tr className="bg-muted">
                 <th className="border border-[#bdbdbd] px-3 py-2 text-left font-normal">Контрагент</th>
                 <th className="border border-[#bdbdbd] px-3 py-2 text-left font-normal">Телефон</th>
                 <th className="border border-[#bdbdbd] px-3 py-2 text-right font-normal">UZB</th>
@@ -215,12 +215,12 @@ export default function CustomersReportPage() {
               ) : (
                 rows.map((row) => {
                   const isSelected = selectedRowId === row.counterpartyId;
-                  const selectedClassName = isSelected ? 'bg-[#f8efba]' : '';
+                  const selectedClassName = isSelected ? 'bg-accent' : '';
 
                   return (
                     <tr
                       key={row.counterpartyId}
-                      className="bg-background hover:bg-[#fbf7da]"
+                      className="bg-background hover:bg-muted/50 hover:bg-muted/80"
                       onClick={() => setSelectedRowId(row.counterpartyId)}
                       onDoubleClick={() => router.push(`/directories/counterparties/${row.counterpartyId}`)}
                     >

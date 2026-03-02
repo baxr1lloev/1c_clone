@@ -270,7 +270,7 @@ export default function PurchasesPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col bg-[#efefef] text-[#2f2f2f]">
+    <div className="flex h-[calc(100vh-4rem)] flex-col bg-card text-[#2f2f2f]">
       <div className="border-b border-[#cfcfcf] bg-[#f7f7f7] px-3 py-2">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -347,7 +347,7 @@ export default function PurchasesPage() {
 
       <div className="flex-1 overflow-hidden p-3">
         <div className="flex h-full flex-col overflow-hidden rounded border border-[#cfcfcf] bg-background">
-          <div className="grid grid-cols-[40px_180px_100px_minmax(220px,1fr)_220px_90px_140px] border-b border-[#cfcfcf] bg-[#f3f3f3] text-xs font-medium text-[#575757]">
+          <div className="grid grid-cols-[40px_180px_100px_minmax(220px,1fr)_220px_90px_140px] border-b border-[#cfcfcf] bg-muted text-xs font-medium text-[#575757]">
             <div className="px-2 py-2"> </div>
             <div className="border-l border-[#d8d8d8] px-2 py-2">Дата</div>
             <div className="border-l border-[#d8d8d8] px-2 py-2">Номер</div>
@@ -427,9 +427,9 @@ export default function PurchasesPage() {
       </div>
 
       <Dialog open={isReportsOpen} onOpenChange={setIsReportsOpen}>
-        <DialogContent className="sm:max-w-md border border-[#c9c9c9] bg-[#efefef] p-0">
+        <DialogContent className="sm:max-w-md border border-border bg-card p-0">
           <DialogHeader>
-            <DialogTitle className="border-b border-[#d2d2d2] px-4 py-3 text-left text-[18px] font-medium text-black">
+            <DialogTitle className="border-b border-border px-4 py-3 text-left text-[18px] font-medium text-foreground">
               Отчеты
             </DialogTitle>
           </DialogHeader>
@@ -471,14 +471,14 @@ export default function PurchasesPage() {
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
-                className="h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]"
+                className="h-9 rounded-sm border border-border bg-background px-4 text-sm text-foreground hover:bg-muted"
                 onClick={() => setIsReportsOpen(false)}
               >
                 Закрыть
               </button>
               <button
                 type="button"
-                className="h-9 rounded-sm border border-[#9b8e00] bg-[#f4d000] px-4 text-sm text-black hover:bg-[#ffe04d]"
+                className="h-9 rounded-sm border border-[#9b8e00] bg-[#f4d000] px-4 text-sm text-foreground hover:bg-[#ffe04d]"
                 onClick={openSelectedReport}
               >
                 Открыть

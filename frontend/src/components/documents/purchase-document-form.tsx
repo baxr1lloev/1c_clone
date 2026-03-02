@@ -2213,7 +2213,7 @@ export function PurchaseDocumentForm({ initialData, mode }: PurchaseDocumentForm
                             <div className="flex flex-wrap items-center gap-2">
                                 <Button
                                     type="button"
-                                    className="bg-yellow-400 text-black hover:bg-yellow-300"
+                                    className="bg-yellow-400 text-foreground hover:bg-yellow-300"
                                     onClick={() => createAndPostMutation.mutate(true)}
                                     disabled={createAndPostMutation.isPending}
                                 >
@@ -2744,7 +2744,7 @@ export function PurchaseDocumentForm({ initialData, mode }: PurchaseDocumentForm
                         <div className="flex flex-wrap items-center gap-2">
                             <Button
                                 type="button"
-                                className="bg-yellow-400 text-black hover:bg-yellow-300"
+                                className="bg-yellow-400 text-foreground hover:bg-yellow-300"
                                 onClick={() => itemCreateMode === "group" ? createItemGroupMutation.mutate() : createItemMutation.mutate()}
                                 disabled={itemCreateMode === "group" ? createItemGroupMutation.isPending : createItemMutation.isPending}
                             >
@@ -3013,7 +3013,7 @@ export function PurchaseDocumentForm({ initialData, mode }: PurchaseDocumentForm
                             </div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                            <Button type="button" className="bg-yellow-400 text-black hover:bg-yellow-300" onClick={() => createCounterpartyMutation.mutate()} disabled={createCounterpartyMutation.isPending}>Записать и закрыть</Button>
+                            <Button type="button" className="bg-yellow-400 text-foreground hover:bg-yellow-300" onClick={() => createCounterpartyMutation.mutate()} disabled={createCounterpartyMutation.isPending}>Записать и закрыть</Button>
                             <Button type="button" variant="outline" onClick={() => createCounterpartyMutation.mutate()} disabled={createCounterpartyMutation.isPending}>Записать</Button>
                         </div>
                         <div className="grid gap-3 md:grid-cols-12">
