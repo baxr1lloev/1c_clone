@@ -60,6 +60,7 @@ class CashOrderDetailSerializer(serializers.ModelSerializer):
 
 class CashOrderCreateUpdateSerializer(serializers.ModelSerializer):
     """Serializer for creating/updating cash orders."""
+    counterparty_name = serializers.CharField(required=False, allow_blank=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     currency_code = serializers.CharField(source='currency.code', read_only=True)
     can_edit = serializers.BooleanField(read_only=True)
@@ -93,6 +94,8 @@ class CashOrderCreateUpdateSerializer(serializers.ModelSerializer):
         ]
     
     def create(self, validated_data):
+        if not validated_data.get('counterparty_name') and validated_data.get('counterparty'):
+            validated_data['counterparty_name'] = validated_data['counterparty'].name
         validated_data['tenant'] = self.context['request'].user.tenant
         validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)
@@ -101,4 +104,9 @@ class CashOrderCreateUpdateSerializer(serializers.ModelSerializer):
         # Only allow updates if can_edit
         if not instance.can_edit:
             raise serializers.ValidationError("Cannot edit posted or cancelled documents.")
+        if (
+            'counterparty_name' not in validated_data
+            and validated_data.get('counterparty') is not None
+        ):
+            validated_data['counterparty_name'] = validated_data['counterparty'].name
         return super().update(instance, validated_data)

@@ -250,23 +250,28 @@ class PurchaseDocumentCreateUpdateSerializer(serializers.ModelSerializer):
         
         for line_data in lines_data:
             PurchaseDocumentLine.objects.create(document=doc, **line_data)
-            
-        # doc.recalculate_totals() # Assuming PurchaseDocument also has this
+
+        # Line saves already update totals. Refresh so POST response reflects actual lines/totals.
+        if lines_data:
+            doc.refresh_from_db()
         return doc
 
     def update(self, instance, validated_data):
-        lines_data = validated_data.pop('lines', [])
+        lines_data = validated_data.pop('lines', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         
-        # Replace lines
-        instance.lines.all().delete()
-        for line_data in lines_data:
-            if 'id' in line_data: del line_data['id']
-            PurchaseDocumentLine.objects.create(document=instance, **line_data)
-            
-        # instance.recalculate_totals()
+        if lines_data is not None:
+            # Replace lines
+            instance.lines.all().delete()
+            for line_data in lines_data:
+                if 'id' in line_data:
+                    del line_data['id']
+                PurchaseDocumentLine.objects.create(document=instance, **line_data)
+
+            if lines_data:
+                instance.refresh_from_db()
         return instance
 
 
@@ -326,7 +331,8 @@ class InventoryDocumentCreateUpdateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = InventoryDocument
-        fields = ['date', 'number', 'warehouse', 'responsible', 'comment', 'lines']
+        fields = ['id', 'date', 'number', 'warehouse', 'responsible', 'comment', 'lines']
+        read_only_fields = ['id']
         
     def create(self, validated_data):
         lines_data = validated_data.pop('lines', []) # Handle case where lines are not provided
@@ -614,11 +620,12 @@ class SalesOrderCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = SalesOrder
         fields = [
-            'number', 'date', 'comment',
+            'id', 'number', 'date', 'comment',
             'counterparty', 'contract', 'warehouse', 'currency', 'rate',
             'order_date', 'delivery_date',
             'lines'
         ]
+        read_only_fields = ['id']
         extra_kwargs = {
             'order_date': {'required': False},
         }
@@ -635,22 +642,30 @@ class SalesOrderCreateUpdateSerializer(serializers.ModelSerializer):
         
         for line_data in lines_data:
             SalesOrderLine.objects.create(document=doc, **line_data)
-            
-        doc.recalculate_totals()
+
+        if lines_data:
+            doc.refresh_from_db()
+        else:
+            doc.recalculate_totals()
         return doc
 
     def update(self, instance, validated_data):
-        lines_data = validated_data.pop('lines', [])
+        lines_data = validated_data.pop('lines', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         
-        instance.lines.all().delete()
-        for line_data in lines_data:
-            if 'id' in line_data: del line_data['id']
-            SalesOrderLine.objects.create(document=instance, **line_data)
-            
-        instance.recalculate_totals()
+        if lines_data is not None:
+            instance.lines.all().delete()
+            for line_data in lines_data:
+                if 'id' in line_data:
+                    del line_data['id']
+                SalesOrderLine.objects.create(document=instance, **line_data)
+
+            if lines_data:
+                instance.refresh_from_db()
+            else:
+                instance.recalculate_totals()
         return instance
 
 
@@ -722,19 +737,26 @@ class TransferDocumentCreateUpdateSerializer(serializers.ModelSerializer):
         
         for line_data in lines_data:
             TransferDocumentLine.objects.create(document=doc, **line_data)
-        
+
+        if lines_data:
+            doc.refresh_from_db()
         return doc
     
     def update(self, instance, validated_data):
-        lines_data = validated_data.pop('lines', [])
+        lines_data = validated_data.pop('lines', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         
-        instance.lines.all().delete()
-        for line_data in lines_data:
-            if 'id' in line_data: del line_data['id']
-            TransferDocumentLine.objects.create(document=instance, **line_data)
+        if lines_data is not None:
+            instance.lines.all().delete()
+            for line_data in lines_data:
+                if 'id' in line_data:
+                    del line_data['id']
+                TransferDocumentLine.objects.create(document=instance, **line_data)
+
+            if lines_data:
+                instance.refresh_from_db()
         
         return instance
 
@@ -789,10 +811,11 @@ class InventoryDocumentCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = InventoryDocument
         fields = [
-            'number', 'date', 'comment',
+            'id', 'number', 'date', 'comment',
             'warehouse', 'responsible',
             'lines'
         ]
+        read_only_fields = ['id']
     
     def create(self, validated_data):
         lines_data = validated_data.pop('lines', [])
@@ -803,20 +826,26 @@ class InventoryDocumentCreateUpdateSerializer(serializers.ModelSerializer):
         
         for line_data in lines_data:
             InventoryDocumentLine.objects.create(document=doc, **line_data)
-        
+
+        if lines_data:
+            doc.refresh_from_db()
         return doc
     
     def update(self, instance, validated_data):
-        lines_data = validated_data.pop('lines', [])
+        lines_data = validated_data.pop('lines', None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        
-        instance.lines.all().delete()
-        for line_data in lines_data:
-            if 'id' in line_data: del line_data['id']
-            InventoryDocumentLine.objects.create(document=instance, **line_data)
-        
+
+        if lines_data is not None:
+            instance.lines.all().delete()
+            for line_data in lines_data:
+                if 'id' in line_data:
+                    del line_data['id']
+                InventoryDocumentLine.objects.create(document=instance, **line_data)
+
+            if lines_data:
+                instance.refresh_from_db()
         return instance
 
 
