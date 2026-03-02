@@ -504,7 +504,7 @@ export function SalesOrderForm({ initialData, mode }: SalesOrderFormProps) {
                 </div>
 
                 {/* Table */}
-                <div className="flex-1 overflow-auto bg-white dark:bg-zinc-950 relative">
+                <div className="flex-1 overflow-auto bg-background dark:bg-zinc-950 relative">
                     <DataTable
                         columns={columns}
                         data={lines}

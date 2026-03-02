@@ -32,7 +32,7 @@ interface AgedDebtorRow {
 }
 
 const buttonClassName =
-  'h-9 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]';
+  'h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]';
 
 function allocateBuckets(counterpartyId: number, total: number) {
   const buckets = {
@@ -153,8 +153,8 @@ export default function AgedDebtorsPage() {
         <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">←</button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">→</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">←</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">→</button>
             </div>
             <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
             <h1 className="text-[18px] font-medium text-black">Дебеторы со сроком</h1>
@@ -178,13 +178,13 @@ export default function AgedDebtorsPage() {
               type="date"
               value={requestDate}
               onChange={(event) => setRequestDate(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white shadow-none focus-visible:ring-0"
+              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">Валюта:</span>
             <select
               value={currencyCode}
               onChange={(event) => setCurrencyCode(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white px-2 text-sm"
+              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background px-2 text-sm"
             >
               <option value="USD">USD</option>
               <option value="UZS">UZS</option>
@@ -198,8 +198,8 @@ export default function AgedDebtorsPage() {
                 onClick={() => setDays(value)}
                 className={`h-9 border px-3 text-sm ${
                   days === value
-                    ? 'border-[#76b46f] bg-[#eef9ee] text-[#198f38]'
-                    : 'border-[#bcbcbc] bg-white'
+                    ? 'border-[#76b46f] bg-emerald-50 dark:bg-emerald-950 text-[#198f38]'
+                    : 'border-[#bcbcbc] bg-background'
                 }`}
               >
                 {value}
@@ -212,7 +212,7 @@ export default function AgedDebtorsPage() {
             <select
               value={counterpartyId}
               onChange={(event) => setCounterpartyId(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-white px-2 text-sm"
+              className="h-9 rounded-none border border-[#bcbcbc] bg-background px-2 text-sm"
             >
               <option value=""> </option>
               {counterparties.map((counterparty) => (
@@ -226,8 +226,8 @@ export default function AgedDebtorsPage() {
               onClick={() => setPositionMode('start')}
               className={`h-9 border px-3 text-sm ${
                 positionMode === 'start'
-                  ? 'border-[#76b46f] bg-[#eef9ee] text-[#198f38]'
-                  : 'border-[#bcbcbc] bg-white'
+                  ? 'border-[#76b46f] bg-emerald-50 dark:bg-emerald-950 text-[#198f38]'
+                  : 'border-[#bcbcbc] bg-background'
               }`}
             >
               С начала
@@ -237,8 +237,8 @@ export default function AgedDebtorsPage() {
               onClick={() => setPositionMode('end')}
               className={`h-9 w-fit border px-3 text-sm ${
                 positionMode === 'end'
-                  ? 'border-[#76b46f] bg-[#eef9ee] text-[#198f38]'
-                  : 'border-[#bcbcbc] bg-white'
+                  ? 'border-[#76b46f] bg-emerald-50 dark:bg-emerald-950 text-[#198f38]'
+                  : 'border-[#bcbcbc] bg-background'
               }`}
             >
               С конца
@@ -286,7 +286,7 @@ export default function AgedDebtorsPage() {
                   return (
                     <tr
                       key={row.counterpartyId}
-                      className="bg-white hover:bg-[#fbf7da]"
+                      className="bg-background hover:bg-[#fbf7da]"
                       onClick={() => setSelectedRowId(row.counterpartyId)}
                       onDoubleClick={() => router.push(`/directories/counterparties/${row.counterpartyId}`)}
                     >

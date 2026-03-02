@@ -133,7 +133,7 @@ export default function SalesReportsMenuPage() {
           type="button"
           variant="outline"
           size="icon"
-          className="h-8 w-8 rounded-none border-[#9e9e9e] bg-[#f5f5f5] text-black shadow-none"
+          className="h-8 w-8 rounded-none border-[#9e9e9e] bg-muted/50 text-black shadow-none"
         >
           <PiCaretLeftBold className="h-4 w-4" />
         </Button>
@@ -141,7 +141,7 @@ export default function SalesReportsMenuPage() {
           type="button"
           variant="outline"
           size="icon"
-          className="h-8 w-8 rounded-none border-[#9e9e9e] bg-[#f5f5f5] text-black shadow-none"
+          className="h-8 w-8 rounded-none border-[#9e9e9e] bg-muted/50 text-black shadow-none"
         >
           <PiCaretRightBold className="h-4 w-4" />
         </Button>
@@ -164,7 +164,7 @@ export default function SalesReportsMenuPage() {
                 onDoubleClick={() => openReport(option.href)}
                 className={cn(
                   'flex w-full max-w-[360px] items-center gap-3 border border-transparent px-3 py-1 text-left text-[18px] leading-8 outline-none',
-                  isSelected && 'border-dotted border-black bg-white',
+                  isSelected && 'border-dotted border-black bg-background',
                 )}
               >
                 <span className="w-5 text-center">

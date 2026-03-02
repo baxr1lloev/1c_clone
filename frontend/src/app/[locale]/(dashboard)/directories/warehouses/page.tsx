@@ -158,7 +158,7 @@ export default function WarehousesPage() {
             </button>
             <button
               type="button"
-              className="h-10 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
+              className="h-10 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]"
               onClick={() => selectedWarehouse && router.push(localePath(`/directories/warehouses/${selectedWarehouse.id}`))}
               disabled={!selectedWarehouse}
             >
@@ -166,14 +166,14 @@ export default function WarehousesPage() {
             </button>
             <button
               type="button"
-              className="h-10 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3] disabled:opacity-50"
+              className="h-10 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3] disabled:opacity-50"
               onClick={() => refetch()}
             >
               Обновить
             </button>
             <button
               type="button"
-              className="h-10 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3] disabled:opacity-50"
+              className="h-10 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3] disabled:opacity-50"
               onClick={() => selectedWarehouse && deleteMutation.mutate(selectedWarehouse.id)}
               disabled={!selectedWarehouse || deleteMutation.isPending}
             >
@@ -185,11 +185,11 @@ export default function WarehousesPage() {
                 value={searchValue}
                 onChange={(event) => setSearchValue(event.target.value)}
                 placeholder="Поиск (Ctrl+F)"
-                className="h-10 w-[300px] rounded-none border border-[#bcbcbc] bg-white px-3 text-sm"
+                className="h-10 w-[300px] rounded-none border border-[#bcbcbc] bg-background px-3 text-sm"
               />
               <button
                 type="button"
-                className="h-10 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
+                className="h-10 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]"
               >
                 Еще ▾
               </button>
@@ -229,7 +229,7 @@ export default function WarehousesPage() {
                   return (
                     <tr
                       key={warehouse.id}
-                      className={isSelected ? 'bg-[#f8efba]' : 'bg-white hover:bg-[#fbf7da]'}
+                      className={isSelected ? 'bg-[#f8efba]' : 'bg-background hover:bg-[#fbf7da]'}
                       onClick={() => setSelectedWarehouseId(warehouse.id)}
                       onDoubleClick={() => router.push(localePath(`/directories/warehouses/${warehouse.id}`))}
                     >

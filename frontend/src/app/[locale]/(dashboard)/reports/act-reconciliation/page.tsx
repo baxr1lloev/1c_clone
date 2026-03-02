@@ -25,7 +25,7 @@ interface ReconciliationRow {
 }
 
 const buttonClassName =
-  'h-9 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]';
+  'h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]';
 
 function formatDate(value?: string | null): string {
   if (!value) return '';
@@ -173,8 +173,8 @@ export default function ActReconciliationPage() {
         <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">←</button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">→</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">←</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">→</button>
             </div>
             <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
             <h1 className="text-[18px] font-medium text-black">Акт сверки</h1>
@@ -194,21 +194,21 @@ export default function ActReconciliationPage() {
             <Input
               value=""
               readOnly
-              className="h-9 w-[140px] rounded-none border border-[#bcbcbc] bg-white shadow-none focus-visible:ring-0"
+              className="h-9 w-[140px] rounded-none border border-[#bcbcbc] bg-background shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">Период с:</span>
             <Input
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white shadow-none focus-visible:ring-0"
+              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">по:</span>
             <Input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white shadow-none focus-visible:ring-0"
+              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background shadow-none focus-visible:ring-0"
             />
             {[
               { id: 'all' as const, label: 'Все' },
@@ -222,8 +222,8 @@ export default function ActReconciliationPage() {
                 onClick={() => setPartyFilter(option.id)}
                 className={`h-9 border px-3 text-sm ${
                   partyFilter === option.id
-                    ? 'border-[#76b46f] bg-[#eef9ee] text-[#198f38]'
-                    : 'border-[#bcbcbc] bg-white'
+                    ? 'border-[#76b46f] bg-emerald-50 dark:bg-emerald-950 text-[#198f38]'
+                    : 'border-[#bcbcbc] bg-background'
                 }`}
               >
                 {option.label}
@@ -239,7 +239,7 @@ export default function ActReconciliationPage() {
             <select
               value={counterpartyId}
               onChange={(event) => setCounterpartyId(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-white px-2 text-sm"
+              className="h-9 rounded-none border border-[#bcbcbc] bg-background px-2 text-sm"
             >
               <option value=""> </option>
               {counterparties.map((counterparty) => (
@@ -256,7 +256,7 @@ export default function ActReconciliationPage() {
         </div>
 
         <div className="h-[calc(100%-118px)] overflow-auto px-2 py-3">
-          <div className="mb-3 border border-[#bdbdbd] bg-white p-4">
+          <div className="mb-3 border border-[#bdbdbd] bg-background p-4">
             <div className="mb-4 text-center text-[16px] font-semibold text-black">
               АКТ СВЕРКИ ВЗАИМОРАСЧЕТОВ
             </div>
@@ -286,7 +286,7 @@ export default function ActReconciliationPage() {
                     return (
                       <tr
                         key={row.id}
-                        className={isDocument ? 'bg-white hover:bg-[#fbf7da]' : 'bg-white'}
+                        className={isDocument ? 'bg-background hover:bg-[#fbf7da]' : 'bg-background'}
                         onClick={() => setSelectedRowId(row.id)}
                         onDoubleClick={() => {
                           if (isDocument && row.documentId) {

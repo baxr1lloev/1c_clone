@@ -92,7 +92,7 @@ export default function PurchaseDocumentDetailPage() {
 
     return (
       <div className="flex h-full items-center justify-center bg-background px-6 py-10">
-        <div className="w-full max-w-xl rounded-lg border border-[#d7d7d7] bg-white p-6 text-[#2f2f2f] shadow-sm">
+        <div className="w-full max-w-xl rounded-lg border border-[#d7d7d7] bg-background p-6 text-[#2f2f2f] shadow-sm">
           <h1 className="text-xl font-semibold">{title}</h1>
           <p className="mt-3 text-sm text-[#666]">{description}</p>
 

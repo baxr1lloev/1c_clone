@@ -259,19 +259,19 @@ export function CashOrderForm({
     : directionOptions[0];
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#efefef] p-3 text-[#1f2937]">
-      <div className="rounded-sm border border-[#bfc4cc] bg-white">
-        <div className="flex items-center gap-2 border-b border-[#d6d6d6] px-4 py-3">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#efefef] p-3 text-foreground">
+      <div className="rounded-sm border border-[#bfc4cc] bg-background">
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-[#b8b8b8] bg-white"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-border bg-background"
             onClick={() => router.back()}
           >
             <PiArrowLeftBold className="h-4 w-4" />
           </button>
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-[#b8b8b8] bg-white"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-border bg-background"
             onClick={() => router.forward()}
           >
             <PiArrowRightBold className="h-4 w-4" />
@@ -332,7 +332,7 @@ export function CashOrderForm({
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                className="h-10 rounded-sm border-border bg-background px-5"
                 onClick={() => saveMutation.mutate(formData)}
                 disabled={!canEdit || saveMutation.isPending}
               >
@@ -341,7 +341,7 @@ export function CashOrderForm({
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                className="h-10 rounded-sm border-border bg-background px-5"
                 onClick={() => postMutation.mutate()}
                 disabled={mode === "create" || isPosted || postMutation.isPending}
               >
@@ -350,7 +350,7 @@ export function CashOrderForm({
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                className="h-10 rounded-sm border-border bg-background px-5"
                 onClick={() => setPrintOpen(true)}
               >
                 <PiPrinterBold className="mr-2 h-4 w-4" />
@@ -360,7 +360,7 @@ export function CashOrderForm({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                  className="h-10 rounded-sm border-border bg-background px-5"
                   onClick={() => unpostMutation.mutate()}
                   disabled={unpostMutation.isPending}
                 >
@@ -379,7 +379,7 @@ export function CashOrderForm({
                     setFormData((current) => ({ ...current, number: event.target.value }))
                   }
                   disabled={!canEdit}
-                  className="h-9 rounded-sm border-[#b8b8b8] bg-white font-mono"
+                  className="h-9 rounded-sm border-border bg-background font-mono"
                 />
               </div>
 
@@ -404,7 +404,7 @@ export function CashOrderForm({
                     setFormData((current) => ({ ...current, cash_desk: event.target.value }))
                   }
                   disabled={!canEdit}
-                  className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                  className="h-9 rounded-sm border-border bg-background"
                 />
               </div>
             </div>
@@ -415,7 +415,7 @@ export function CashOrderForm({
                 <select
                   value={normalizedDirection}
                   onChange={(event) => setDirectionLabel(event.target.value)}
-                  className="h-9 rounded-sm border border-[#b8b8b8] bg-white px-3 text-sm outline-none"
+                  className="h-9 rounded-sm border border-border bg-background px-3 text-sm outline-none"
                 >
                   {directionOptions.map((option) => (
                     <option key={option} value={option}>
@@ -430,7 +430,7 @@ export function CashOrderForm({
                 <Input
                   value={formData.cash_desk || ""}
                   readOnly
-                  className="h-9 rounded-sm border-[#b8b8b8] bg-[#f8f8f8]"
+                  className="h-9 rounded-sm border-border bg-[#f8f8f8]"
                 />
               </div>
 
@@ -441,7 +441,7 @@ export function CashOrderForm({
                     "h-9 rounded-sm border px-3 py-2 text-sm",
                     isPosted
                       ? "border-[#9ec99e] bg-[#f1fbf1] text-[#2d7a2d]"
-                      : "border-[#d7c37a] bg-[#fff8de] text-[#6c5b1f]",
+                      : "border-accent bg-[#fff8de] text-accent-foreground",
                   )}
                 >
                   {isPosted ? "Проведен" : "Черновик"}
@@ -460,11 +460,11 @@ export function CashOrderForm({
                   apiEndpoint="/directories/counterparties/"
                   placeholder="Выберите контрагента"
                   disabled={!canEdit}
-                  className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                  className="h-9 rounded-sm border-border bg-background"
                 />
               </div>
 
-              <div className="rounded-sm border border-[#b8b8b8] bg-[#f8f8f8] px-3 py-2 text-sm">
+              <div className="rounded-sm border border-border bg-[#f8f8f8] px-3 py-2 text-sm">
                 {normalizedDirection === "Покупатель" ? "Покупатели" : normalizedDirection}
               </div>
             </div>
@@ -481,19 +481,19 @@ export function CashOrderForm({
                   }))
                 }
                 disabled={!canEdit}
-                className="h-9 rounded-sm border-[#b8b8b8] bg-white text-right font-mono"
+                className="h-9 rounded-sm border-border bg-background text-right font-mono"
               />
               <div className="text-sm">Всего:</div>
               <Input
                 value={totalAmount.toFixed(2)}
                 readOnly
-                className="h-9 rounded-sm border-[#b8b8b8] bg-[#f8f8f8] text-right font-mono"
+                className="h-9 rounded-sm border-border bg-[#f8f8f8] text-right font-mono"
               />
               <div className="text-sm">Курс:</div>
               <Input
                 value={rateValue}
                 onChange={(event) => setRateValue(event.target.value)}
-                className="h-9 rounded-sm border-[#b8b8b8] bg-white text-right font-mono"
+                className="h-9 rounded-sm border-border bg-background text-right font-mono"
               />
             </div>
 
@@ -508,7 +508,7 @@ export function CashOrderForm({
                   }))
                 }
                 disabled={!canEdit}
-                className="h-9 rounded-sm border border-[#b8b8b8] bg-white px-3 text-sm outline-none"
+                className="h-9 rounded-sm border border-border bg-background px-3 text-sm outline-none"
               >
                 {currencies.map((currency) => (
                   <option key={currency.id} value={currency.id}>
@@ -523,7 +523,7 @@ export function CashOrderForm({
                   setFormData((current) => ({ ...current, basis: event.target.value }))
                 }
                 disabled={!canEdit}
-                className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                className="h-9 rounded-sm border-border bg-background"
               />
             </div>
 
@@ -535,13 +535,13 @@ export function CashOrderForm({
                   setFormData((current) => ({ ...current, purpose: event.target.value }))
                 }
                 disabled={!canEdit}
-                className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                className="h-9 rounded-sm border-border bg-background"
               />
               <div className="text-sm">Организация:</div>
               <Input
                 value={DEFAULT_DEPARTMENT}
                 readOnly
-                className="h-9 rounded-sm border-[#b8b8b8] bg-[#f8f8f8]"
+                className="h-9 rounded-sm border-border bg-[#f8f8f8]"
               />
             </div>
 
@@ -550,13 +550,13 @@ export function CashOrderForm({
               <Input
                 value="Admin"
                 readOnly
-                className="h-9 rounded-sm border-[#b8b8b8] bg-[#f8f8f8]"
+                className="h-9 rounded-sm border-border bg-[#f8f8f8]"
               />
               <div className="text-sm">Подразделение:</div>
               <Input
                 value={DEFAULT_DEPARTMENT}
                 readOnly
-                className="h-9 rounded-sm border-[#b8b8b8] bg-[#f8f8f8]"
+                className="h-9 rounded-sm border-border bg-[#f8f8f8]"
               />
             </div>
           </div>
@@ -565,7 +565,7 @@ export function CashOrderForm({
             {initialData?.id ? (
               <DocumentPostings documentId={initialData.id} endpoint="cash-orders" />
             ) : (
-              <div className="rounded-sm border border-[#d0d0d0] bg-[#fafafa] p-6 text-center text-sm text-muted-foreground">
+              <div className="rounded-sm border border-border bg-card p-6 text-center text-sm text-muted-foreground">
                 Сохраните документ, чтобы посмотреть проводки.
               </div>
             )}

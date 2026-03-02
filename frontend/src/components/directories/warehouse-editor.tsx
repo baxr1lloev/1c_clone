@@ -249,12 +249,12 @@ export function WarehouseEditor({
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm"
+                className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm"
                 onClick={() => router.push(localePath("/directories/warehouses"))}
               >
                 ←
               </button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">
                 →
               </button>
             </div>
@@ -284,7 +284,7 @@ export function WarehouseEditor({
             </button>
             <button
               type="button"
-              className="h-10 rounded-sm border border-[#bcbcbc] bg-white px-5 text-sm text-black hover:bg-[#f3f3f3]"
+              className="h-10 rounded-sm border border-[#bcbcbc] bg-background px-5 text-sm text-black hover:bg-[#f3f3f3]"
               onClick={() => {
                 setSaveMode("stay");
                 saveMutation.mutate();
@@ -296,7 +296,7 @@ export function WarehouseEditor({
             <div className="ml-auto">
               <button
                 type="button"
-                className="h-10 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
+                className="h-10 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]"
               >
                 Еще ▾
               </button>
@@ -319,7 +319,7 @@ export function WarehouseEditor({
               onChange={(event) =>
                 setFormData((current) => ({ ...current, name: event.target.value }))
               }
-              className="h-11 rounded-none border border-[#e0bd00] bg-white px-3 text-sm shadow-[inset_0_0_0_1px_#f5dd55]"
+              className="h-11 rounded-none border border-[#e0bd00] bg-background px-3 text-sm shadow-[inset_0_0_0_1px_#f5dd55]"
             />
 
             <label className="text-sm">Подразделение:</label>
@@ -328,7 +328,7 @@ export function WarehouseEditor({
                 onChange={(event) =>
                 setUiMetaDraft({ ...uiMeta, department: event.target.value })
               }
-              className="h-11 rounded-none border border-[#bcbcbc] bg-white px-3 text-sm"
+              className="h-11 rounded-none border border-[#bcbcbc] bg-background px-3 text-sm"
             >
               {departmentOptions.map((option) => (
                 <option key={option} value={option}>
@@ -352,7 +352,7 @@ export function WarehouseEditor({
                   counterpartyName: selectedCounterparty?.name || "",
                 });
               }}
-              className="h-11 rounded-none border border-[#bcbcbc] bg-white px-3 text-sm"
+              className="h-11 rounded-none border border-[#bcbcbc] bg-background px-3 text-sm"
             >
               <option value=""> </option>
               {counterparties.map((counterparty) => (
@@ -408,7 +408,7 @@ export function WarehouseEditor({
                   return (
                     <tr
                       key={`${itemId}-${index}`}
-                      className={isSelected ? "bg-[#f8efba]" : "bg-white hover:bg-[#fbf7da]"}
+                      className={isSelected ? "bg-[#f8efba]" : "bg-background hover:bg-[#fbf7da]"}
                       onClick={() => setSelectedBalanceId(itemId)}
                       onDoubleClick={() => {
                         if (itemId) {

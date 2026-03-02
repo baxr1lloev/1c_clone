@@ -205,7 +205,7 @@ export function DataTable<TData, TValue>({
       {/* Table Area */}
       <div
         ref={tableContainerRef}
-        className="relative min-h-[400px] h-[calc(100vh-140px)] overflow-auto bg-white dark:bg-zinc-950 border-b"
+        className="relative min-h-[400px] h-[calc(100vh-140px)] overflow-auto bg-background dark:bg-zinc-950 border-b"
         tabIndex={0} // Make container focusable
       >
         <Table>

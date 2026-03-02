@@ -111,7 +111,7 @@ function GeneralLedgerContent() {
 
       <ReportFilterBar />
 
-      <div className="flex-1 overflow-auto bg-white dark:bg-zinc-950 p-4">
+      <div className="flex-1 overflow-auto bg-background dark:bg-zinc-950 p-4">
         {entries.length > 0 ? (
           <div className="border rounded-md">
             <DataTable

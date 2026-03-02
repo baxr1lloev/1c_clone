@@ -125,10 +125,10 @@ export default function WarehouseMaterialsReportPage() {
         <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">
                 ←
               </button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">
                 →
               </button>
             </div>
@@ -147,7 +147,7 @@ export default function WarehouseMaterialsReportPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
-              className="h-9 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
+              className="h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]"
               onClick={() => refetch()}
             >
               Сформировать
@@ -160,8 +160,8 @@ export default function WarehouseMaterialsReportPage() {
                 type="button"
                 className={`h-9 border px-3 text-sm ${
                   reportType === value
-                    ? "border-[#76b46f] bg-[#eef9ee] text-[#198f38]"
-                    : "border-[#bcbcbc] bg-white"
+                    ? "border-[#76b46f] bg-emerald-50 dark:bg-emerald-950 text-[#198f38]"
+                    : "border-[#bcbcbc] bg-background"
                 }`}
                 onClick={() => setReportType(value)}
               >
@@ -175,8 +175,8 @@ export default function WarehouseMaterialsReportPage() {
                 type="button"
                 className={`h-9 border px-3 text-sm ${
                   metricType === value
-                    ? "border-[#76b46f] bg-[#eef9ee] text-[#198f38]"
-                    : "border-[#bcbcbc] bg-white"
+                    ? "border-[#76b46f] bg-emerald-50 dark:bg-emerald-950 text-[#198f38]"
+                    : "border-[#bcbcbc] bg-background"
                 }`}
                 onClick={() => setMetricType(value)}
               >
@@ -190,8 +190,8 @@ export default function WarehouseMaterialsReportPage() {
                 type="button"
                 className={`h-9 border px-3 text-sm ${
                   packType === value
-                    ? "border-[#76b46f] bg-[#eef9ee] text-[#198f38]"
-                    : "border-[#bcbcbc] bg-white"
+                    ? "border-[#76b46f] bg-emerald-50 dark:bg-emerald-950 text-[#198f38]"
+                    : "border-[#bcbcbc] bg-background"
                 }`}
                 onClick={() => setPackType(value)}
               >
@@ -204,14 +204,14 @@ export default function WarehouseMaterialsReportPage() {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0"
+              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">по:</span>
             <Input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0"
+              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
             />
           </div>
 
@@ -220,7 +220,7 @@ export default function WarehouseMaterialsReportPage() {
             <select
               value={warehouseId}
               onChange={(event) => setWarehouseId(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-white px-2 text-sm"
+              className="h-9 rounded-none border border-[#bcbcbc] bg-background px-2 text-sm"
             >
               <option value=""> </option>
               {warehouses.map((warehouse: { id: number; name: string }) => (
@@ -234,7 +234,7 @@ export default function WarehouseMaterialsReportPage() {
             <select
               value={itemId}
               onChange={(event) => setItemId(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-white px-2 text-sm"
+              className="h-9 rounded-none border border-[#bcbcbc] bg-background px-2 text-sm"
             >
               <option value=""> </option>
               {items.map((item) => (
@@ -268,7 +268,7 @@ export default function WarehouseMaterialsReportPage() {
             <select
               value={currency}
               onChange={(event) => setCurrency(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-white px-2 text-sm"
+              className="h-9 rounded-none border border-[#bcbcbc] bg-background px-2 text-sm"
             >
               <option value="USD">USD</option>
               <option value="UZS">UZS</option>
@@ -316,7 +316,7 @@ export default function WarehouseMaterialsReportPage() {
                         <td className="border border-[#bdbdbd] px-2 py-1 text-center">
                           <button
                             type="button"
-                            className="inline-flex h-5 w-5 items-center justify-center border border-[#ababab] bg-white text-xs"
+                            className="inline-flex h-5 w-5 items-center justify-center border border-[#ababab] bg-background text-xs"
                             onClick={() =>
                               setCollapsedGroups((current) => ({
                                 ...current,
@@ -341,7 +341,7 @@ export default function WarehouseMaterialsReportPage() {
                         group.items.map((row, index) => {
                           const rowKey = `${group.key}-${row.item_id}`;
                           const rowClassName =
-                            selectedRowKey === rowKey ? "bg-[#f8efba]" : "bg-white";
+                            selectedRowKey === rowKey ? "bg-[#f8efba]" : "bg-background";
 
                           return (
                             <tr
@@ -379,7 +379,7 @@ export default function WarehouseMaterialsReportPage() {
               )}
 
               {groupedRows.length > 0 && (
-                <tr className="bg-[#f9f9f9] font-semibold">
+                <tr className="bg-card font-semibold">
                   <td className="border border-[#bdbdbd] px-2 py-2" />
                   <td className="border border-[#bdbdbd] px-3 py-2" colSpan={4}>
                     Итого

@@ -32,7 +32,7 @@ export default function PaymentDocumentDetailPage() {
   if (!Number.isFinite(id) || id <= 0) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-6">
-        <div className="rounded-sm border border-[#c8c8c8] bg-white p-6 text-center">
+        <div className="rounded-sm border border-border bg-background p-6 text-center">
           <div className="mb-4 text-lg font-semibold">Неверный номер документа</div>
           <Button onClick={() => router.push(localePath("/documents/payments"))}>
             К списку
@@ -53,7 +53,7 @@ export default function PaymentDocumentDetailPage() {
   if (isError || !paymentDocument) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-6">
-        <div className="space-y-4 rounded-sm border border-[#c8c8c8] bg-white p-6 text-center">
+        <div className="space-y-4 rounded-sm border border-border bg-background p-6 text-center">
           <div className="text-lg font-semibold">Документ не найден</div>
           <div className="flex items-center justify-center gap-2">
             <Button

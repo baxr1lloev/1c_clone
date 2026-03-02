@@ -53,13 +53,13 @@ export default function AllFunctionsPage() {
                     placeholder="Поиск функций (например: Продажи, Контрагенты, НДС)..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="max-w-md bg-white dark:bg-zinc-900"
+                    className="max-w-md bg-background dark:bg-zinc-900"
                 />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredConfig.map(group => (
-                    <div key={group.id} className="border rounded-lg bg-white dark:bg-zinc-900 overflow-hidden shadow-sm flex flex-col h-full">
+                    <div key={group.id} className="border rounded-lg bg-background dark:bg-zinc-900 overflow-hidden shadow-sm flex flex-col h-full">
                         <div className={cn(
                             "px-4 py-3 border-b font-bold text-sm uppercase tracking-wide flex items-center gap-2",
                             getGroupColor(group.id)

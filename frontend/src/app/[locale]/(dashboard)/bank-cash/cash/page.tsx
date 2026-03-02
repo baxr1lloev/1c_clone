@@ -284,16 +284,16 @@ export default function CashDirectoryPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#efefef] p-4 text-[#1f2937]">
-      <div className="rounded-sm border border-[#bfc4cc] bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#d6d6d6] px-4 py-3">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#efefef] p-4 text-foreground">
+      <div className="rounded-sm border border-[#bfc4cc] bg-background">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div className="text-[26px] font-semibold tracking-tight">{tNav("cashDirectory")}</div>
           <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+              className="h-9 rounded-sm border-border bg-background"
               onClick={() => openCreateDialog("cash")}
             >
               <PiPlusBold className="mr-2 h-4 w-4" />
@@ -303,7 +303,7 @@ export default function CashDirectoryPage() {
               type="button"
               variant="outline"
               size="sm"
-              className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+              className="h-9 rounded-sm border-border bg-background"
               onClick={handleRefresh}
               disabled={isRefreshing}
             >
@@ -316,7 +316,7 @@ export default function CashDirectoryPage() {
               value={searchValue}
               onChange={(event) => setSearchValue(event.target.value)}
               placeholder="Поиск (Ctrl+F)"
-              className="h-9 w-[260px] rounded-sm border-[#b8b8b8]"
+              className="h-9 w-[260px] rounded-sm border-border"
             />
           </div>
         </div>
@@ -336,8 +336,8 @@ export default function CashDirectoryPage() {
                   className={cn(
                     "h-8 rounded-sm border px-3 text-xs",
                     filter === value
-                      ? "border-[#d7c37a] bg-[#f6e7ab] font-semibold text-[#6c5b1f]"
-                      : "border-[#b8b8b8] bg-white text-[#1f2937]",
+                      ? "border-accent bg-accent font-semibold text-accent-foreground"
+                      : "border-border bg-background text-foreground",
                   )}
                 >
                   {label}
@@ -345,10 +345,10 @@ export default function CashDirectoryPage() {
               ))}
             </div>
 
-            <div className="overflow-auto rounded-sm border border-[#b8b8b8]">
+            <div className="overflow-auto rounded-sm border border-border">
               <table className="w-full min-w-[760px] border-collapse text-sm">
-                <thead className="bg-[#ededed] text-left">
-                  <tr className="[&>th]:border-b [&>th]:border-r [&>th]:border-[#d0d0d0] [&>th]:px-3 [&>th]:py-2 [&>th:last-child]:border-r-0">
+                <thead className="bg-muted text-left">
+                  <tr className="[&>th]:border-b [&>th]:border-r [&>th]:border-border [&>th]:px-3 [&>th]:py-2 [&>th:last-child]:border-r-0">
                     <th className="w-[36px] px-2" />
                     <th>Наименование</th>
                     <th className="w-[90px]">Код</th>
@@ -372,8 +372,8 @@ export default function CashDirectoryPage() {
                         key={item.key}
                         onClick={() => setSelectedKey(item.key)}
                         className={cn(
-                          "cursor-pointer border-b border-[#ececec] hover:bg-[#f8f1ce]",
-                          selectedItem?.key === item.key && "bg-[#f4e8a7]",
+                          "cursor-pointer border-b border-border hover:bg-muted",
+                          selectedItem?.key === item.key && "bg-accent",
                         )}
                       >
                         <td className="px-2 py-2 text-center text-xs text-[#4c87b5]">
@@ -394,7 +394,7 @@ export default function CashDirectoryPage() {
               </table>
             </div>
 
-            <div className="flex items-center justify-between rounded-sm border border-[#d6d6d6] bg-[#fafafa] px-3 py-2 text-sm text-muted-foreground">
+            <div className="flex items-center justify-between rounded-sm border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
               <span>Записей: {filteredItems.length}</span>
               <span>
                 {selectedItem
@@ -404,8 +404,8 @@ export default function CashDirectoryPage() {
             </div>
           </div>
 
-          <div className="rounded-sm border border-[#b8b8b8] bg-white">
-            <div className="border-b border-[#d6d6d6] px-4 py-3 text-lg font-semibold">
+          <div className="rounded-sm border border-border bg-background">
+            <div className="border-b border-border px-4 py-3 text-lg font-semibold">
               Операции
             </div>
             <div className="space-y-1 p-3">
@@ -419,18 +419,18 @@ export default function CashDirectoryPage() {
                     "block w-full rounded-sm border px-3 py-2 text-left text-base",
                     selectedOperation.id === option.id
                       ? "border-[#6b7280] border-dashed bg-[#f7f7f7] font-medium"
-                      : "border-transparent bg-transparent hover:bg-[#f5f5f5]",
+                      : "border-transparent bg-transparent hover:bg-muted/50",
                   )}
                 >
                   {option.label}
                 </button>
               ))}
             </div>
-            <div className="border-t border-[#d6d6d6] px-3 py-3">
+            <div className="border-t border-border px-3 py-3">
               <Button
                 type="button"
                 variant="outline"
-                className="w-full rounded-sm border-[#b8b8b8] bg-white"
+                className="w-full rounded-sm border-border bg-background"
                 onClick={() => openOperation(selectedOperation.href)}
               >
                 Открыть
@@ -445,7 +445,7 @@ export default function CashDirectoryPage() {
           showCloseButton
           className="gap-0 rounded-sm border-[#bababa] bg-[#f7f7f7] p-0 sm:max-w-[640px]"
         >
-          <div className="border-b border-[#d6d6d6] px-5 py-4">
+          <div className="border-b border-border px-5 py-4">
             <DialogHeader className="space-y-0 text-left">
               <DialogTitle className="text-[22px] font-semibold">
                 Касса (создание)
@@ -465,7 +465,7 @@ export default function CashDirectoryPage() {
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                className="h-10 rounded-sm border-border bg-background px-5"
                 onClick={() => handleSaveDraft(false)}
               >
                 {tc("save")}
@@ -478,10 +478,10 @@ export default function CashDirectoryPage() {
                 <Input
                   value={String(draft.code)}
                   readOnly
-                  className="h-9 rounded-sm border-[#b8b8b8] bg-white text-center"
+                  className="h-9 rounded-sm border-border bg-background text-center"
                 />
                 <div className="text-sm">Вид:</div>
-                <div className="flex items-center gap-1 rounded-sm border border-[#b8b8b8] bg-white p-1">
+                <div className="flex items-center gap-1 rounded-sm border border-border bg-background p-1">
                   {([
                     ["cash", "Касса"],
                     ["bank", "Банк"],
@@ -493,8 +493,8 @@ export default function CashDirectoryPage() {
                       className={cn(
                         "h-8 rounded-sm px-4 text-sm",
                         draft.kind === value
-                          ? "bg-[#f6e7ab] font-semibold text-[#6c5b1f]"
-                          : "bg-transparent text-[#1f2937]",
+                          ? "bg-accent font-semibold text-accent-foreground"
+                          : "bg-transparent text-foreground",
                       )}
                     >
                       {label}
@@ -510,7 +510,7 @@ export default function CashDirectoryPage() {
                   onChange={(event) =>
                     setDraft((current) => ({ ...current, name: event.target.value }))
                   }
-                  className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                  className="h-9 rounded-sm border-border bg-background"
                 />
               </div>
 
@@ -524,13 +524,13 @@ export default function CashDirectoryPage() {
                       department: event.target.value,
                     }))
                   }
-                  className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                  className="h-9 rounded-sm border-border bg-background"
                 />
               </div>
             </div>
           </div>
 
-          <DialogFooter className="border-t border-[#d6d6d6] bg-[#f7f7f7] px-5 py-4" />
+          <DialogFooter className="border-t border-border bg-[#f7f7f7] px-5 py-4" />
         </DialogContent>
       </Dialog>
     </div>

@@ -741,7 +741,7 @@ function BaseQtyCell({ row, activeCell, isPosted, onUpdate }: { row: PurchaseLin
                 step="0.001"
                 min="0"
                 disabled={isPosted}
-                className={cn("h-8 w-20 text-right px-1 border-transparent focus:border-transparent focus:ring-0 rounded-none bg-transparent hover:bg-muted/10 transition-colors", activeCell?.row === row.index && activeCell?.col === 'quantity' && "bg-white ring-2 ring-primary z-20 relative font-bold")}
+                className={cn("h-8 w-20 text-right px-1 border-transparent focus:border-transparent focus:ring-0 rounded-none bg-transparent hover:bg-muted/10 transition-colors", activeCell?.row === row.index && activeCell?.col === 'quantity' && "bg-background ring-2 ring-primary z-20 relative font-bold")}
                 value={row.original.quantity}
                 // onKeyDown handled in parent
                 onFocus={(e) => e.target.select()}
@@ -2002,7 +2002,7 @@ export function PurchaseDocumentForm({ initialData, mode }: PurchaseDocumentForm
                     id={`p-cell-${row.index}-price`}
                     type="number"
                     disabled={isPosted}
-                    className={cn("h-8 w-full text-right px-1 border-transparent focus:border-transparent focus:ring-0 rounded-none bg-transparent hover:bg-muted/10 transition-colors", activeCell?.row === row.index && activeCell?.col === 'price' && "bg-white ring-2 ring-primary z-20 relative font-bold")}
+                    className={cn("h-8 w-full text-right px-1 border-transparent focus:border-transparent focus:ring-0 rounded-none bg-transparent hover:bg-muted/10 transition-colors", activeCell?.row === row.index && activeCell?.col === 'price' && "bg-background ring-2 ring-primary z-20 relative font-bold")}
                     value={row.original.price}
                     onKeyDown={(e) => handleCellKeyDown(e, row.index, 'price')}
                     onFocus={() => setActiveCell({ row: row.index, col: 'price' })}
@@ -2341,7 +2341,7 @@ export function PurchaseDocumentForm({ initialData, mode }: PurchaseDocumentForm
                 <CommandBar mainActions={actions} className={cn("border-b shrink-0", mode === "create" && "hidden")} />
 
                 {mode === "create" && (
-                    <div className="flex-1 overflow-hidden bg-white">
+                    <div className="flex-1 overflow-hidden bg-background">
                         <div className="border-b px-4 py-3">
                             <div className="flex flex-wrap items-center gap-2">
                                 <Button type="button" variant="outline" size="sm" onClick={() => setLines((prev) => [...prev, createEmptyLine()])}>
@@ -2643,7 +2643,7 @@ export function PurchaseDocumentForm({ initialData, mode }: PurchaseDocumentForm
                     />
                 </div>
 
-                <div className={cn("flex-1 overflow-auto bg-white dark:bg-zinc-950 relative data-table", mode === "create" && "hidden")}>
+                <div className={cn("flex-1 overflow-auto bg-background dark:bg-zinc-950 relative data-table", mode === "create" && "hidden")}>
                     <DataTable
                         columns={columns}
                         data={lines}

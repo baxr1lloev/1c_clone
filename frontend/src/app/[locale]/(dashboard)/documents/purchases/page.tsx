@@ -289,7 +289,7 @@ export default function PurchasesPage() {
               <Input
                 value={searchValue}
                 onChange={(event) => setSearchValue(event.target.value)}
-                className="h-8 w-[240px] border-[#cfcfcf] bg-white pl-8 text-sm"
+                className="h-8 w-[240px] border-[#cfcfcf] bg-background pl-8 text-sm"
                 placeholder="Поиск (Ctrl+F)"
               />
             </div>
@@ -300,17 +300,17 @@ export default function PurchasesPage() {
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Button type="button" variant="outline" className="h-8 bg-white" onClick={() => router.push('/documents/purchases/new')}>
+          <Button type="button" variant="outline" className="h-8 bg-background" onClick={() => router.push('/documents/purchases/new')}>
             <PiPlusBold className="h-4 w-4" />
             Создать
           </Button>
-          <Button type="button" variant="outline" className="h-8 bg-white" onClick={() => setIsReportsOpen(true)}>
+          <Button type="button" variant="outline" className="h-8 bg-background" onClick={() => setIsReportsOpen(true)}>
             РћС‚С‡РµС‚С‹
           </Button>
           <Button
             type="button"
             variant="outline"
-            className="h-8 bg-white"
+            className="h-8 bg-background"
             onClick={handleOpenSelected}
             disabled={!selectedRow}
           >
@@ -320,7 +320,7 @@ export default function PurchasesPage() {
           <Button
             type="button"
             variant="outline"
-            className="h-8 bg-white"
+            className="h-8 bg-background"
             onClick={() => toast.info('Печать будет открываться из карточки документа.')}
           >
             <PiPrinterBold className="h-4 w-4" />
@@ -332,7 +332,7 @@ export default function PurchasesPage() {
           <span className="shrink-0 text-[#666]">Ссылка:</span>
           <button
             type="button"
-            className="flex h-8 min-w-0 flex-1 items-center rounded border border-[#cfcfcf] bg-white px-2 text-left hover:border-[#b9b9b9]"
+            className="flex h-8 min-w-0 flex-1 items-center rounded border border-[#cfcfcf] bg-background px-2 text-left hover:border-[#b9b9b9]"
             onClick={handleOpenSelected}
             disabled={!selectedRow}
           >
@@ -346,7 +346,7 @@ export default function PurchasesPage() {
       </div>
 
       <div className="flex-1 overflow-hidden p-3">
-        <div className="flex h-full flex-col overflow-hidden rounded border border-[#cfcfcf] bg-white">
+        <div className="flex h-full flex-col overflow-hidden rounded border border-[#cfcfcf] bg-background">
           <div className="grid grid-cols-[40px_180px_100px_minmax(220px,1fr)_220px_90px_140px] border-b border-[#cfcfcf] bg-[#f3f3f3] text-xs font-medium text-[#575757]">
             <div className="px-2 py-2"> </div>
             <div className="border-l border-[#d8d8d8] px-2 py-2">Дата</div>
@@ -382,9 +382,9 @@ export default function PurchasesPage() {
                     key={row.id}
                     type="button"
                     className={cn(
-                      'grid w-full grid-cols-[40px_180px_100px_minmax(220px,1fr)_220px_90px_140px] border-b border-[#ececec] text-left text-sm',
-                      'hover:bg-[#f8f1ce]',
-                      isSelected && 'bg-[#f4e8a7]',
+                      'grid w-full grid-cols-[40px_180px_100px_minmax(220px,1fr)_220px_90px_140px] border-b border-border text-left text-sm',
+                      'hover:bg-muted',
+                      isSelected && 'bg-accent',
                     )}
                     onClick={() => setSelectedId(row.id)}
                     onDoubleClick={() => router.push(`/documents/purchases/${row.id}`)}
@@ -439,8 +439,8 @@ export default function PurchasesPage() {
               type="button"
               className={`block w-full px-3 py-2 text-left text-[16px] ${
                 selectedReport === 'stock'
-                  ? 'bg-white outline outline-1 outline-[#3a3a3a] outline-dotted'
-                  : 'hover:bg-[#f8f1ce]'
+                  ? 'bg-background outline outline-1 outline-[#3a3a3a] outline-dotted'
+                  : 'hover:bg-muted'
               }`}
               onClick={() => setSelectedReport('stock')}
               onDoubleClick={() => {
@@ -455,8 +455,8 @@ export default function PurchasesPage() {
               type="button"
               className={`block w-full px-3 py-2 text-left text-[16px] ${
                 selectedReport === 'settlements'
-                  ? 'bg-white outline outline-1 outline-[#3a3a3a] outline-dotted'
-                  : 'hover:bg-[#f8f1ce]'
+                  ? 'bg-background outline outline-1 outline-[#3a3a3a] outline-dotted'
+                  : 'hover:bg-muted'
               }`}
               onClick={() => setSelectedReport('settlements')}
               onDoubleClick={() => {
@@ -471,7 +471,7 @@ export default function PurchasesPage() {
             <div className="mt-4 flex justify-end gap-2">
               <button
                 type="button"
-                className="h-9 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
+                className="h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]"
                 onClick={() => setIsReportsOpen(false)}
               >
                 Закрыть

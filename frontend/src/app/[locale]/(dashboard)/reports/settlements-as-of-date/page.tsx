@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import api from "@/lib/api"
 import type { Counterparty, PaginatedResponse } from "@/types"
 
-const buttonClassName = "h-9 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
+const buttonClassName = "h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]"
 
 type SettlementRow = {
   counterparty_id: number
@@ -66,8 +66,8 @@ export default function SettlementsAsOfDatePage() {
         <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">←</button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">→</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">←</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">→</button>
             </div>
             <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
             <h1 className="text-[18px] font-medium text-black">Отчет по поставщикам</h1>
@@ -79,17 +79,17 @@ export default function SettlementsAsOfDatePage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" className={buttonClassName} onClick={() => refetch()}>Сформировать</Button>
             <span className="text-sm">Период с:</span>
-            <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0" />
+            <Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0" />
             <span className="text-sm">по:</span>
-            <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0" />
+            <Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0" />
             {["Сальдовая", "Оборотно-сальдовая"].map((value) => (
-              <button key={value} type="button" className={`h-9 border px-3 text-sm ${reportType === value ? "border-[#76b46f] bg-[#eef9ee] text-[#198f38]" : "border-[#bcbcbc] bg-white"}`} onClick={() => setReportType(value)}>{value}</button>
+              <button key={value} type="button" className={`h-9 border px-3 text-sm ${reportType === value ? "border-[#76b46f] bg-emerald-50 dark:bg-emerald-950 text-[#198f38]" : "border-[#bcbcbc] bg-background"}`} onClick={() => setReportType(value)}>{value}</button>
             ))}
           </div>
 
           <div className="grid grid-cols-[110px_360px] items-center gap-2">
             <span className="text-sm">Контрагент:</span>
-            <select value={counterpartyId} onChange={(event) => setCounterpartyId(event.target.value)} className="h-9 rounded-none border border-[#bcbcbc] bg-white px-2 text-sm">
+            <select value={counterpartyId} onChange={(event) => setCounterpartyId(event.target.value)} className="h-9 rounded-none border border-[#bcbcbc] bg-background px-2 text-sm">
               <option value=""> </option>
               {counterparties.map((counterparty) => <option key={counterparty.id} value={String(counterparty.id)}>{counterparty.name}</option>)}
             </select>
@@ -131,7 +131,7 @@ export default function SettlementsAsOfDatePage() {
                   return (
                     <tr
                       key={row.counterparty_id}
-                      className="bg-white hover:bg-[#fbf7da]"
+                      className="bg-background hover:bg-[#fbf7da]"
                       onClick={() => setSelectedCounterpartyRowId(row.counterparty_id)}
                       onDoubleClick={() =>
                         router.push(`/directories/counterparties/${row.counterparty_id}`)

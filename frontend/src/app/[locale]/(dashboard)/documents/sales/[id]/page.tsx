@@ -417,10 +417,10 @@ export default function LiveSalesDocumentPage() {
             <Card className="bg-gray-50">
                 <CardContent className="pt-4">
                     <div className="text-xs text-muted-foreground grid grid-cols-4 gap-2">
-                        <div><kbd className="px-2 py-1 bg-white border rounded">F9</kbd> {tDetail('shortcuts.post')}</div>
-                        <div><kbd className="px-2 py-1 bg-white border rounded">Ins</kbd> {tDetail('shortcuts.addLine')}</div>
-                        <div><kbd className="px-2 py-1 bg-white border rounded">Del</kbd> {tDetail('shortcuts.deleteLine')}</div>
-                        <div><kbd className="px-2 py-1 bg-white border rounded">Ctrl+S</kbd> {tDetail('shortcuts.save')}</div>
+                        <div><kbd className="px-2 py-1 bg-background border rounded">F9</kbd> {tDetail('shortcuts.post')}</div>
+                        <div><kbd className="px-2 py-1 bg-background border rounded">Ins</kbd> {tDetail('shortcuts.addLine')}</div>
+                        <div><kbd className="px-2 py-1 bg-background border rounded">Del</kbd> {tDetail('shortcuts.deleteLine')}</div>
+                        <div><kbd className="px-2 py-1 bg-background border rounded">Ctrl+S</kbd> {tDetail('shortcuts.save')}</div>
                     </div>
                 </CardContent>
             </Card>

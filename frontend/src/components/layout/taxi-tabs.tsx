@@ -134,9 +134,9 @@ export function TaxiTabs() {
       <div
         onClick={() => router.push("/")}
         className={cn(
-          "flex items-center justify-center h-7 w-7 rounded-sm cursor-pointer transition-colors text-muted-foreground hover:bg-white hover:text-black mb-0.5 ml-1",
+          "flex items-center justify-center h-7 w-7 rounded-sm cursor-pointer transition-colors text-muted-foreground hover:bg-background hover:text-black mb-0.5 ml-1",
           pathname === "/" &&
-            "bg-white text-orange-600 shadow-sm ring-1 ring-black/5",
+            "bg-background text-orange-600 shadow-sm ring-1 ring-black/5",
         )}
         title={tNav("main")}
       >
@@ -157,7 +157,7 @@ export function TaxiTabs() {
               "group flex items-center gap-2 px-3 h-8 text-xs font-medium cursor-pointer transition-all whitespace-nowrap min-w-30 max-w-55 -mb-px z-10 relative",
               isActive
                 ? "bg-[#FFEFAD] border-[#F0B000] text-black shadow-[0_-2px_5px_rgba(0,0,0,0.05)]" // 1C Active Yellow
-                : "bg-white border-transparent text-muted-foreground hover:bg-gray-50 border-gray-200 mt-1 h-7",
+                : "bg-background border-transparent text-muted-foreground hover:bg-gray-50 border-gray-200 mt-1 h-7",
             )}
             onAuxClick={(e) => {
               // Middle click to close

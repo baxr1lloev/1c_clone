@@ -9,7 +9,7 @@ import api from "@/lib/api"
 import type { Item, PaginatedResponse } from "@/types"
 
 const buttonClassName =
-  "h-9 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
+  "h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]"
 
 type DirectoryRow =
   | { kind: "group"; key: string; categoryId: string; name: string; code: string }
@@ -108,8 +108,8 @@ export default function ItemsPage() {
         <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">←</button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">→</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">←</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">→</button>
             </div>
             <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
             <h1 className="text-[18px] font-medium text-black">Номенклатура</h1>
@@ -138,7 +138,7 @@ export default function ItemsPage() {
           </Button>
           <button
             type="button"
-            className="h-9 w-9 border border-[#bcbcbc] bg-white text-[#4a84c6]"
+            className="h-9 w-9 border border-[#bcbcbc] bg-background text-[#4a84c6]"
             onClick={() => refetch()}
           >
             ⟳
@@ -157,11 +157,11 @@ export default function ItemsPage() {
               value={searchValue}
               onChange={(event) => setSearchValue(event.target.value)}
               placeholder="Поиск (Ctrl+F)"
-              className="h-9 w-[270px] rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="h-9 w-[270px] rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <button
               type="button"
-              className="h-9 w-9 border border-[#bcbcbc] bg-white text-[#4a84c6]"
+              className="h-9 w-9 border border-[#bcbcbc] bg-background text-[#4a84c6]"
             >
               🔍
             </button>
@@ -206,7 +206,7 @@ export default function ItemsPage() {
                     return (
                       <tr
                         key={row.key}
-                        className={selectedKey === row.key ? "bg-[#f8efba]" : "bg-white hover:bg-[#fbf7da]"}
+                        className={selectedKey === row.key ? "bg-[#f8efba]" : "bg-background hover:bg-[#fbf7da]"}
                         onClick={() => setSelectedKey(row.key)}
                       >
                         <td className="border border-[#cbcbcb] px-3 py-2 font-medium">
@@ -236,7 +236,7 @@ export default function ItemsPage() {
                   return (
                     <tr
                       key={row.key}
-                      className={selectedKey === row.key ? "bg-[#fbf3c7]" : "bg-white hover:bg-[#fbf7da]"}
+                      className={selectedKey === row.key ? "bg-[#fbf3c7]" : "bg-background hover:bg-[#fbf7da]"}
                       onClick={() => setSelectedKey(row.key)}
                       onDoubleClick={() => router.push(`/directories/items/${item.id}`)}
                     >

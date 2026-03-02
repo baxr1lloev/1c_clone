@@ -184,9 +184,9 @@ export default function NewCashOpeningBalancesPage() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#efefef] p-4 text-[#1f2937]">
-      <div className="rounded-sm border border-[#bfc4cc] bg-white">
-        <div className="border-b border-[#d6d6d6] px-4 py-3 text-[26px] font-semibold tracking-tight">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#efefef] p-4 text-foreground">
+      <div className="rounded-sm border border-[#bfc4cc] bg-background">
+        <div className="border-b border-border px-4 py-3 text-[26px] font-semibold tracking-tight">
           Ввод остатков по кассам (создание)
         </div>
         <div className="flex items-center gap-2 border-b border-[#e5e7eb] px-4 py-2 text-sm">
@@ -208,7 +208,7 @@ export default function NewCashOpeningBalancesPage() {
             <Button
               type="button"
               variant="outline"
-              className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+              className="h-10 rounded-sm border-border bg-background px-5"
               onClick={() => handleDocumentAction("save")}
             >
               Записать
@@ -216,7 +216,7 @@ export default function NewCashOpeningBalancesPage() {
             <Button
               type="button"
               variant="outline"
-              className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+              className="h-10 rounded-sm border-border bg-background px-5"
               onClick={() => handleDocumentAction("post")}
             >
               Провести
@@ -225,14 +225,14 @@ export default function NewCashOpeningBalancesPage() {
 
           <div className="grid gap-3 lg:grid-cols-[160px_220px_110px_1fr_80px_180px] lg:items-center">
             <div className="text-sm">Номер:</div>
-            <Input value="0" readOnly className="h-9 rounded-sm border-[#b8b8b8] bg-white" />
+            <Input value="0" readOnly className="h-9 rounded-sm border-border bg-background" />
 
             <div className="text-sm">Дата:</div>
             <Input
               type="date"
               value={documentDate}
               onChange={(event) => setDocumentDate(event.target.value)}
-              className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+              className="h-9 rounded-sm border-border bg-background"
             />
 
             <div className="text-sm">Валюта:</div>
@@ -241,7 +241,7 @@ export default function NewCashOpeningBalancesPage() {
               onChange={(event) =>
                 setCurrencyCode(event.target.value as (typeof DEFAULT_CURRENCIES)[number])
               }
-              className="h-9 rounded-sm border border-[#b8b8b8] bg-white px-3 text-sm outline-none"
+              className="h-9 rounded-sm border border-border bg-background px-3 text-sm outline-none"
             >
               {DEFAULT_CURRENCIES.map((currency) => (
                 <option key={currency} value={currency}>
@@ -256,7 +256,7 @@ export default function NewCashOpeningBalancesPage() {
             <Input
               value={rateValue}
               onChange={(event) => setRateValue(event.target.value)}
-              className="h-9 rounded-sm border-[#b8b8b8] bg-white text-right"
+              className="h-9 rounded-sm border-border bg-background text-right"
             />
             <div />
             <div />
@@ -264,7 +264,7 @@ export default function NewCashOpeningBalancesPage() {
               value={searchValue}
               onChange={(event) => setSearchValue(event.target.value)}
               placeholder="Поиск (Ctrl+F)"
-              className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+              className="h-9 rounded-sm border-border bg-background"
             />
           </div>
 
@@ -272,7 +272,7 @@ export default function NewCashOpeningBalancesPage() {
             <Button
               type="button"
               variant="outline"
-              className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+              className="h-9 rounded-sm border-border bg-background"
               onClick={addRow}
             >
               <PiPlusBold className="mr-2 h-4 w-4" />
@@ -280,10 +280,10 @@ export default function NewCashOpeningBalancesPage() {
             </Button>
           </div>
 
-          <div className="overflow-auto rounded-sm border border-[#b8b8b8]">
+          <div className="overflow-auto rounded-sm border border-border">
             <table className="w-full min-w-[780px] border-collapse text-sm">
-              <thead className="bg-[#ededed] text-left">
-                <tr className="[&>th]:border-b [&>th]:border-r [&>th]:border-[#d0d0d0] [&>th]:px-3 [&>th]:py-2 [&>th:last-child]:border-r-0">
+              <thead className="bg-muted text-left">
+                <tr className="[&>th]:border-b [&>th]:border-r [&>th]:border-border [&>th]:px-3 [&>th]:py-2 [&>th:last-child]:border-r-0">
                   <th className="w-[60px]">N</th>
                   <th>Касса</th>
                   <th className="w-[180px]">Сумма</th>
@@ -291,7 +291,7 @@ export default function NewCashOpeningBalancesPage() {
               </thead>
               <tbody>
                 {filteredRows.map((row, index) => (
-                  <tr key={row.id} className="border-b border-[#ececec]">
+                  <tr key={row.id} className="border-b border-border">
                     <td className="px-3 py-2">{index + 1}</td>
                     <td className="px-3 py-2">
                       <select
@@ -299,7 +299,7 @@ export default function NewCashOpeningBalancesPage() {
                         onChange={(event) =>
                           updateRow(row.id, { cashName: event.target.value })
                         }
-                        className="h-9 w-full rounded-sm border border-[#b8b8b8] bg-white px-3 text-sm outline-none"
+                        className="h-9 w-full rounded-sm border border-border bg-background px-3 text-sm outline-none"
                       >
                         <option value="">Выберите кассу</option>
                         {cashItems.map((item) => (
@@ -315,7 +315,7 @@ export default function NewCashOpeningBalancesPage() {
                         onChange={(event) =>
                           updateRow(row.id, { amount: event.target.value })
                         }
-                        className="h-9 rounded-sm border-[#b8b8b8] bg-white text-right"
+                        className="h-9 rounded-sm border-border bg-background text-right"
                       />
                     </td>
                   </tr>
@@ -324,7 +324,7 @@ export default function NewCashOpeningBalancesPage() {
             </table>
           </div>
 
-          <div className="rounded-sm border border-[#e4dbb4] bg-[#f8f1ce] px-4 py-3 text-sm">
+          <div className="rounded-sm border border-[#e4dbb4] bg-muted px-4 py-3 text-sm">
             <div className="grid gap-2 md:grid-cols-[1fr_auto]">
               <span>Итого:</span>
               <span className="font-mono font-semibold">
@@ -343,7 +343,7 @@ export default function NewCashOpeningBalancesPage() {
               <Input
                 value="Admin"
                 readOnly
-                className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                className="h-9 rounded-sm border-border bg-background"
               />
             </div>
             <div className="grid gap-2 md:grid-cols-[130px_1fr] md:items-center">
@@ -351,7 +351,7 @@ export default function NewCashOpeningBalancesPage() {
               <Input
                 value={DEFAULT_CASH_DEPARTMENT}
                 readOnly
-                className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                className="h-9 rounded-sm border-border bg-background"
               />
             </div>
           </div>

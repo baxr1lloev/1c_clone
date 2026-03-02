@@ -11,7 +11,7 @@ import api from "@/lib/api";
 import type { Item, PaginatedResponse } from "@/types";
 
 const buttonClassName =
-  "h-9 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]";
+  "h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]";
 
 type StockReportRow = {
   item_id: number;
@@ -144,10 +144,10 @@ export default function StockAsOfDatePage() {
         <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">
                 ←
               </button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">
                 →
               </button>
             </div>
@@ -172,14 +172,14 @@ export default function StockAsOfDatePage() {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0"
+              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">по:</span>
             <Input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0"
+              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
             />
             {["Сплошная", "По партии", "Детализированная", "Сравнительный"].map((value) => (
               <button
@@ -187,8 +187,8 @@ export default function StockAsOfDatePage() {
                 type="button"
                 className={`h-9 border px-3 text-sm ${
                   mode === value
-                    ? "border-[#76b46f] bg-[#eef9ee] text-[#198f38]"
-                    : "border-[#bcbcbc] bg-white"
+                    ? "border-[#76b46f] bg-emerald-50 dark:bg-emerald-950 text-[#198f38]"
+                    : "border-[#bcbcbc] bg-background"
                 }`}
                 onClick={() => setMode(value)}
               >
@@ -203,7 +203,7 @@ export default function StockAsOfDatePage() {
                 className={`h-9 border px-3 text-sm ${
                   stockMode === value
                     ? "border-[#d1c100] bg-[#fff4ae] text-[#8e7800]"
-                    : "border-[#bcbcbc] bg-white"
+                    : "border-[#bcbcbc] bg-background"
                 }`}
                 onClick={() => setStockMode(value)}
               >
@@ -217,13 +217,13 @@ export default function StockAsOfDatePage() {
             <Input
               value=""
               readOnly
-              className="h-9 rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0"
+              className="h-9 rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">Вид товара:</span>
             <Input
               value={itemKindName}
               onChange={(event) => setItemKindName(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0"
+              className="h-9 rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">Движение:</span>
             <label className="flex h-9 items-center">
@@ -236,13 +236,13 @@ export default function StockAsOfDatePage() {
             <Input
               value=""
               readOnly
-              className="h-9 rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0"
+              className="h-9 rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">Номенклатура:</span>
             <select
               value={itemId}
               onChange={(event) => setItemId(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-white px-2 text-sm"
+              className="h-9 rounded-none border border-[#bcbcbc] bg-background px-2 text-sm"
             >
               <option value=""> </option>
               {items.map((item) => (
@@ -255,7 +255,7 @@ export default function StockAsOfDatePage() {
             <Input
               value=""
               readOnly
-              className="h-9 rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0"
+              className="h-9 rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
             />
           </div>
 
@@ -264,7 +264,7 @@ export default function StockAsOfDatePage() {
             <select
               value={warehouseId}
               onChange={(event) => setWarehouseId(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-white px-2 text-sm"
+              className="h-9 rounded-none border border-[#bcbcbc] bg-background px-2 text-sm"
             >
               <option value=""> </option>
               {warehouses.map((warehouse: { id: number; name: string }) => (
@@ -283,7 +283,7 @@ export default function StockAsOfDatePage() {
             <Input
               value={manufacturerName}
               onChange={(event) => setManufacturerName(event.target.value)}
-              className="h-9 rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0"
+              className="h-9 rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0"
             />
           </div>
         </div>
@@ -330,7 +330,7 @@ export default function StockAsOfDatePage() {
                         <td className="border border-[#bdbdbd] px-2 py-1 text-center">
                           <button
                             type="button"
-                            className="inline-flex h-5 w-5 items-center justify-center border border-[#ababab] bg-white text-xs"
+                            className="inline-flex h-5 w-5 items-center justify-center border border-[#ababab] bg-background text-xs"
                             onClick={() => toggleGroup(group.key)}
                           >
                             {isCollapsed ? "+" : "−"}
@@ -363,7 +363,7 @@ export default function StockAsOfDatePage() {
                           return (
                             <tr
                               key={rowKey}
-                              className="bg-white hover:bg-[#fbf7da]"
+                              className="bg-background hover:bg-[#fbf7da]"
                               onClick={() => setSelectedRowKey(rowKey)}
                               onDoubleClick={() =>
                                 router.push(localePath(`/directories/items/${row.item_id}`))

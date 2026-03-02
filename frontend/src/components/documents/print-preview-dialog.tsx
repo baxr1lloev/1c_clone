@@ -62,7 +62,7 @@ export function PrintPreviewDialog({ document, tenant, open, onOpenChange }: Pri
                 </div>
 
                 <div className="flex-1 overflow-auto bg-gray-100 p-8">
-                    <div className="shadow-lg mx-auto w-fit bg-white" ref={printRef}>
+                    <div className="shadow-lg mx-auto w-fit bg-background" ref={printRef}>
                         {renderForm()}
                     </div>
                 </div>

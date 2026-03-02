@@ -648,19 +648,19 @@ export default function CashOrdersPage() {
     deleteMutation.isPending;
 
   const fieldClass =
-    "h-11 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937] placeholder:text-[#7b8591]";
+    "h-11 rounded-sm border-border bg-background text-foreground placeholder:text-muted-foreground";
   const selectClass =
-    "h-11 rounded-sm border border-[#b8b8b8] bg-white px-3 text-sm text-[#1f2937]";
+    "h-11 rounded-sm border border-border bg-background px-3 text-sm text-foreground";
 
   return (
-    <div className="h-[calc(100vh-4rem)] overflow-hidden bg-[#e6e7ea] p-4 text-[#1f2937] md:p-6">
-      <div className="flex h-full flex-col rounded-md border border-[#acb0b7] bg-[#f4f5f7] shadow-sm">
-        <div className="flex items-center justify-between border-b border-[#bcc1c9] px-3 py-2">
+    <div className="h-[calc(100vh-4rem)] overflow-hidden bg-background p-4 text-foreground md:p-6">
+      <div className="flex h-full flex-col rounded-md border border-border bg-card shadow-sm">
+        <div className="flex items-center justify-between border-b border-border px-3 py-2">
           <div className="flex items-center gap-1">
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-sm border-[#9fa4ae] bg-white text-[#1f2937]"
+              className="h-8 w-8 rounded-sm border-border bg-background text-foreground"
               onClick={() => router.back()}
             >
               <PiArrowLeftBold className="h-4 w-4" />
@@ -668,17 +668,17 @@ export default function CashOrdersPage() {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8 rounded-sm border-[#9fa4ae] bg-white text-[#1f2937]"
+              className="h-8 w-8 rounded-sm border-border bg-background text-foreground"
               onClick={() => router.forward()}
             >
               <PiArrowRightBold className="h-4 w-4" />
             </Button>
           </div>
-          <h1 className="text-lg font-semibold text-[#1f2937] md:text-3xl">Рабочий стол КАССА</h1>
+          <h1 className="text-lg font-semibold text-foreground md:text-3xl">Рабочий стол КАССА</h1>
           <Button
             variant="outline"
             size="sm"
-            className="h-8 border-[#9fa4ae] bg-white text-[#1f2937]"
+            className="h-8 border-border bg-background text-foreground"
             onClick={() => refetch()}
             disabled={isFetching}
           >
@@ -692,23 +692,23 @@ export default function CashOrdersPage() {
           onValueChange={setActiveTab}
           className="flex min-h-0 flex-1 flex-col p-3 md:p-4"
         >
-          <TabsList className="h-auto w-fit rounded-none border border-[#aeb4bd] bg-[#e8ebf0] p-0 text-[#1f2937]">
+          <TabsList className="h-auto w-fit rounded-none border border-border bg-muted p-0 text-foreground">
             <TabsTrigger
               value="main"
-              className="rounded-none border-r border-[#aeb4bd] px-6 !text-[#4b5563] data-[state=active]:!bg-white data-[state=active]:!text-[#111827] data-[state=active]:font-semibold data-[state=active]:shadow-none"
+              className="rounded-none border-r border-border px-6 !text-muted-foreground data-[state=active]:!bg-background data-[state=active]:!text-foreground data-[state=active]:font-semibold data-[state=active]:shadow-none"
             >
               Основной
             </TabsTrigger>
             <TabsTrigger
               value="history"
-              className="rounded-none px-6 !text-[#4b5563] data-[state=active]:!bg-white data-[state=active]:!text-[#111827] data-[state=active]:font-semibold data-[state=active]:shadow-none"
+              className="rounded-none px-6 !text-muted-foreground data-[state=active]:!bg-background data-[state=active]:!text-foreground data-[state=active]:font-semibold data-[state=active]:shadow-none"
             >
               История
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="main" className="mt-3 min-h-0 flex-1 overflow-auto">
-            <div className="space-y-3 rounded-sm border border-[#b8bec8] bg-white p-3 text-[#1f2937] md:p-4">
+            <div className="space-y-3 rounded-sm border border-border bg-background p-3 text-foreground md:p-4">
               <div className="grid gap-3 md:grid-cols-[220px_1fr]">
                 <div className="relative">
                   <PiCalendarBlankBold className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -737,7 +737,7 @@ export default function CashOrdersPage() {
               </div>
 
               <div className="grid gap-3 md:grid-cols-[220px_1fr] md:items-center">
-                <div className="text-sm text-[#4a4a4a]">Направление:</div>
+                <div className="text-sm text-muted-foreground">Направление:</div>
                 <select
                   className={selectClass}
                   value={direction}
@@ -749,7 +749,7 @@ export default function CashOrdersPage() {
               </div>
 
               <div className="grid gap-3 md:grid-cols-[220px_1fr] md:items-center">
-                <div className="text-sm text-[#4a4a4a]">Контрагент:</div>
+                <div className="text-sm text-muted-foreground">Контрагент:</div>
                 <div className="flex items-end gap-2">
                   <ReferenceSelector
                     value={counterpartyId}
@@ -761,12 +761,12 @@ export default function CashOrdersPage() {
                     apiEndpoint="/directories/counterparties/"
                     label=""
                     placeholder="Выберите контрагента"
-                    className="w-full [&_button]:h-11 [&_button]:rounded-sm [&_button]:justify-start [&_button]:!border-[#d0d5dd] [&_button]:!bg-white [&_button]:!text-[#111827] [&_button_svg]:!text-[#6b7280]"
+                    className="w-full [&_button]:h-11 [&_button]:rounded-sm [&_button]:justify-start [&_button]:!border-border [&_button]:!bg-background [&_button]:!text-foreground [&_button_svg]:!text-muted-foreground"
                   />
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-11 w-11 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                    className="h-11 w-11 rounded-sm border-border bg-background text-foreground"
                     onClick={() => {
                       setCounterpartyId(null);
                       setCounterpartyName("");
@@ -779,7 +779,7 @@ export default function CashOrdersPage() {
               </div>
 
               <div className="grid gap-3 md:grid-cols-[220px_1fr] md:items-center">
-                <div className="text-sm text-[#4a4a4a]">Основание:</div>
+                <div className="text-sm text-muted-foreground">Основание:</div>
                 <Input
                   value={basis}
                   onChange={(event) => setBasis(event.target.value)}
@@ -789,7 +789,7 @@ export default function CashOrdersPage() {
               </div>
 
               <div className="grid gap-3 md:grid-cols-[220px_1fr] md:items-center">
-                <div className="text-sm text-[#4a4a4a]">Назначение:</div>
+                <div className="text-sm text-muted-foreground">Назначение:</div>
                 <Input
                   value={purpose}
                   onChange={(event) => setPurpose(event.target.value)}
@@ -827,7 +827,7 @@ export default function CashOrdersPage() {
 
                 <Button
                   variant="outline"
-                  className="h-11 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                  className="h-11 rounded-sm border-border bg-background text-foreground"
                   onClick={handleOpenCounterpartyHistory}
                 >
                   Акт сверка
@@ -850,7 +850,7 @@ export default function CashOrdersPage() {
 
               <div className="grid gap-3 md:grid-cols-[1fr_220px]">
                 <div className="grid gap-2 md:grid-cols-[120px_1fr] md:items-center">
-                  <div className="text-sm text-[#4a4a4a]">Всего:</div>
+                  <div className="text-sm text-muted-foreground">Всего:</div>
                   <Input
                     value={`${formatAmount(totalInBase)} ${
                       baseCurrency?.code || selectedCurrency?.code || ""
@@ -861,7 +861,7 @@ export default function CashOrdersPage() {
                 </div>
 
                 <div className="grid gap-2 md:grid-cols-[70px_1fr] md:items-center">
-                  <div className="text-sm text-[#4a4a4a]">Курс:</div>
+                  <div className="text-sm text-muted-foreground">Курс:</div>
                   <Input
                     type="number"
                     min="0.0001"
@@ -879,8 +879,8 @@ export default function CashOrdersPage() {
                   onClick={() => handleQuickAction("incoming")}
                   disabled={isBusy || quickCreateMutation.isPending}
                   className={cn(
-                    "group rounded-sm border border-[#c0c0c0] bg-[#f5f5f5] p-4 transition-colors",
-                    direction === "incoming" && "border-[#61bb56] bg-[#eef9ee]",
+                    "group rounded-sm border border-border bg-muted/50 p-4 transition-colors",
+                    direction === "incoming" && "border-[#61bb56] bg-emerald-50 dark:bg-emerald-950",
                     (isBusy || quickCreateMutation.isPending) && "cursor-not-allowed opacity-70",
                   )}
                 >
@@ -897,8 +897,8 @@ export default function CashOrdersPage() {
                   onClick={() => handleQuickAction("outgoing")}
                   disabled={isBusy || quickCreateMutation.isPending}
                   className={cn(
-                    "group rounded-sm border border-[#c0c0c0] bg-[#f5f5f5] p-4 transition-colors",
-                    direction === "outgoing" && "border-[#d56a6a] bg-[#fff1f1]",
+                    "group rounded-sm border border-border bg-muted/50 p-4 transition-colors",
+                    direction === "outgoing" && "border-[#d56a6a] bg-rose-50 dark:bg-rose-950",
                     (isBusy || quickCreateMutation.isPending) && "cursor-not-allowed opacity-70",
                   )}
                 >
@@ -911,7 +911,7 @@ export default function CashOrdersPage() {
                 </button>
               </div>
 
-              <div className="rounded-sm border border-[#c8c8c8] bg-[#f9f9f9] p-3 text-[#0d5567]">
+              <div className="rounded-sm border border-border bg-card p-3 text-foreground">
                 <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
                   <span>Начало остатка:</span>
                   <span className="font-mono text-lg">{formatAmount(openingBalance)}</span>
@@ -934,7 +934,7 @@ export default function CashOrdersPage() {
                     -{formatAmount(outgoingTotal)}
                   </span>
                 </div>
-                <div className="grid gap-2 border-t border-[#d6d6d6] pt-2 sm:grid-cols-[1fr_auto]">
+                <div className="grid gap-2 border-t border-border pt-2 sm:grid-cols-[1fr_auto]">
                   <span className="font-semibold">Конец остатка:</span>
                   <span className="font-mono text-lg font-semibold">
                     {formatAmount(closingBalance)} {selectedCurrency?.code || ""}
@@ -945,14 +945,14 @@ export default function CashOrdersPage() {
           </TabsContent>
 
           <TabsContent value="history" className="mt-3 min-h-0 flex-1 overflow-auto">
-            <div className="space-y-3 rounded-sm border border-[#b8bec8] bg-white p-3 text-[#1f2937] md:p-4">
+            <div className="space-y-3 rounded-sm border border-border bg-background p-3 text-foreground md:p-4">
               <div className="space-y-2">
                 <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                      className="h-8 rounded-sm border-border bg-background text-foreground"
                       onClick={() =>
                         router.push(localePath(`/documents/cash-orders/new?type=${direction}`))
                       }
@@ -963,7 +963,7 @@ export default function CashOrdersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                      className="h-8 rounded-sm border-border bg-background text-foreground"
                       onClick={() => refetch()}
                       disabled={isFetching}
                     >
@@ -985,8 +985,8 @@ export default function CashOrdersPage() {
                         className={cn(
                           "h-8 rounded-sm border px-3 text-xs",
                           historyScope === scope
-                            ? "border-[#d7c37a] bg-[#f6e7ab] font-semibold text-[#6c5b1f]"
-                            : "border-[#b8b8b8] bg-white text-[#1f2937]",
+                            ? "border-accent bg-accent font-semibold text-accent-foreground"
+                            : "border-border bg-background text-foreground",
                         )}
                       >
                         {label}
@@ -995,14 +995,14 @@ export default function CashOrdersPage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="inline-flex h-8 items-center rounded-sm border border-[#d7c37a] bg-[#f6e7ab] px-3 text-xs font-medium text-[#6c5b1f]">
+                    <span className="inline-flex h-8 items-center rounded-sm border border-accent bg-accent px-3 text-xs font-medium text-accent-foreground">
                       {getHistoryScopeLabel(historyScope)}
                     </span>
                     <Input
                       value={historySearch}
                       onChange={(event) => setHistorySearch(event.target.value)}
                       placeholder="Поиск (Ctrl+F)"
-                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937] placeholder:text-[#7b8591] md:w-[280px]"
+                      className="h-8 rounded-sm border-border bg-background text-foreground placeholder:text-muted-foreground md:w-[280px]"
                     />
                   </div>
                 </div>
@@ -1012,7 +1012,7 @@ export default function CashOrdersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                      className="h-8 rounded-sm border-border bg-background text-foreground"
                       onClick={() => openCashOrderDocument(activeHistorySelection)}
                     >
                       <PiEyeBold className="h-4 w-4" />
@@ -1021,7 +1021,7 @@ export default function CashOrdersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                      className="h-8 rounded-sm border-border bg-background text-foreground"
                       onClick={() =>
                         router.push(
                           localePath(
@@ -1037,7 +1037,7 @@ export default function CashOrdersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                      className="h-8 rounded-sm border-border bg-background text-foreground"
                       onClick={() => postMutation.mutate(activeHistorySelection.id)}
                       disabled={
                         !canPostDocument(activeHistorySelection) || postMutation.isPending
@@ -1049,7 +1049,7 @@ export default function CashOrdersPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 rounded-sm border-[#b8b8b8] bg-white text-[#1f2937]"
+                      className="h-8 rounded-sm border-border bg-background text-foreground"
                       onClick={() => unpostMutation.mutate(activeHistorySelection.id)}
                       disabled={
                         !canUnpostDocument(activeHistorySelection) || unpostMutation.isPending
@@ -1072,10 +1072,10 @@ export default function CashOrdersPage() {
                 ) : null}
               </div>
 
-              <div className="overflow-auto rounded-sm border border-[#b8b8b8]">
-                <table className="w-full min-w-[1480px] border-collapse text-sm text-[#1f2937]">
-                  <thead className="bg-[#ededed] text-left">
-                    <tr className="[&>th]:border-b [&>th]:border-r [&>th]:border-[#d0d0d0] [&>th]:px-3 [&>th]:py-2 [&>th:last-child]:border-r-0">
+              <div className="overflow-auto rounded-sm border border-border">
+                <table className="w-full min-w-[1480px] border-collapse text-sm text-foreground">
+                  <thead className="bg-muted text-left">
+                    <tr className="[&>th]:border-b [&>th]:border-r [&>th]:border-border [&>th]:px-3 [&>th]:py-2 [&>th:last-child]:border-r-0">
                       <th className="w-[34px] px-2" />
                       <th>Дата</th>
                       <th>Номер</th>
@@ -1112,8 +1112,8 @@ export default function CashOrdersPage() {
                             onClick={() => setSelectedItem(doc)}
                             onDoubleClick={() => openCashOrderDocument(doc)}
                             className={cn(
-                              "cursor-pointer border-b border-[#ececec] hover:bg-[#f8f1ce]",
-                              isSelected && "bg-[#f4e8a7]",
+                              "cursor-pointer border-b border-border hover:bg-muted",
+                              isSelected && "bg-accent",
                             )}
                           >
                             <td
@@ -1178,7 +1178,7 @@ export default function CashOrdersPage() {
                 </table>
               </div>
 
-              <div className="flex items-center justify-between rounded-sm border border-[#d6d6d6] bg-[#fafafa] px-3 py-2 text-sm text-muted-foreground">
+              <div className="flex items-center justify-between rounded-sm border border-border bg-card px-3 py-2 text-sm text-muted-foreground">
                 <span>
                   Записей: {filteredHistory.length}
                   {activeHistorySelection

@@ -336,19 +336,19 @@ export function PaymentDocumentForm({
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#efefef] p-3 text-[#1f2937]">
-      <div className="rounded-sm border border-[#bfc4cc] bg-white">
-        <div className="flex items-center gap-2 border-b border-[#d6d6d6] px-4 py-3">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#efefef] p-3 text-foreground">
+      <div className="rounded-sm border border-[#bfc4cc] bg-background">
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-[#b8b8b8] bg-white"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-border bg-background"
             onClick={() => router.back()}
           >
             <PiArrowLeftBold className="h-4 w-4" />
           </button>
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-[#b8b8b8] bg-white"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-border bg-background"
             onClick={() => router.forward()}
           >
             <PiArrowRightBold className="h-4 w-4" />
@@ -436,7 +436,7 @@ export function PaymentDocumentForm({
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                className="h-10 rounded-sm border-border bg-background px-5"
                 onClick={() => postMutation.mutate()}
                 disabled={mode === "create" || isPosted || postMutation.isPending}
               >
@@ -445,7 +445,7 @@ export function PaymentDocumentForm({
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                className="h-10 rounded-sm border-border bg-background px-5"
                 onClick={() => saveMutation.mutate(formData)}
                 disabled={!canEdit || saveMutation.isPending}
               >
@@ -454,7 +454,7 @@ export function PaymentDocumentForm({
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                className="h-10 rounded-sm border-border bg-background px-5"
                 onClick={() => router.back()}
               >
                 Отменить
@@ -462,7 +462,7 @@ export function PaymentDocumentForm({
               <Button
                 type="button"
                 variant="outline"
-                className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                className="h-10 rounded-sm border-border bg-background px-5"
                 onClick={() => setPrintOpen(true)}
               >
                 <PiPrinterBold className="mr-2 h-4 w-4" />
@@ -472,7 +472,7 @@ export function PaymentDocumentForm({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-10 rounded-sm border-[#b8b8b8] bg-white px-5"
+                  className="h-10 rounded-sm border-border bg-background px-5"
                   onClick={() => unpostMutation.mutate()}
                   disabled={unpostMutation.isPending}
                 >
@@ -490,7 +490,7 @@ export function PaymentDocumentForm({
                   setFormData((current) => ({ ...current, number: event.target.value }))
                 }
                 disabled={!canEdit}
-                className="h-9 rounded-sm border-[#b8b8b8] bg-white font-mono"
+                className="h-9 rounded-sm border-border bg-background font-mono"
               />
               <div className="text-sm">Дата:</div>
               <Input
@@ -512,7 +512,7 @@ export function PaymentDocumentForm({
                 placeholder="Выберите кассу"
                 displayField="name"
                 disabled={!canEdit}
-                className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                className="h-9 rounded-sm border-border bg-background"
               />
             </div>
 
@@ -527,7 +527,7 @@ export function PaymentDocumentForm({
                   }))
                 }
                 disabled={!canEdit}
-                className="h-9 rounded-sm border border-[#b8b8b8] bg-white px-3 text-sm outline-none"
+                className="h-9 rounded-sm border border-border bg-background px-3 text-sm outline-none"
               >
                 {currencies.map((currency) => (
                   <option key={currency.id} value={currency.id}>
@@ -546,7 +546,7 @@ export function PaymentDocumentForm({
                   }))
                 }
                 disabled={!canEdit}
-                className="h-9 rounded-sm border-[#b8b8b8] bg-white text-right font-mono"
+                className="h-9 rounded-sm border-border bg-background text-right font-mono"
               />
               <div className="text-sm">Статус:</div>
               <div
@@ -554,7 +554,7 @@ export function PaymentDocumentForm({
                   "h-9 rounded-sm border px-3 py-2 text-sm",
                   isPosted
                     ? "border-[#9ec99e] bg-[#f1fbf1] text-[#2d7a2d]"
-                    : "border-[#d7c37a] bg-[#fff8de] text-[#6c5b1f]",
+                    : "border-accent bg-[#fff8de] text-accent-foreground",
                 )}
               >
                 {isPosted ? "Проведен" : "Черновик"}
@@ -565,16 +565,16 @@ export function PaymentDocumentForm({
               <Button
                 type="button"
                 variant="outline"
-                className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                className="h-9 rounded-sm border-border bg-background"
               >
                 Добавить
               </Button>
             </div>
 
-            <div className="overflow-auto rounded-sm border border-[#b8b8b8]">
+            <div className="overflow-auto rounded-sm border border-border">
               <table className="w-full min-w-[1180px] border-collapse text-sm">
-                <thead className="bg-[#ededed] text-left">
-                  <tr className="[&>th]:border-b [&>th]:border-r [&>th]:border-[#d0d0d0] [&>th]:px-3 [&>th]:py-2 [&>th:last-child]:border-r-0">
+                <thead className="bg-muted text-left">
+                  <tr className="[&>th]:border-b [&>th]:border-r [&>th]:border-border [&>th]:px-3 [&>th]:py-2 [&>th:last-child]:border-r-0">
                     <th className="w-[60px]">N</th>
                     <th className="w-[150px]">Направление</th>
                     <th>Контрагент</th>
@@ -587,7 +587,7 @@ export function PaymentDocumentForm({
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-[#ececec] bg-[#fffbe6]">
+                  <tr className="border-b border-border bg-[#fffbe6]">
                     <td className="px-3 py-2">1</td>
                     <td className="px-3 py-2">
                       <select
@@ -595,7 +595,7 @@ export function PaymentDocumentForm({
                         onChange={(event) =>
                           applyDirection(event.target.value as PaymentDirection)
                         }
-                        className="h-8 w-full rounded-sm border border-[#b8b8b8] bg-white px-2 text-sm outline-none"
+                        className="h-8 w-full rounded-sm border border-border bg-background px-2 text-sm outline-none"
                       >
                         {(
                           [
@@ -625,7 +625,7 @@ export function PaymentDocumentForm({
                         apiEndpoint="/directories/counterparties/"
                         placeholder="Контрагент"
                         disabled={!canEdit}
-                        className="h-8 rounded-sm border-[#b8b8b8] bg-white"
+                        className="h-8 rounded-sm border-border bg-background"
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -640,7 +640,7 @@ export function PaymentDocumentForm({
                           }))
                         }
                         disabled={!canEdit || !isIncoming}
-                        className="h-8 rounded-sm border-[#b8b8b8] bg-white text-right font-mono"
+                        className="h-8 rounded-sm border-border bg-background text-right font-mono"
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -655,7 +655,7 @@ export function PaymentDocumentForm({
                           }))
                         }
                         disabled={!canEdit || isIncoming}
-                        className="h-8 rounded-sm border-[#b8b8b8] bg-white text-right font-mono"
+                        className="h-8 rounded-sm border-border bg-background text-right font-mono"
                       />
                     </td>
                     <td className="px-3 py-2">
@@ -665,7 +665,7 @@ export function PaymentDocumentForm({
                           setFormData((current) => ({ ...current, basis: event.target.value }))
                         }
                         disabled={!canEdit}
-                        className="h-8 rounded-sm border-[#b8b8b8] bg-white"
+                        className="h-8 rounded-sm border-border bg-background"
                       />
                     </td>
                     <td className="px-3 py-2 text-right font-mono">{rowPercent}</td>
@@ -694,7 +694,7 @@ export function PaymentDocumentForm({
                   setFormData((current) => ({ ...current, purpose: event.target.value }))
                 }
                 disabled={!canEdit}
-                className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                className="h-9 rounded-sm border-border bg-background"
               />
               <div className="text-sm">Операция:</div>
               <ReferenceSelector
@@ -717,11 +717,11 @@ export function PaymentDocumentForm({
                 placeholder="Тип операции"
                 displayField="name"
                 disabled={!canEdit}
-                className="h-9 rounded-sm border-[#b8b8b8] bg-white"
+                className="h-9 rounded-sm border-border bg-background"
               />
             </div>
 
-            <div className="rounded-sm border border-[#e4dbb4] bg-[#f8f1ce] px-4 py-3 text-sm">
+            <div className="rounded-sm border border-[#e4dbb4] bg-muted px-4 py-3 text-sm">
               <div className="grid gap-2 lg:grid-cols-[repeat(5,minmax(0,1fr))]">
                 <div>Остаток на начало: 0</div>
                 <div>Остаток на конец: {accountDelta.toLocaleString("ru-RU")}</div>
@@ -742,13 +742,13 @@ export function PaymentDocumentForm({
               <Input
                 value="Admin"
                 readOnly
-                className="h-9 rounded-sm border-[#b8b8b8] bg-[#f8f8f8]"
+                className="h-9 rounded-sm border-border bg-[#f8f8f8]"
               />
               <div className="text-sm">Подразделение:</div>
               <Input
                 value={DEFAULT_DEPARTMENT}
                 readOnly
-                className="h-9 rounded-sm border-[#b8b8b8] bg-[#f8f8f8]"
+                className="h-9 rounded-sm border-border bg-[#f8f8f8]"
               />
             </div>
           </div>
@@ -757,7 +757,7 @@ export function PaymentDocumentForm({
             {initialData?.id ? (
               <DocumentHistoryPanel documentId={initialData.id} documentType="payments" />
             ) : (
-              <div className="rounded-sm border border-[#d0d0d0] bg-[#fafafa] p-6 text-center text-sm text-muted-foreground">
+              <div className="rounded-sm border border-border bg-card p-6 text-center text-sm text-muted-foreground">
                 Сохраните документ, чтобы посмотреть историю.
               </div>
             )}
@@ -767,7 +767,7 @@ export function PaymentDocumentForm({
             {initialData?.id ? (
               <DocumentPostings documentId={initialData.id} endpoint="payments" />
             ) : (
-              <div className="rounded-sm border border-[#d0d0d0] bg-[#fafafa] p-6 text-center text-sm text-muted-foreground">
+              <div className="rounded-sm border border-border bg-card p-6 text-center text-sm text-muted-foreground">
                 Сохраните документ, чтобы посмотреть проводки.
               </div>
             )}

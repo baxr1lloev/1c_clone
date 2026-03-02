@@ -1291,7 +1291,7 @@ export default function SalesDocumentsPage() {
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col bg-background">
-      <div className="h-full border border-border bg-white dark:bg-zinc-950 flex flex-col">
+      <div className="h-full border border-border bg-background dark:bg-zinc-950 flex flex-col">
         <div className="px-3 py-2 border-b bg-muted/30 text-sm font-semibold tracking-wide">
           РЕАЛИЗАЦИЯ
         </div>

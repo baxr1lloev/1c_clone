@@ -280,7 +280,7 @@ export function SmartLineItemForm({
 
                 {/* Stock info - if available */}
                 {itemContext?.stock && (
-                    <div className="mt-4 p-3 bg-white rounded-lg border-2 border-blue-200">
+                    <div className="mt-4 p-3 bg-background rounded-lg border-2 border-blue-200">
                         <div className="grid grid-cols-3 gap-4 text-sm">
                             <div>
                                 <span className="text-muted-foreground text-xs uppercase">On Hand:</span>
@@ -333,9 +333,9 @@ export function SmartLineItemForm({
 
                 {/* Keyboard hints */}
                 <div className="mt-3 pt-3 border-t text-xs text-muted-foreground flex items-center justify-center gap-4">
-                    <div><kbd className="px-2 py-1 bg-white border rounded font-mono">Enter</kbd> Add & Next</div>
-                    <div><kbd className="px-2 py-1 bg-white border rounded font-mono">Esc</kbd> Cancel</div>
-                    <div><kbd className="px-2 py-1 bg-white border rounded font-mono">Tab</kbd> Next Field</div>
+                    <div><kbd className="px-2 py-1 bg-background border rounded font-mono">Enter</kbd> Add & Next</div>
+                    <div><kbd className="px-2 py-1 bg-background border rounded font-mono">Esc</kbd> Cancel</div>
+                    <div><kbd className="px-2 py-1 bg-background border rounded font-mono">Tab</kbd> Next Field</div>
                 </div>
             </CardContent>
         </Card>

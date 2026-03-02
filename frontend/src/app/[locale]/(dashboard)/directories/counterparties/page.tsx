@@ -10,7 +10,7 @@ import type { Counterparty, PaginatedResponse } from "@/types"
 
 const DIRECTORY_COUNTERPARTY_GROUPS_STORAGE_KEY = "directory-counterparty-groups"
 const DEFAULT_GROUPS = ["Учредители", "Прочие", "Поставщики", "Покупатели"]
-const buttonClassName = "h-9 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]"
+const buttonClassName = "h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]"
 
 function getStoredGroups() {
   if (typeof window === "undefined") {
@@ -80,8 +80,8 @@ export default function CounterpartiesPage() {
         <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">←</button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">→</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">←</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">→</button>
             </div>
             <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
             <h1 className="text-[18px] font-medium text-black">Контрагенты</h1>
@@ -92,21 +92,21 @@ export default function CounterpartiesPage() {
         <div className="flex items-center gap-2 border-b border-[#d9d9d9] px-2 py-2">
           <Button type="button" className={buttonClassName} onClick={() => router.push("/directories/counterparties/new")}>Создать</Button>
           <Button type="button" className={buttonClassName} onClick={() => router.push("/directories/counterparties/new?group=1")}>Создать группу</Button>
-          <button type="button" className="h-9 w-9 border border-[#bcbcbc] bg-white text-[#4a84c6]" onClick={() => refetch()}>⟳</button>
+          <button type="button" className="h-9 w-9 border border-[#bcbcbc] bg-background text-[#4a84c6]" onClick={() => refetch()}>⟳</button>
           <div className="ml-auto flex items-center gap-2">
-            <Input value={searchValue} onChange={(event) => setSearchValue(event.target.value)} placeholder="Поиск (Ctrl+F)" className="h-9 w-[250px] rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0" />
+            <Input value={searchValue} onChange={(event) => setSearchValue(event.target.value)} placeholder="Поиск (Ctrl+F)" className="h-9 w-[250px] rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0" />
             <Button type="button" className={buttonClassName}>Еще</Button>
           </div>
         </div>
 
         <div className="grid h-[calc(100%-98px)] grid-cols-[150px_1fr]">
-          <div className="border-r border-[#d0d0d0] bg-[#f2f2f2]">
-            <div className="space-y-2 border-b border-[#d0d0d0] px-2 py-2">
+          <div className="border-r border-border bg-[#f2f2f2]">
+            <div className="space-y-2 border-b border-border px-2 py-2">
               <Input
                 value={groupSearchValue}
                 onChange={(event) => setGroupSearchValue(event.target.value)}
                 placeholder="Поиск (Ctrl+F)"
-                className="h-8 rounded-none border border-[#bcbcbc] bg-white text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="h-8 rounded-none border border-[#bcbcbc] bg-background text-sm shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
               />
               <div className="text-sm">Наименование ↑</div>
             </div>
@@ -146,7 +146,7 @@ export default function CounterpartiesPage() {
                   filteredData.map((item, index) => (
                     <tr
                       key={item.id}
-                      className={selectedId === item.id ? "bg-[#f8efba]" : "bg-white hover:bg-[#fbf7da]"}
+                      className={selectedId === item.id ? "bg-[#f8efba]" : "bg-background hover:bg-[#fbf7da]"}
                       onClick={() => setSelectedId(item.id)}
                       onDoubleClick={() => router.push(`/directories/counterparties/${item.id}`)}
                     >

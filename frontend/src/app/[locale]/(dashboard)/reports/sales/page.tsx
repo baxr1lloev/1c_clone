@@ -42,7 +42,7 @@ interface SalesGroupRow {
 }
 
 const buttonClassName =
-  'h-9 rounded-sm border border-[#bcbcbc] bg-white px-4 text-sm text-black hover:bg-[#f3f3f3]';
+  'h-9 rounded-sm border border-[#bcbcbc] bg-background px-4 text-sm text-black hover:bg-[#f3f3f3]';
 
 function formatAmount(value: number): string {
   if (!value) return '';
@@ -229,8 +229,8 @@ export default function SalesReportPage() {
         <div className="flex items-center justify-between border-b border-[#d2d2d2] px-2 py-2">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">←</button>
-              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-white text-sm">→</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">←</button>
+              <button type="button" className="h-7 w-7 border border-[#bcbcbc] bg-background text-sm">→</button>
             </div>
             <span className="text-2xl leading-none text-[#c3c3c3]">☆</span>
             <h1 className="text-[18px] font-medium text-black">Отчет по продажам</h1>
@@ -254,20 +254,20 @@ export default function SalesReportPage() {
               type="date"
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white shadow-none focus-visible:ring-0"
+              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">по:</span>
             <Input
               type="date"
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
-              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-white shadow-none focus-visible:ring-0"
+              className="h-9 w-[150px] rounded-none border border-[#bcbcbc] bg-background shadow-none focus-visible:ring-0"
             />
             <span className="text-sm">Склад:</span>
             <select
               value={warehouseId}
               onChange={(event) => setWarehouseId(event.target.value)}
-              className="h-9 w-[320px] rounded-none border border-[#bcbcbc] bg-white px-2 text-sm"
+              className="h-9 w-[320px] rounded-none border border-[#bcbcbc] bg-background px-2 text-sm"
             >
               <option value=""> </option>
               {warehouses.map((warehouse) => (
@@ -293,8 +293,8 @@ export default function SalesReportPage() {
                 onClick={() => setReportMode(option.id)}
                 className={`h-9 border px-3 text-sm ${
                   reportMode === option.id
-                    ? 'border-[#76b46f] bg-[#eef9ee] text-[#198f38]'
-                    : 'border-[#bcbcbc] bg-white'
+                    ? 'border-[#76b46f] bg-emerald-50 dark:bg-emerald-950 text-[#198f38]'
+                    : 'border-[#bcbcbc] bg-background'
                 }`}
               >
                 {option.label}
@@ -343,7 +343,7 @@ export default function SalesReportPage() {
                   return (
                     <Fragment key={group.rowKey}>
                       <tr
-                        className="bg-white hover:bg-[#fbf7da]"
+                        className="bg-background hover:bg-[#fbf7da]"
                         onClick={() => setSelectedRowKey(group.rowKey)}
                       >
                         <td className={`border border-[#bdbdbd] px-2 py-1 text-center ${groupSelectedClassName}`}>
@@ -353,7 +353,7 @@ export default function SalesReportPage() {
                               event.stopPropagation();
                               toggleExpanded(group.rowKey);
                             }}
-                            className="inline-flex h-5 w-5 items-center justify-center border border-[#ababab] bg-white text-[12px] leading-none"
+                            className="inline-flex h-5 w-5 items-center justify-center border border-[#ababab] bg-background text-[12px] leading-none"
                           >
                             {isExpanded ? '−' : '+'}
                           </button>
@@ -390,7 +390,7 @@ export default function SalesReportPage() {
                             return (
                               <tr
                                 key={child.rowKey}
-                                className="bg-white hover:bg-[#fbf7da]"
+                                className="bg-background hover:bg-[#fbf7da]"
                                 onClick={() => setSelectedRowKey(child.rowKey)}
                                 onDoubleClick={() => router.push(`/documents/sales/${child.documentId}`)}
                               >

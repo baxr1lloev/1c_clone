@@ -7,7 +7,7 @@ interface PrintLayoutProps {
 
 export function PrintLayout({ children, title }: PrintLayoutProps) {
     return (
-        <div className="print-container bg-white text-black font-serif text-[12px] leading-tight p-8 max-w-[210mm] mx-auto min-h-[297mm]">
+        <div className="print-container bg-background text-black font-serif text-[12px] leading-tight p-8 max-w-[210mm] mx-auto min-h-[297mm]">
             <style jsx global>{`
                 @media print {
                     @page { margin: 10mm; }
